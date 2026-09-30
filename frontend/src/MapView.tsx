@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -71,6 +72,7 @@ export default function MapView(props: {
   const projection = useMemo(() => ({ type: globe ? "globe" : "mercator" }), [globe]);
   const [tip, setTip] = useState<Tip | null>(null);
   const [loaded, setLoaded] = useState(false);   // the map's style is loaded: the site layers can be added
+  const [ready, setReady] = useState(false);     // outlines and sites are drawn: the loading message goes
   const hovered = useRef<number | string | null>(null);
 
   useEffect(() => { fetch("/ne_50m_admin_0_countries.geojson").then((r) => r.json()).then(setWorld); }, []);
@@ -134,6 +136,10 @@ export default function MapView(props: {
       m.addImage(id, countImage(id.slice(COUNT.length), ratio), { pixelRatio: ratio });
     });
     setLoaded(true);
+  };
+  const onIdle = () => {
+    const m = map.current?.getMap();
+    if (!ready && world && m?.getSource("sites") && m.isSourceLoaded("countries") && m.isSourceLoaded("sites")) setReady(true);
   };
 
   // Move the map when the selection asks for it; jump instead of flying when motion is reduced.
@@ -202,7 +208,7 @@ export default function MapView(props: {
              projection={projection} renderWorldCopies={false} maxPitch={60}
              interactiveLayerIds={INTERACTIVE} cursor={tip ? "pointer" : "grab"}
              onMouseMove={onMove} onMouseLeave={() => { setHover(null); setTip(null); }} onClick={onClick}
-             onLoad={onLoad}
+             onLoad={onLoad} onIdle={onIdle}
              style={{ width: "100%", height: "100%" }} attributionControl={{ compact: true }}>
           {/* Mounted from the start (empty until the file arrives), so the land layers are always added first,
               under the sites; mounted later, they were added on top and hid some clusters. */}
@@ -263,6 +269,13 @@ export default function MapView(props: {
           </>}
           <NavigationControl position="top-right" visualizePitch />
         </Map>
+
+        {!ready && (
+          <Box data-testid="map-loading" role="status" sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 1.5, bgcolor: "rgba(246, 247, 245, 0.92)", zIndex: 1 }}>
+            <CircularProgress size={20} aria-hidden="true" />
+            <Typography variant="body2">Loading map…</Typography>
+          </Box>
+        )}
 
         <Paper variant="outlined" sx={{ position: "absolute", top: 8, left: 8, p: 1, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, maxWidth: "calc(100% - 70px)" }}>
           <FormControlLabel sx={{ m: 0, mr: 1 }} control={<Switch size="small" checked={showAll} onChange={(e) => props.onShowAll(e.target.checked)} />}
