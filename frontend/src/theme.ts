@@ -40,6 +40,8 @@ export const theme = createTheme({
   },
   components: {
     MuiCard: { defaultProps: { variant: "outlined" } },
+    // One visible keyboard focus for every MUI clickable element (buttons, cards, list rows, tabs, chips).
+    MuiButtonBase: { styleOverrides: { root: { "&.Mui-focusVisible": { outline: "2px solid #1F3A5F", outlineOffset: 2 } } } },
     MuiPaper: { styleOverrides: { root: { backgroundImage: "none" } } },
     MuiButton: { defaultProps: { disableElevation: true } },
     MuiTab: { styleOverrides: { root: { textTransform: "none", fontWeight: 600, fontSize: 15 } } },
