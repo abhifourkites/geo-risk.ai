@@ -69,7 +69,9 @@ def prepare_sites(rows: list[dict], lists: list[str], current: list[str], as_of:
 
 def load_customer(conn: psycopg.Connection, customer_id: str, name: str, raw: bytes,
                   lists: list[str], current: list[str], as_of: datetime.date | None = None) -> dict:
-    """Replace this company's sites and owners in one transaction."""
+    """Replace this company's sites, owners and GLEIF candidates in one transaction."""
+    from . import gleif   # imported here to avoid a cycle
+
     as_of = as_of or datetime.date.today()
     sites = prepare_sites(read_rows(raw), lists, current, as_of)
     with conn.transaction():
@@ -86,7 +88,8 @@ def load_customer(conn: psycopg.Connection, customer_id: str, name: str, raw: by
                   s["workers_est"], s["list_names"], s["warnings"]) for s in sites])
             cur.executemany("INSERT INTO site_owner (customer_id, os_id, owner_name) VALUES (%s, %s, %s)",
                             [(customer_id, s["os_id"], o) for s in sites for o in s["owners"]])
-    return {"customer_id": customer_id, "open_sites": len(sites), "as_of": as_of.isoformat()}
+            matches = gleif.link_customer(cur, customer_id)
+    return {"customer_id": customer_id, "open_sites": len(sites), "gleif_matches": matches, "as_of": as_of.isoformat()}
 
 
 def seed_demo(conn: psycopg.Connection) -> list[dict]:
