@@ -1,8 +1,10 @@
 """ARCHITECTURE.md section 8, from the committed demo data. The live hazard row (5 / 3 / 0 / 0, 30 Sep 2026)
 and certificate warning counts (they depend on the run date) are deliberately not tested here."""
+import json
+
 import pytest
 
-from app import measures
+from app import loader, measures
 
 DEMO = {
     # customer: open sites, basis, largest country (code, % 1 dp), countries at High
@@ -58,3 +60,23 @@ def test_no_stored_table_has_a_claim_column(conn):
         cur.execute("""SELECT table_name, column_name FROM information_schema.columns
                        WHERE table_schema = 'public' AND column_name ILIKE 'claim%'""")
         assert cur.fetchall() == []
+
+
+def test_adidas_list_counts(conn):
+    """DECISIONS.md #8: counted once per site, by its first list: 438 / 194 / 134. Per list: 438 / 195 / 136,
+    because 3 sites are on two lists."""
+    lists = {c["customer_id"]: c for c in json.loads((loader.DEMO_DIR / "demo_companies.json").read_text())}["adidas"]["current_lists"]
+    kinds = ("Primary", "Licensee", "Wet Process Suppliers")
+    name = {k: next(x for x in lists if f"-{k}-" in x) for k in kinds}
+    with conn.cursor() as cur:
+        cur.execute("""SELECT split_part(list_names, ' | ', 1) AS l, count(*) AS n
+                       FROM site WHERE customer_id = 'adidas' GROUP BY 1""")
+        first = {r["l"]: r["n"] for r in cur.fetchall()}
+        cur.execute("""SELECT l, count(*) AS n FROM site, unnest(string_to_array(list_names, ' | ')) AS l
+                       WHERE customer_id = 'adidas' GROUP BY 1""")
+        per_list = {r["l"]: r["n"] for r in cur.fetchall()}
+        cur.execute("SELECT count(*) AS n FROM site WHERE customer_id = 'adidas' AND list_names LIKE '% | %'")
+        on_two = cur.fetchone()["n"]
+    assert [first[name[k]] for k in kinds] == [438, 194, 134]
+    assert [per_list[name[k]] for k in kinds] == [438, 195, 136]
+    assert on_two == 3
