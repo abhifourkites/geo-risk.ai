@@ -2,11 +2,13 @@
 import json
 
 import psycopg
+from babel import Locale
 
 from . import hazards
 
 BASIS_THRESHOLD = 0.90          # workers are the basis when known for >= 90% of open sites
 HAZARD_LEVEL = {"Red": "High", "Orange": "High", "Green": "Watch"}
+_TERRITORIES = Locale("en").territories
 
 
 def level(share: float, high: float, watch: float) -> str | None:
@@ -82,37 +84,44 @@ def hazard_areas(cur: psycopg.Cursor) -> list[dict]:
                             "alert_level": r["alert_level"]}} for r in cur.fetchall()]
 
 
-def _plural(n: int, word: str) -> str:
-    return f"{n} {word}" + ("" if n == 1 else "s")
+def country_name(code: str | None) -> str:
+    """Full English country name (CLDR, the same data the browser's Intl.DisplayNames uses)."""
+    return _TERRITORIES.get(code, code) if code else "Unknown country"
+
+
+def _companies(n: int) -> str:
+    return f"{n} owner {'company' if n == 1 else 'companies'}"
 
 
 def sentence(cov: dict, countries: list[dict], owners: list[dict], hz_state: str, hz_sites: list[dict]) -> str:
-    """The one-sentence summary for the CPO (example: ARCHITECTURE_detailed.md, Appendix C.3)."""
-    high = [x["country_code"] for x in countries if x["level"] == "High"]
+    """The one-sentence summary for the CPO, in the screen's plain words. Its numbers follow the example in
+    ARCHITECTURE_detailed.md, Appendix C.3."""
+    high = [country_name(x["country_code"]) for x in countries if x["level"] == "High"]
     n_watch = sum(1 for x in countries if x["level"] == "Watch")
     parts = []
     lead = (f"{len(high)} {'country' if len(high) == 1 else 'countries'} at High ({', '.join(high)})" if high
-            else "no countries at High")
-    basis = ("estimated workers" if cov["basis"] == "workers"
+            else "No countries at High")
+    basis = ("your suppliers' workers" if cov["basis"] == "workers"
              else f"sites (workers known for {cov['workers_known']['known']} of {cov['open_sites']})")
-    parts.append(f"{lead} and {n_watch} at Watch by share of {basis}")
+    parts.append(f"{lead} and {n_watch} at Watch, by share of {basis}")
     o_high = sum(1 for o in owners if o["level"] == "High")
     o_watch = sum(1 for o in owners if o["level"] == "Watch")
     if o_high or o_watch:
-        bits = ([f"{_plural(o_high, 'owner')} at High"] if o_high else []) + \
-               ([f"{o_watch} at Watch" if o_high else f"{_plural(o_watch, 'owner')} at Watch"] if o_watch else [])
+        bits = ([f"{_companies(o_high)} at High"] if o_high else []) + \
+               ([f"{o_watch} at Watch" if o_high else f"{_companies(o_watch)} at Watch"] if o_watch else [])
         parts.append(" and ".join(bits))
     else:
         parts.append(f"owner known for {cov['owner_known']['known']} of {cov['open_sites']} sites")
     if hz_state != "ok":
-        parts.append("hazard data unavailable" if hz_state == "unavailable" else "hazard data loading")
+        parts.append("disaster data unavailable" if hz_state == "unavailable" else "checking for current disasters")
     else:
         inside = {s["os_id"] for s in hz_sites}
         if inside:
-            levels = sorted({s["alert_level"] for s in hz_sites}, key=["Red", "Orange", "Green"].index)
-            parts.append(f"{_plural(len(inside), 'open site')} inside current GDACS {' and '.join(levels)} areas")
+            levels = [a for a in ("Red", "Orange", "Green") if any(s["alert_level"] == a for s in hz_sites)]
+            parts.append(f"{len(inside)} of your sites {'is' if len(inside) == 1 else 'are'} inside current "
+                         f"disaster areas (alert: {', '.join(levels)})")
         else:
-            parts.append("no sites inside current hazard areas")
+            parts.append("none of your sites is inside a current disaster area")
     return "; ".join(parts) + "."
 
 

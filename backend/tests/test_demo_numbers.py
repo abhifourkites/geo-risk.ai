@@ -49,8 +49,8 @@ def test_thresholds_are_request_parameters(conn):
 def test_samsung_sentence_follows_appendix_c3(conn, hazard_status):
     hazard_status.update(state="ok")
     assert measures.view(conn, "samsung")["sentence"] == (
-        "4 countries at High (KR, US, VN, CN) and 2 at Watch by share of sites (workers known for 4 of 187); "
-        "owner known for 187 of 187 sites; no sites inside current hazard areas.")
+        "4 countries at High (South Korea, United States, Vietnam, China) and 2 at Watch, by share of sites "
+        "(workers known for 4 of 187); owner known for 187 of 187 sites; none of your sites is inside a current disaster area.")
 
 
 def test_no_stored_table_has_a_claim_column(conn):

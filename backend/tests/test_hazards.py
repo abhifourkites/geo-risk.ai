@@ -98,7 +98,7 @@ def test_hazard_levels_r9(conn, clean_hazards, hazard_status):
     v = measures.view(conn, "adidas")
     site = next(s for s in v["sites"] if s["os_id"] == SITE[1])
     assert site["hazard_level"] == "High"                    # the highest level wins
-    assert v["sentence"].endswith("1 open site inside current GDACS Orange and Green areas.")
+    assert v["sentence"].endswith("1 of your sites is inside current disaster areas (alert: Orange, Green).")
     assert measures.hazard_sites(conn.cursor(), "apple") == []
 
 
@@ -220,5 +220,5 @@ def test_gdacs_unreachable_keeps_the_app_working(conn, clean_hazards, hazard_sta
         cur.execute("SELECT count(*) AS n FROM hazard_area")
         assert cur.fetchone()["n"] == 1                                    # stored data left as it was
     v = measures.view(conn, "adidas")
-    assert v["sentence"].endswith("hazard data unavailable.")
+    assert v["sentence"].endswith("disaster data unavailable.")
     assert v["coverage"]["open_sites"] == 766                              # the rest of the view still works

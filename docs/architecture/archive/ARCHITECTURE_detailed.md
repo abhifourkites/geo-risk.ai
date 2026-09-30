@@ -599,8 +599,8 @@ The GDACS fixture has labels but no shapes, so the point-in-area step cannot be 
 - adidas–Apple and Nike–Apple share 1 owner name each.
 
 **Example CPO sentences** (country level; hazards from the 2026-09-30 GDACS fixture, and for Samsung from the one-time GDACS check in Appendix B):
-- adidas: "3 countries at High (VN, ID, CN) and 3 at Watch by share of estimated workers; 2 owners at Watch; 5 open sites inside current GDACS Green areas."
-- Samsung: "4 countries at High (KR, US, VN, CN) and 2 at Watch by share of sites (workers known for 4 of 187); owner known for 187 of 187 sites; no sites inside current hazard areas."
+- adidas: "3 countries at High (Vietnam, Indonesia, China) and 3 at Watch, by share of your suppliers' workers; 2 owner companies at Watch; 5 of your sites are inside current disaster areas (alert: Green)."
+- Samsung: "4 countries at High (South Korea, United States, Vietnam, China) and 2 at Watch, by share of sites (workers known for 4 of 187); owner known for 187 of 187 sites; none of your sites is inside a current disaster area."
 
 ---
 
