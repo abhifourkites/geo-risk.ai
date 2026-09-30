@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import AnswerCards from "./Cards";
 import type { OwnerShare } from "./api";
-import { plainSentence, type SummaryInput } from "./summary";
+import type { SummaryInput } from "./summary";
 
 // adidas, as GET /api/customers/adidas/view returned it on 30 Sep 2026: only the fields the cards read.
 // The disaster sites are the 5 sites in flood FL1104183 on that day (live data; not read from GDACS here).
@@ -71,16 +71,5 @@ describe("cards with nothing to report say so", () => {
     expect(o).toContain("No owner holds 5% or more");
     expect(o).toContain("Largest: POU CHEN, 9 sites (7.4%)");
     expect(d).toContain("None of your sites is inside a current disaster area");
-  });
-});
-
-describe("the CPO sentence", () => {
-  it("uses plain words and the same numbers as the backend sentence", () => {
-    const backend = "3 countries at High (VN, ID, CN) and 3 at Watch by share of estimated workers; 2 owners at Watch; 5 open sites inside current GDACS Green areas.";
-    const plain = plainSentence(adidas);
-    expect(plain).toBe("3 countries at High (Vietnam, Indonesia, China) and 3 at Watch, by share of your suppliers' workers; "
-      + "2 owner companies at Watch; 5 of your sites are inside current disaster areas (alert: Green).");
-    const numbers = (s: string) => s.match(/\d+(\.\d+)?/g);
-    expect(numbers(plain)).toEqual(numbers(backend));
   });
 });

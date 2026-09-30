@@ -1,6 +1,5 @@
-/** The CPO sentence and the three answer cards, in plain words, from the numbers the API returns.
- *  The backend's `sentence` field says the same with the same numbers; this one uses the screen's words
- *  (full country names, "your suppliers' workers", "disaster area"). */
+/** The three answer cards, in plain words, from the numbers the API returns.
+ *  The one-sentence summary comes from the backend (`sentence` in the view). */
 import type { CountryShare, HazardSite, OwnerShare, View } from "./api";
 import { countryName, pct, plural, threshold } from "./format";
 
@@ -18,37 +17,6 @@ export function disasterEvents(sites: HazardSite[]) {
     m.set(h.event_id, e);
   }
   return [...m.values()].sort((a, b) => b.sites.size - a.sites.size || a.name.localeCompare(b.name));
-}
-
-export function plainSentence(v: SummaryInput): string {
-  const cov = v.coverage;
-  const high = v.countries.filter((c) => c.level === "High").map((c) => countryName(c.country_code));
-  const nWatch = v.countries.filter((c) => c.level === "Watch").length;
-  const lead = high.length ? `${plural(high.length, "country", "countries")} at High (${high.join(", ")})` : "No countries at High";
-  const basis = cov.basis === "workers" ? "your suppliers' workers"
-    : `sites (workers known for ${cov.workers_known.known} of ${cov.open_sites})`;
-  const parts = [`${lead} and ${nWatch} at Watch, by share of ${basis}`];
-  const { at_high: oh, at_watch: ow } = v.owners;
-  if (oh || ow) {
-    parts.push([oh ? `${plural(oh, "owner company", "owner companies")} at High` : "",
-                ow ? (oh ? `${ow} at Watch` : `${plural(ow, "owner company", "owner companies")} at Watch`) : ""]
-      .filter(Boolean).join(" and "));
-  } else {
-    parts.push(`owner known for ${cov.owner_known.known} of ${cov.open_sites} sites`);
-  }
-  const st = v.hazards.status.state;
-  if (st !== "ok") {
-    parts.push(st === "unavailable" ? "disaster data unavailable" : "checking for current disasters");
-  } else {
-    const inside = new Set(v.hazards.sites.map((s) => s.os_id));
-    if (inside.size) {
-      const levels = ["Red", "Orange", "Green"].filter((l) => v.hazards.sites.some((s) => s.alert_level === l));
-      parts.push(`${inside.size} of your sites ${inside.size === 1 ? "is" : "are"} inside current disaster areas (alert: ${levels.join(", ")})`);
-    } else {
-      parts.push("none of your sites is inside a current disaster area");
-    }
-  }
-  return parts.join("; ") + ".";
 }
 
 export interface CardItem { key: string; label: string; value: string; level: string | null }

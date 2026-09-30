@@ -5,7 +5,6 @@ import AnswerCards, { type CardKind } from "./Cards";
 import { EVENT_TYPE, plural, threshold, updatedAt } from "./format";
 import MapView from "./MapView";
 import DetailPanel, { type Detail } from "./Panel";
-import { plainSentence } from "./summary";
 import { CountriesTable, OwnersTable } from "./Tables";
 import Upload from "./Upload";
 
@@ -125,7 +124,7 @@ export default function App() {
         <main>
           <section className="summary">
             <p className="small">{view.customer.name} · {plural(view.coverage.open_sites, "site", "sites")} on your current lists</p>
-            <p className="sentence">{plainSentence(view)}</p>
+            <p className="sentence">{view.sentence}</p>
           </section>
 
           <AnswerCards view={view} high={high} watch={watch} active={detail?.kind === "card" ? detail.card : null} onOpen={openCard} />
