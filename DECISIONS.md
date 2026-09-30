@@ -155,7 +155,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - **Product grouping.** Product words are shown only as information, labelled "reported by any contributor".
   - **Supplier-to-supplier links.**
   - **Tier labels.** Each list's own name is shown instead:
-    - adidas: Primary (438 sites), Licensee (194), Wet Process Suppliers (134);
+    - adidas: Primary (438 sites), Licensee (194), Wet Process Suppliers (134) (each site counted once, by its first list; 3 sites are on two lists, so per list the counts are 438 / 195 / 136);
     - Nike: February 2024 Facility List;
     - Apple: Apple 2019 Facility List;
     - Samsung: Samsung 2021 Facility List.
