@@ -35,9 +35,11 @@ const adidas: SummaryInput = {
 
 /** The text a reader sees, one space between elements. */
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ").trim();
+// Each card is marked data-card="…"; MUI's inline <style> tags are removed first.
 const cards = (v: SummaryInput) =>
-  [...renderToStaticMarkup(<AnswerCards view={v} high={10} watch={5} active={null} onOpen={() => {}} />)
-    .matchAll(/<button[^>]*class="card"[^>]*>([\s\S]*?)<\/button>/g)].map((m) => text(m[1]));
+  renderToStaticMarkup(<AnswerCards view={v} high={10} watch={5} active={null} onOpen={() => {}} />)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/g, "")
+    .split('data-card="').slice(1).map((chunk) => text(chunk.slice(chunk.indexOf(">") + 1)));
 
 describe("answer cards, adidas", () => {
   const [countries, ownersCard, disasters] = cards(adidas);
