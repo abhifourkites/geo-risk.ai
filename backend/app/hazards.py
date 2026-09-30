@@ -10,14 +10,22 @@ import re
 import httpx
 import psycopg
 
-EVENT_LIST = ("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC;FL;EQ;VO;DR;WF"
+EVENT_LIST = ("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={type}"
               "&fromdate={fromdate}&todate={todate}&alertlevel=green;orange;red&pagesize=100&pagenumber={page}")
+# One list read per type. The list is sorted by todate only, and many events share a todate, so the
+# order of tied events changes from page to page: events repeat across pages and others are skipped.
+# Read with all six types at once (1,844 rows, 30 Sep 2026), 17 events repeated and current droughts
+# were missing, e.g. DR1015915. Read per type, TC, FL, VO and DR fit on one page and EQ repeated
+# nothing; WF (13 pages) still repeats rows (24 in a read at 09:44 UTC), so WF events can still be missed.
+# If every row of a type is distinct, no event of that type was skipped.
+EVENT_TYPES = ("TC", "FL", "EQ", "VO", "DR", "WF")
 EVENT_AREAS = "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype={type}&eventid={id}&episodeid={episode}"
 MAX_PAGES = 100          # safety stop; paging normally ends when a page has fewer than 100 events
 PARALLEL = 6             # at most 6 area requests at once
 
 # The last refresh result in this backend process: loading, ok or unavailable.
-STATUS: dict = {"state": "loading", "at": None, "current_events": None, "areas": None, "error": None}
+STATUS: dict = {"state": "loading", "at": None, "current_events": None, "areas": None, "error": None,
+                "repeated_rows": None}
 
 TC_AFFECTED = {("Poly_Green", "60 km/h"), ("Poly_Orange", "90 km/h"), ("Poly_Red", "120 km/h")}
 
@@ -45,26 +53,35 @@ def affected_features(event_type: str, collection: dict) -> list[dict]:
             and is_affected(event_type, f["properties"].get("Class"), f["properties"].get("polygonlabel"))]
 
 
-async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) -> dict[str, dict]:
-    """All current events in the window (today minus 30 days .. today), one row per event."""
+async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) -> tuple[dict[str, dict], int]:
+    """All current events in the window (today minus 30 days .. today), one row per event, read type by type.
+    Also returns how many rows repeated a row already read for that type: each repeat means GDACS's
+    paging may have skipped one event."""
     events: dict[str, dict] = {}
+    repeated = 0
     fromdate = (today - datetime.timedelta(days=30)).isoformat()
-    for page in range(1, MAX_PAGES + 1):
-        r = await client.get(EVENT_LIST.format(fromdate=fromdate, todate=today.isoformat(), page=page))
-        r.raise_for_status()
-        features = r.json().get("features", [])
-        for f in features:
-            p = f["properties"]
-            if str(p.get("iscurrent")).lower() != "true":
-                continue
-            event_id = f"{p['eventtype']}{p['eventid']}"
-            if event_id not in events or int(p["episodeid"]) > events[event_id]["episode_id"]:
-                events[event_id] = {"event_id": event_id, "event_type": p["eventtype"], "gdacs_id": p["eventid"],
-                                    "episode_id": int(p["episodeid"]), "alert_level": p.get("alertlevel"),
-                                    "name": p.get("name"), "date_modified": p.get("datemodified")}
-        if len(features) < 100:
-            break
-    return events
+    for event_type in EVENT_TYPES:
+        seen: set[tuple[str, str]] = set()
+        for page in range(1, MAX_PAGES + 1):
+            r = await client.get(EVENT_LIST.format(type=event_type, fromdate=fromdate, todate=today.isoformat(), page=page))
+            r.raise_for_status()
+            features = r.json().get("features", [])
+            for f in features:
+                p = f["properties"]
+                row = (str(p["eventid"]), str(p["episodeid"]))
+                if row in seen:
+                    repeated += 1
+                seen.add(row)
+                if str(p.get("iscurrent")).lower() != "true":
+                    continue
+                event_id = f"{p['eventtype']}{p['eventid']}"
+                if event_id not in events or int(p["episodeid"]) > events[event_id]["episode_id"]:
+                    events[event_id] = {"event_id": event_id, "event_type": p["eventtype"], "gdacs_id": p["eventid"],
+                                        "episode_id": int(p["episodeid"]), "alert_level": p.get("alertlevel"),
+                                        "name": p.get("name"), "date_modified": p.get("datemodified")}
+            if len(features) < 100:
+                break
+    return events, repeated
 
 
 async def refresh(conn: psycopg.Connection, today: datetime.date | None = None) -> dict:
@@ -73,7 +90,7 @@ async def refresh(conn: psycopg.Connection, today: datetime.date | None = None) 
     today = today or datetime.date.today()
     try:
         async with httpx.AsyncClient(timeout=60) as client:
-            events = await fetch_current_events(client, today)
+            events, repeated = await fetch_current_events(client, today)
             with conn.cursor() as cur:
                 cur.execute("SELECT event_id, episode_id, date_modified FROM hazard_event")
                 stored = {r["event_id"]: (r["episode_id"], r["date_modified"]) for r in cur.fetchall()}
@@ -109,5 +126,6 @@ async def refresh(conn: psycopg.Connection, today: datetime.date | None = None) 
         cur.execute("SELECT count(*) AS n FROM hazard_area a JOIN hazard_event e USING (event_id) WHERE e.is_current")
         n_areas = cur.fetchone()["n"]
     STATUS.update(state="ok", at=datetime.datetime.now().isoformat(timespec="seconds"),
-                  current_events=len(events), areas=n_areas, fetched=len(fetched), error=None)
+                  current_events=len(events), areas=n_areas, fetched=len(fetched), error=None,
+                  repeated_rows=repeated)
     return dict(STATUS)

@@ -39,7 +39,7 @@ The demo uses the public supplier lists of **adidas, Nike, Apple and Samsung** f
 
 ## 4. What works
 
-Only features tested on the final build. Tests: `backend/tests/` (50, pytest). The screen was checked in headless Chrome with a script that is not in the repo.
+Only features tested on the final build. Tests: `backend/tests/` (52, pytest). The screen was checked in headless Chrome with a script that is not in the repo.
 
 | Feature | Tested by |
 |---|---|
@@ -49,7 +49,7 @@ Only features tested on the final build. Tests: `backend/tests/` (50, pytest). T
 | Owner shares; owners with all their sites in one country | `test_largest_owner_on_the_share_basis`; `test_routes` |
 | One-sentence summary, and every number with its base | `test_samsung_sentence_follows_appendix_c3`; `test_every_number_has_its_base`; `test_hazard_levels_r9` |
 | GLEIF candidates (adidas and Nike only) and parents, shown only after a "yes" verdict in the CSV | `test_gleif.py` |
-| GDACS refresh: paging, 30-day window, all alert levels, affected areas only (R8), refetch only changed events | `test_hazards.py`, with a mocked GDACS. One live refresh from the clean clone on 30 Sep 2026: 241 current events, 394 affected areas |
+| GDACS refresh: one list read per event type, paging, 30-day window, all alert levels, affected areas only (R8), refetch only changed events; rows GDACS repeats across pages are counted and shown | `test_hazards.py`, with a mocked GDACS, including a drought the all-types list skips (`test_a_drought_skipped_by_the_all_types_list_is_still_found`). Live, 30 Sep 2026: 251 current events, 404 affected areas; adidas 5 and Nike 3 sites inside, the same sites and episodes as an independent check |
 | Disaster levels (Orange / Red → High, Green → Watch), and event → sites → owners → those owners' other sites | `test_hazard_levels_r9`; `test_hazard_multi_hop` |
 | GDACS unreachable: "Hazard data unavailable", and the rest keeps working | `test_gdacs_unreachable_keeps_the_app_working`; in the browser, with `www.gdacs.org` blocked in the backend container |
 | Upload: file in → list strings with site counts → pick lists, mark current → load. One company's upload changes only that company | `test_api_upload.py`; in the browser (the Samsung file loaded as a new company) |
@@ -76,6 +76,7 @@ Raw-material tracing needs the company's own supplier data: supplier, location, 
 - **Owner names are not merged by spelling.** Nike's 3 "SHAHI" sites and adidas's 4 "SHAHI EXPORTS" sites count as different owners.
 - **Lists are dated:** Apple 2019, Samsung 2021, Nike February 2024 (adidas January and April 2026).
 - **GDACS alerts are automatic** and not reviewed by people. Confirm them before making decisions. Source: Global Disaster Awareness and Coordination System, GDACS.
+- **GDACS's event list can skip events.** Its pages are sorted only by end date, and many events share one, so rows repeat across pages and other events are left out. The app reads each event type separately. On 30 Sep 2026 that was complete for every type except wildfires, whose list repeated 24 rows. The GDACS notice says how many events may be missing.
 - **Small countries have no outline** on the 1:110m map: MT, SG, MU, HK and MC in the demo data. Their sites still show as dots, and the screen names any of them at High or Watch (Samsung: SG, Watch).
 - **Parent names show as written in GLEIF's file**, in upper case (for example COATS GROUP PLC).
 

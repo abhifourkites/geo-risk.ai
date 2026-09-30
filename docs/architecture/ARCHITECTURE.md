@@ -119,6 +119,7 @@ A site is inside a disaster area when its point lies in a current event's `hazar
 - Spatial indexes on `site.location` and `hazard_area.area`.
 - A site's disaster level comes from its **event's** alert level: Orange or Red means High, Green means Watch. It does not come from the colour of a cyclone's wind-speed band.
 - Map areas are simplified, and their rings are turned clockwise, for drawing only. The inside check uses the stored shapes.
+- The GDACS event list is read **once per event type**: the same call, with one type in `eventlist`. Its pages are sorted only by end date, and many events share one, so a read of all six types at once repeats some events and skips others. On 30 Sep 2026 that read missed 12 current events: 11 wildfires, and the drought DR1015915 that holds Nike's site BR2019085Q71GZV. Read per type, only the wildfire list (13 pages) still repeats rows. The refresh counts the repeats, and the screen says how many events may be missing.
 - GLEIF files are read again, and GDACS is refreshed once in the background, on every backend start. If the last refresh failed, stored areas stay in the database but are not shown or counted; the screen says "Hazard data unavailable".
 
 ---

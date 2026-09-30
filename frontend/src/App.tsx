@@ -133,6 +133,10 @@ export default function App() {
                 <b>Disaster data:</b> Global Disaster Awareness and Coordination System, GDACS. Alerts are automatic,
                 not reviewed by people. Confirm them before making decisions.{" "}
                 {hz.state === "ok" && <>Last refresh {hz.at}: {hz.current_events} current events, {hz.areas} affected areas.{" "}</>}
+                {hz.state === "ok" && !!hz.repeated_rows && (
+                  <>GDACS's event list repeated {hz.repeated_rows} rows across its pages, so up to {hz.repeated_rows} events
+                    may be missing.{" "}</>
+                )}
                 {hz.state === "loading" && <b>Hazard data loading… </b>}
                 {hz.state === "unavailable" && <b>Hazard data unavailable. </b>}
                 <button onClick={refreshHazards} disabled={refreshing}>{refreshing ? "Refreshing…" : "Refresh from GDACS"}</button>

@@ -14,7 +14,10 @@ export interface SiteDot {
   warnings: string[]; owners: string[]; hazard_level: Level;
 }
 export interface HazardSite { os_id: string; name: string; country_code: string | null; event_id: string; event_name: string; alert_level: string; level: Level }
-export interface HazardStatus { state: "loading" | "ok" | "unavailable"; at: string | null; current_events: number | null; areas: number | null; error: string | null }
+export interface HazardStatus {
+  state: "loading" | "ok" | "unavailable"; at: string | null; current_events: number | null; areas: number | null;
+  error: string | null; repeated_rows: number | null;
+}
 export interface View {
   customer: { customer_id: string; name: string };
   thresholds: { high: number; watch: number };

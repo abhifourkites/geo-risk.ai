@@ -4,7 +4,7 @@
 
 The brief (Section 7.1): "Where your coding agents were confidently wrong, and how you caught it. Two or three specific incidents is plenty. Generic observations about hallucination tell us nothing."
 
-Incidents 1–3 were caught during planning, and incidents 4–6 during the build.
+Incidents 1–3 were caught during planning, incidents 4–6 during the build, and incident 7 by an independent check after the build.
 
 ---
 
@@ -42,7 +42,13 @@ Incidents 1–3 were caught during planning, and incidents 4–6 during the buil
 
 - **What the tool claimed:** the stack started with `docker compose up`. It had only been run against a database that already existed.
 - **How we caught it:** we ran `docker compose up` in a fresh clone with an empty database volume. The backend exited: "connection to server at "172.25.0.2", port 5432 failed: Connection refused". On a new volume, the PostGIS image first runs a temporary server that listens only on the Unix socket. The healthcheck asked over that socket and reported the database ready too early.
-- **What was done:** the healthcheck now asks over TCP (`pg_isready -h 127.0.0.1`). From a fresh clone and an empty volume, the stack starts and the 50 tests pass.
+- **What was done:** the healthcheck now asks over TCP (`pg_isready -h 127.0.0.1`). From a fresh clone and an empty volume, the stack starts and the tests pass.
+
+## 7. A missing site was put down to live data changing
+
+- **What the tool claimed:** Nike had 2 sites inside current disaster areas, and the earlier count of 3 was a live GDACS change.
+- **How we caught it:** an independent check against live GDACS found Nike 3, with the same flood events and episodes as the app, plus BR2019085Q71GZV inside drought DR1015915, episode 1. In the app's database the drought was stored with `is_current` false: the refresh had not seen it in the event list. GDACS's list read with all six types at once (19 pages) had 1,844 rows but only 1,827 distinct events. Its pages are sorted only by end date, so tied events repeat across pages, and others are on no page. The drought-only list had DR1015915 with `iscurrent` true. That read missed 12 current events in all (11 wildfires and this drought).
+- **What was done:** the refresh reads the list once per event type, and counts rows repeated across pages. Live after the fix: adidas 5 and Nike 3, the same sites and episodes as the independent check. `test_a_drought_skipped_by_the_all_types_list_is_still_found` fails on the old code and passes on the new. Still open: the wildfire list (13 pages) repeated 24 rows, so some wildfires can still be missed. The screen says so.
 
 ---
 
