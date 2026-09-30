@@ -18,7 +18,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import Map, { Layer, NavigationControl, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
 import type { View } from "./api";
 import { countryName, threshold } from "./format";
-import { boundsOf, coordsOf, WORLD, type Focus } from "./geo";
+import { boundsOf, coordsOf, sphericalMean, WORLD, type Focus } from "./geo";
 import { RISK } from "./theme";
 
 setWorkerUrl(workerUrl);
@@ -116,14 +116,22 @@ export default function MapView(props: {
     }),
   }), [areas]);
 
-  // The whole world, pitch 0: the world's bounds on the flat map; a globe that fills the map's height.
-  const resetView = useCallback((asGlobe: boolean) => {
+  // Reset view: the company's sites, pitch 0. Flat map: fit their bounds. Globe: centre on them (the mean
+  // of their positions on the sphere), at a zoom where the globe fills the map's height.
+  const points = useRef<[number, number][]>([]);
+  points.current = sites.features.map((f) => f.geometry.coordinates as [number, number]);
+  const resetView = useCallback((asGlobe: boolean, animate = true) => {
     const m = map.current;
     if (!m) return;
-    const duration = reducedMotion() ? 0 : 1000;
-    if (asGlobe) m.easeTo({ center: [30, 15], zoom: 1.6, pitch: 0, bearing: 0, duration });
-    else m.fitBounds(WORLD, { padding: 10, pitch: 0, bearing: 0, duration });
+    const duration = animate && !reducedMotion() ? 1000 : 0;
+    const pts = points.current;
+    const b = boundsOf(pts);
+    if (asGlobe) m.easeTo({ center: pts.length ? sphericalMean(pts) : [30, 15], zoom: 1.6, pitch: 0, bearing: 0, duration });
+    else m.fitBounds(b ?? WORLD, { padding: 40, maxZoom: 6, pitch: 0, bearing: 0, duration });
   }, []);
+
+  // A new company: fit the map to its sites.
+  useEffect(() => { if (loaded) resetView(globe); }, [view.customer.customer_id]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const onLoad = () => {
     const m = map.current?.getMap();
@@ -136,6 +144,7 @@ export default function MapView(props: {
       m.addImage(id, countImage(id.slice(COUNT.length), ratio), { pixelRatio: ratio });
     });
     setLoaded(true);
+    resetView(false, false);
   };
   const onIdle = () => {
     const m = map.current?.getMap();
@@ -152,8 +161,7 @@ export default function MapView(props: {
       box.current?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" });
     }
     if (focus.kind === "point") m.flyTo({ center: focus.center, zoom: focus.zoom, pitch: focus.pitch, bearing: 0, duration });
-    else if (focus.kind === "bounds") m.fitBounds(focus.bounds, { padding: 60, maxZoom: 7, pitch: 0, bearing: 0, duration });
-    else resetView(globe);
+    else m.fitBounds(focus.bounds, { padding: 60, maxZoom: 7, pitch: 0, bearing: 0, duration });
   }, [focus]);   // eslint-disable-line react-hooks/exhaustive-deps -- only a new focus moves the map
 
   const setHover = (id: number | string | null) => {

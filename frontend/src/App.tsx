@@ -57,7 +57,7 @@ export default function App() {
     catch (e) { setError(String((e as Error).message)); }
   }, [c, high, watch]);
   useEffect(() => { loadView(); }, [loadView]);
-  useEffect(() => { setDetail(null); setFocus({ key: ++focusKey.current, kind: "world" }); }, [c]);
+  useEffect(() => { setDetail(null); }, [c]);   // the map fits itself to the new company's sites
 
   // While the first GDACS check after a backend start is still running, look again every 5 seconds.
   useEffect(() => {

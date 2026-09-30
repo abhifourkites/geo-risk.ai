@@ -7,7 +7,6 @@ export type Bounds = [[number, number], [number, number]];
 export type Focus = (
   | { key: number; kind: "point"; center: [number, number]; zoom: number; pitch: number }
   | { key: number; kind: "bounds"; bounds: Bounds }
-  | { key: number; kind: "world" }
 ) & { scroll?: boolean };
 
 export const WORLD: Bounds = [[-170, -58], [180, 78]];
@@ -18,6 +17,16 @@ export function boundsOf(points: [number, number][]): Bounds | null {
   let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
   for (const [x, y] of points) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
   return [[x0, y0], [x1, y1]];
+}
+
+/** The centre of a set of [lng, lat] points on the sphere (the mean of their unit vectors), for the globe view. */
+export function sphericalMean(points: [number, number][]): [number, number] {
+  let [x, y, z] = [0, 0, 0];
+  for (const [lng, lat] of points) {
+    const l = (lng * Math.PI) / 180, p = (lat * Math.PI) / 180;
+    x += Math.cos(p) * Math.cos(l); y += Math.cos(p) * Math.sin(l); z += Math.sin(p);
+  }
+  return [(Math.atan2(y, x) * 180) / Math.PI, (Math.atan2(z, Math.hypot(x, y)) * 180) / Math.PI];
 }
 
 /** Every [lng, lat] of a (Multi)Polygon or other geometry. */
