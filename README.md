@@ -39,7 +39,7 @@ The demo uses the public supplier lists of **adidas, Nike, Apple and Samsung** f
 
 ## 4. What works
 
-Only features tested on the final build. Tests: `backend/tests/` (57, pytest) and `frontend/src/summary.test.tsx` (5, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
+Only features tested on the final build. Tests: `backend/tests/` (59, pytest) and `frontend/src/summary.test.tsx` (5, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
 
 | Feature | Tested by |
 |---|---|
@@ -51,9 +51,10 @@ Only features tested on the final build. Tests: `backend/tests/` (57, pytest) an
 | GLEIF candidates (adidas and Nike only) and parents, shown only after a "yes" verdict in the CSV | `test_gleif.py` |
 | GDACS refresh: one list read per event type, paging, 30-day window, all alert levels, affected areas only (R8), refetch only changed events; rows GDACS repeats across pages are counted and shown | `test_hazards.py`, with a mocked GDACS, including a drought the all-types list skips (`test_a_drought_skipped_by_the_all_types_list_is_still_found`). Live, 30 Sep 2026: 251 current events, 404 affected areas; adidas 5 and Nike 3 sites inside, the same sites and episodes as an independent check |
 | Disaster levels (Orange / Red → High, Green → Watch), and event → sites → owners → those owners' other sites | `test_hazard_levels_r9`; `test_hazard_multi_hop` |
-| GDACS unreachable: each failed request is tried again after 2 s and 5 s; then "Disaster data unavailable", the error's type and details in the status and the log, and the rest keeps working | `test_gdacs_unreachable_keeps_the_app_working`, `test_a_request_that_fails_once_is_retried_and_the_refresh_succeeds`, `test_a_request_that_always_fails_is_tried_3_times`, `test_a_failed_refresh_reports_the_error_type_and_details`; in the browser, with `www.gdacs.org` blocked in the backend container |
+| GDACS unreachable: each failed request (a network error, a 5xx, 408 or 429; not other 4xx) is tried again after 2 s and 5 s; then "Disaster data unavailable", the error's type and details in the status and the log, and the rest keeps working | `test_gdacs_unreachable_keeps_the_app_working`, `test_a_request_that_fails_once_is_retried_and_the_refresh_succeeds`, `test_a_request_that_always_fails_is_tried_3_times`, `test_a_failed_refresh_reports_the_error_type_and_details`, `test_a_404_is_not_retried`, `test_a_429_is_retried`; in the browser, with `www.gdacs.org` blocked in the backend container |
 | Upload: file in → list strings with site counts → pick lists, mark current → load. One company's upload changes only that company | `test_api_upload.py`; in the browser (the Samsung file loaded as a new company) |
 | Screen: company selector; the one-sentence summary; three answer cards (countries, owner companies, disasters now); an interactive map (MapLibre, no map tiles: countries at High / Watch, clustered sites, disaster areas, fly-to with tilt, flat map or globe); site, owner, disaster and country panels; Countries and Owner companies tables (sortable, searchable, paged); "How these numbers are worked out" and "Source and limits of the data" | `frontend/src/summary.test.tsx` (the three cards with the adidas numbers). Headless Chrome with WebGL at 1440 and 390 px: the map renders; the numbers shown for the 4 companies are the same as the previous screen on the same data; panels, map moves and globe view; keyboard access; reduced motion; the upload flow; no page-level sideways scroll; no console errors. The production build (`npm run build`, then `npm run preview`) renders the map too |
+| Map: "Loading map…" until the outlines and sites are drawn; Reset view fits the company's sites (flat map: their bounds; globe: centred on them); cluster counts on the flat map and the globe, never over single dots at close zoom | Headless Chrome at 1440 px: the message on first load; Reset view for adidas (Southeast Asia in view) and Samsung, flat and globe; counts on the globe; near Istanbul, no count over the flood's dots |
 
 ## 5. What does not work / not built
 
@@ -88,7 +89,6 @@ Needs Docker with Compose. Only committed files are used (`data/demo`, `data/ref
 ```sh
 git clone https://github.com/abhifourkites/geo-risk.ai.git
 cd geo-risk.ai
-git checkout MDM-3/mvp-architecture-docs
 docker compose up
 ```
 
