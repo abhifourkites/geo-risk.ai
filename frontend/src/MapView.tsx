@@ -32,6 +32,7 @@ const BASE_STYLE: StyleSpecification = {
   sources: {},
   layers: [{ id: "water", type: "background", paint: { "background-color": RISK.water } }],
 };
+const EMPTY: World = { type: "FeatureCollection", features: [] };
 const SMALL_AREA_DEG = 3;   // an area narrower than this (about 8 px at world zoom) also gets a ring marker
 const INTERACTIVE = ["selected-ring", "highlight", "site", "clusters", "disaster-ring", "disaster-fill", "land"];
 const SITE_LAYERS = new Set(["selected-ring", "highlight", "site"]);
@@ -185,8 +186,10 @@ export default function MapView(props: {
              onMouseMove={onMove} onMouseLeave={() => { setHover(null); setTip(null); }} onClick={onClick}
              onMoveStart={() => setClusters([])} onIdle={refreshClusters}
              style={{ width: "100%", height: "100%" }} attributionControl={{ compact: true }}>
-          {world && (
-            <Source id="countries" type="geojson" data={world} attribution="Natural Earth">
+          {/* Mounted from the start (empty until the file arrives), so the land layers are always added first,
+              under the sites; mounted later, they were added on top and hid some clusters. */}
+          {(
+            <Source id="countries" type="geojson" data={world ?? EMPTY} attribution="Natural Earth">
               <Layer id="land" type="fill" paint={{
                 "fill-color": ["case", inList(high), RISK.high, inList(watch), RISK.watchFill, RISK.land],
                 "fill-opacity": ["case", inList([...high, ...watch]), 0.55, 1],
