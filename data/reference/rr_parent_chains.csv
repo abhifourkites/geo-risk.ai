@@ -1,0 +1,34 @@
+likely_lei,hop,to_lei,relationship_type,relationship_status,note
+213800RPETDKTYGMQP66,0,,,,no parent-type relationship in the file
+213800TIMLY8NHYC2I61,1,2138003SPYWGAITNFY17,IS_DIRECTLY_CONSOLIDATED_BY,ACTIVE,1 direct parent record(s) at this hop
+213800TIMLY8NHYC2I61,ultimate,2138003SPYWGAITNFY17,IS_ULTIMATELY_CONSOLIDATED_BY,ACTIVE,
+254900C13OP0T2U21288,0,,,,no parent-type relationship in the file
+254900IJ5CIKQUWRVK82,0,,,,no parent-type relationship in the file
+254900UXECELWPPCMF59,0,,,,no parent-type relationship in the file
+254900UYFT8SIXMAUK60,0,,,,no parent-type relationship in the file
+335800B6VWRQKKS8ET90,0,,,,no parent-type relationship in the file
+335800KLZHM57TVMVE51,0,,,,no parent-type relationship in the file
+335800L1XBZGUOB27Z75,0,,,,no parent-type relationship in the file
+335800TJRI6JIU27WG38,0,,,,no parent-type relationship in the file
+335800YEJVLU97Q3AO26,0,,,,no parent-type relationship in the file
+391200G6XHT7VDQ18P07,0,,,,no parent-type relationship in the file
+4469000001E9305R6057,0,,,,no parent-type relationship in the file
+4851007XP81MRKDGOG83,0,,,,no parent-type relationship in the file
+5493005I5BINLWKGQO91,0,,,,no parent-type relationship in the file
+549300GNRRGYURBT4F36,0,,,,no parent-type relationship in the file
+549300V8APX7RQY6KX08,0,,,,no parent-type relationship in the file
+549300X006DP42WTYN30,0,,,,no parent-type relationship in the file
+549300YDGYNJ5OSNWF92,1,549300PW7VPFCYKLIV37,IS_DIRECTLY_CONSOLIDATED_BY,ACTIVE,1 direct parent record(s) at this hop
+549300YDGYNJ5OSNWF92,ultimate,549300PW7VPFCYKLIV37,IS_ULTIMATELY_CONSOLIDATED_BY,ACTIVE,
+65560029PAC6WJFOYY38,0,,,,no parent-type relationship in the file
+655600MUYCKJJ5U0N311,0,,,,no parent-type relationship in the file
+655600NR25VCW1L3DZ64,0,,,,no parent-type relationship in the file
+655600OVRR5I3OJRFF23,0,,,,no parent-type relationship in the file
+8156005B22B0857C7357,1,81560019B02136053B77,IS_DIRECTLY_CONSOLIDATED_BY,ACTIVE,1 direct parent record(s) at this hop
+8156005B22B0857C7357,ultimate,81560019B02136053B77,IS_ULTIMATELY_CONSOLIDATED_BY,ACTIVE,
+815600B993FE0C0EE660,0,,,,no parent-type relationship in the file
+894500H4I6Y82QRREF57,0,,,,no parent-type relationship in the file
+894500Q3ZZQSEGFWJY19,0,,,,no parent-type relationship in the file
+9845004EXF9FF96ZE069,0,,,,no parent-type relationship in the file
+984500EA78DHC8D7A753,0,,,,no parent-type relationship in the file
+984500EDZ3A60C0RD904,0,,,,no parent-type relationship in the file

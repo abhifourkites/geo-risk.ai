@@ -1,0 +1,5 @@
+# Raw input files are not committed: they are large (the GLEIF files are 5 GB and 244 MB),
+# and the Open Supply Hub downloads contain personal contact columns (claim_*).
+data/raw/
+.DS_Store
+__pycache__/
