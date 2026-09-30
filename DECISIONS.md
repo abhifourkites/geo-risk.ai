@@ -43,6 +43,22 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
 - **Gave up:** Some current wildfires may be missing. On 30 Sep 2026 the wildfire list repeated 24 rows over 13 pages. The other five types repeated no rows, so none of their events was skipped.
 - **Would change our mind:** A GDACS feed or query that returns every current event without paging.
 
+### GDACS: change detection by episodeid + datemodified
+
+- **Chose:** a refresh fetches an event's areas only when its `episodeid` or `datemodified` differs from the stored values (`hazards.py`, `refresh`).
+- **Against:**
+  - *Comparing `datetime`* (as `docs/architecture/archive/ARCHITECTURE_detailed.md`, section 8, says): GDACS event records have no `datetime` field. Their date fields are `fromdate`, `todate` and `datemodified`.
+  - *Fetching every event's areas on each refresh:* on 30 Sep 2026, a refresh on an empty database fetched the areas of 251 events, and a refresh on a database that already held the events fetched 10.
+- **Gave up:** If GDACS changes an event's areas without changing its episode or `datemodified`, the app keeps the old areas until one of them changes.
+- **Would change our mind:** Evidence that GDACS changes areas without changing `datemodified`, or another change marker that GDACS documents.
+
+### GDACS: every earthquake intensity area counts
+
+- **Chose:** every earthquake intensity area (`Poly_SMPInt_N`, labelled "Intensity N", including "Intensity 0") counts as affected (`hazards.py`, `is_affected`), as the counting table (R8) lists it.
+- **Against:** *Only areas above an intensity cut-off:* the counting table has none, so any cut-off would be our own choice.
+- **Gave up:** Weak shaking counts the same as strong. Evidence (one-time browser check, 30 Sep 2026): on 4 current earthquakes, "Intensity 0" had the same width as "Intensity 4"; "Intensity 3" and "3.5" areas were up to 145 km wide.
+- **Would change our mind:** A shaking level that the company's risk team treats as the lower limit. Weaker areas would then not count.
+
 ## 3. Storage engine: PostgreSQL + PostGIS
 
 - **Chose:** PostgreSQL + PostGIS, run with Docker Compose.
@@ -123,6 +139,13 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - On the site basis, a small site weighs the same as a large one.
   - Thin measures still appear: Apple's owner measures rest on 66 of 749 sites.
 - **Would change our mind:** A threshold the company's risk team already uses, or real production volumes per site.
+
+### Disaster level: from the event's alert level
+
+- **Chose:** a site's disaster level comes from the event's alert level: Orange or Red is High, Green is Watch (`measures.py`, `HAZARD_LEVEL`). The same rule applies to every event type.
+- **Against:** *The cyclone band colour* (`Poly_Green`, `Poly_Orange` and `Poly_Red`, labelled 60, 90 and 120 km/h): only cyclones have these bands. Flood, earthquake, wildfire, drought and volcano areas carry no colour, only their event's alert level.
+- **Gave up:** A site in the outer 60 km/h band of an Orange cyclone is High.
+- **Would change our mind:** A risk rule that rates cyclone sites by the wind band they are in.
 
 ## 8. What we left out
 

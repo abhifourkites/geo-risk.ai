@@ -26,7 +26,7 @@ For each point where the brief was unclear: what was unclear, what we decided, w
 ## 3. "Near real time" freshness, with dated lists
 
 - **Unclear:** The brief asks for near-real-time data on a daily cycle, but supplier lists are only updated when companies publish them.
-- **Decided:** Hazards are refreshed live from GDACS. Supplier lists are updated only by upload, and the screen shows the date of every source.
+- **Decided:** Hazards are refreshed live from GDACS. Supplier lists are updated only by upload, and the screen shows the time of the last GDACS refresh, and each site's list names, which carry the list's year (for example 'Apple 2019 Facility List'). The GLEIF files' date (29 Sep 2026) is stated in the documents, not on screen.
 - **Why:** The lists are dated: Apple 2019, Samsung 2021, Nike February 2024, and adidas January and April 2026. The free download cap is 5,000 locations a year.
 - **Would change our mind:** A supplier data feed that updates daily.
 
