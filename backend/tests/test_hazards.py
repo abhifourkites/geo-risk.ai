@@ -213,6 +213,7 @@ def test_rows_repeated_across_pages_are_reported(conn, clean_hazards, hazard_sta
 
 def test_gdacs_unreachable_keeps_the_app_working(conn, clean_hazards, hazard_status, monkeypatch):
     _add_event(conn, "FL1", "Green", _site_square(conn, *SITE))
+    monkeypatch.setattr(hazards, "_sleep", _no_wait([]))
     monkeypatch.setattr(hazards, "EVENT_LIST", "http://127.0.0.1:9/?f={fromdate}&t={todate}&p={page}")
     s = asyncio.run(hazards.refresh(conn))
     assert s["state"] == "unavailable"
@@ -229,8 +230,60 @@ def test_a_failed_refresh_reports_the_error_type_and_details(conn, clean_hazards
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("", request=request)
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: REAL_CLIENT(transport=httpx.MockTransport(handler), **kw))
+    monkeypatch.setattr(hazards, "_sleep", _no_wait([]))
     with caplog.at_level("WARNING", logger="app.hazards"):
         s = asyncio.run(hazards.refresh(conn, today=datetime.date(2026, 9, 30)))
     assert s["state"] == "unavailable"
     assert s["error"] == "ReadTimeout: ReadTimeout('')"
     assert any("GDACS refresh failed" in r.message and "ReadTimeout('')" in r.message for r in caplog.records)
+
+
+def _no_wait(waits: list):
+    """A stand-in for asyncio.sleep that records the requested waits instead of waiting."""
+    async def fake(seconds):
+        waits.append(seconds)
+    return fake
+
+
+def test_a_request_that_fails_once_is_retried_and_the_refresh_succeeds(conn, clean_hazards, hazard_status, monkeypatch):
+    calls: dict[str, int] = {}
+    area = {"features": [_feature("Poly_Affected", "Affected area")]}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        key = str(request.url)
+        calls[key] = calls.get(key, 0) + 1
+        if "geteventlist" in request.url.path:
+            if request.url.params["eventlist"] == "FL" and calls[key] == 1:
+                raise httpx.ConnectError("connection refused", request=request)       # the first try fails
+            return httpx.Response(200, json={"features": [_event(1)] if request.url.params["eventlist"] == "FL" else []})
+        if calls[key] == 1:
+            return httpx.Response(503, request=request)                                # so does the first area request
+        return httpx.Response(200, json=area)
+
+    waits: list = []
+    monkeypatch.setattr(hazards, "_sleep", _no_wait(waits))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: REAL_CLIENT(transport=httpx.MockTransport(handler), **kw))
+    s = asyncio.run(hazards.refresh(conn, today=datetime.date(2026, 9, 30)))
+    assert (s["state"], s["current_events"], s["areas"], s["error"]) == ("ok", 1, 1, None)
+    assert waits == [2, 2]                                       # one retry each, after 2 s
+    assert sorted(n for n in calls.values() if n > 1) == [2, 2]  # the two failed requests were tried twice
+
+
+def test_a_request_that_always_fails_is_tried_3_times(conn, clean_hazards, hazard_status, monkeypatch):
+    _add_event(conn, "FL1", "Green", _site_square(conn, *SITE))
+    tries: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        tries.append(str(request.url))
+        raise httpx.ConnectError("connection refused", request=request)
+
+    waits: list = []
+    monkeypatch.setattr(hazards, "_sleep", _no_wait(waits))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: REAL_CLIENT(transport=httpx.MockTransport(handler), **kw))
+    s = asyncio.run(hazards.refresh(conn, today=datetime.date(2026, 9, 30)))
+    assert len(tries) == 3 and len(set(tries)) == 1               # the first request, 3 times, then the refresh stops
+    assert waits == [2, 5]
+    assert (s["state"], s["error"]) == ("unavailable", "ConnectError: ConnectError('connection refused')")
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) AS n FROM hazard_area")
+        assert cur.fetchone()["n"] == 1                           # stored data left as it was

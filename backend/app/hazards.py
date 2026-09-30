@@ -37,6 +37,25 @@ def describe(err: BaseException) -> str:
     return f"{type(err).__name__}: {err!r}"
 
 
+RETRY_WAITS = (2, 5)     # seconds before the 2nd and the 3rd try of a failed GDACS request
+_sleep = asyncio.sleep   # replaced in tests
+
+
+async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response:
+    """GET from GDACS; on a network error or an HTTP error status, try up to 2 more times (after 2 s, then 5 s)."""
+    for wait in (*RETRY_WAITS, None):
+        try:
+            r = await client.get(url)
+            r.raise_for_status()
+            return r
+        except httpx.HTTPError as err:
+            if wait is None:
+                raise
+            log.warning("GDACS request failed (%s); trying again in %s s: %s", describe(err), wait, url)
+            await _sleep(wait)
+    raise AssertionError("unreachable")
+
+
 TC_AFFECTED = {("Poly_Green", "60 km/h"), ("Poly_Orange", "90 km/h"), ("Poly_Red", "120 km/h")}
 
 
@@ -73,8 +92,7 @@ async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) 
     for event_type in EVENT_TYPES:
         seen: set[tuple[str, str]] = set()
         for page in range(1, MAX_PAGES + 1):
-            r = await client.get(EVENT_LIST.format(type=event_type, fromdate=fromdate, todate=today.isoformat(), page=page))
-            r.raise_for_status()
+            r = await _get(client, EVENT_LIST.format(type=event_type, fromdate=fromdate, todate=today.isoformat(), page=page))
             features = r.json().get("features", [])
             for f in features:
                 p = f["properties"]
@@ -110,8 +128,7 @@ async def refresh(conn: psycopg.Connection, today: datetime.date | None = None) 
 
             async def areas(e: dict) -> tuple[str, list[dict]]:
                 async with gate:
-                    r = await client.get(EVENT_AREAS.format(type=e["event_type"], id=e["gdacs_id"], episode=e["episode_id"]))
-                    r.raise_for_status()
+                    r = await _get(client, EVENT_AREAS.format(type=e["event_type"], id=e["gdacs_id"], episode=e["episode_id"]))
                     return e["event_id"], affected_features(e["event_type"], r.json())
 
             fetched = dict(await asyncio.gather(*(areas(e) for e in changed)))
