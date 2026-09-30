@@ -67,7 +67,7 @@ export default function App() {
   }, [view, loadView]);
 
   // Moving the map to a selection.
-  const moveTo = (f: FocusSpec | null) => { if (f) setFocus({ ...f, key: ++focusKey.current }); };
+  const moveTo = (f: FocusSpec | null, scroll = false) => { if (f) setFocus({ ...f, key: ++focusKey.current, scroll }); };
   const pointsOf = (ids: Iterable<string>) => {
     const want = new Set(ids);
     return (view?.sites ?? []).filter((s) => want.has(s.os_id) && s.lng != null && s.lat != null).map((s) => [s.lng!, s.lat!] as [number, number]);
@@ -79,24 +79,25 @@ export default function App() {
     return one ? { kind: "point", center: b[0], zoom: 6, pitch: 0 } : { kind: "bounds", bounds: b };
   };
 
-  const show = async (p: Promise<Detail>, move: (d: Detail) => FocusSpec | null) => {
-    try { const d = await p; setDetail(d); moveTo(move(d)); } catch (e) { setError(String((e as Error).message)); }
+  // scroll: true when the click came from the panel or a table (the default); false from the map itself.
+  const show = async (p: Promise<Detail>, move: (d: Detail) => FocusSpec | null, scroll: boolean) => {
+    try { const d = await p; setDetail(d); moveTo(move(d), scroll); } catch (e) { setError(String((e as Error).message)); }
   };
   const go = {
-    site: (os: string) => show(api.site(c, os).then((data) => ({ kind: "site", data })), () => {
+    site: (os: string, scroll = true) => show(api.site(c, os).then((data) => ({ kind: "site", data })), () => {
       const [p] = pointsOf([os]);
       return p ? { kind: "point", center: p, zoom: 7, pitch: 45 } : null;
-    }),
-    owner: (o: string) => show(api.owner(c, o).then((data) => ({ kind: "owner", data })),
-      (d) => (d?.kind === "owner" ? around(pointsOf(d.data.sites.map((s) => s.os_id))) : null)),
-    disaster: (e: string) => show(api.hazard(c, e).then((data) => ({ kind: "disaster", data })), (d) => {
+    }, scroll),
+    owner: (o: string, scroll = true) => show(api.owner(c, o).then((data) => ({ kind: "owner", data })),
+      (d) => (d?.kind === "owner" ? around(pointsOf(d.data.sites.map((s) => s.os_id))) : null), scroll),
+    disaster: (e: string, scroll = true) => show(api.hazard(c, e).then((data) => ({ kind: "disaster", data })), (d) => {
       if (d?.kind !== "disaster") return null;
       const areas = (view?.hazards.areas.features ?? []).filter((f) => String(f.properties?.event_id) === e).flatMap((f) => coordsOf(f.geometry));
       return around([...areas, ...pointsOf(d.data.sites.map((s) => s.os_id))]);
-    }),
-    country: (code: string) => {
+    }, scroll),
+    country: (code: string, scroll = true) => {
       setDetail({ kind: "country", code });
-      moveTo(around(pointsOf((view?.sites ?? []).filter((s) => s.country_code === code).map((s) => s.os_id))));
+      moveTo(around(pointsOf((view?.sites ?? []).filter((s) => s.country_code === code).map((s) => s.os_id))), scroll);
     },
   };
 
@@ -202,7 +203,7 @@ export default function App() {
               <Grid size={{ xs: 12, md: 8 }}>
                 <MapView view={view} high={high} watch={watch} focus={focus} showAll={showAll} onShowAll={setShowAll}
                          highlightSites={marks.sites} highlightCountries={marks.countries} selectedSite={marks.site} selectedEvent={marks.event}
-                         onSite={go.site} onCountry={go.country} onDisaster={go.disaster} />
+                         onSite={(os) => go.site(os, false)} onCountry={(code) => go.country(code, false)} onDisaster={(e) => go.disaster(e, false)} />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
                 <DetailPanel detail={detail} view={view} high={high} watch={watch} go={go} />

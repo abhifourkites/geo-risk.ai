@@ -2,10 +2,13 @@
 import type { Geometry } from "geojson";
 
 export type Bounds = [[number, number], [number, number]];
-export type Focus =
+/** Where the map should go. `scroll`: the move came from the panel or a table, so on a narrow screen
+ *  (where the map is above them) the page scrolls the map into view. */
+export type Focus = (
   | { key: number; kind: "point"; center: [number, number]; zoom: number; pitch: number }
   | { key: number; kind: "bounds"; bounds: Bounds }
-  | { key: number; kind: "world" };
+  | { key: number; kind: "world" }
+) & { scroll?: boolean };
 
 export const WORLD: Bounds = [[-170, -58], [180, 78]];
 

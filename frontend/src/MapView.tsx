@@ -114,6 +114,10 @@ export default function MapView(props: {
     const m = map.current;
     if (!focus || !m) return;
     const duration = reducedMotion() ? 0 : 1400;
+    // On a narrow screen the map is above the panel and the tables: bring it into view (MUI's md breakpoint).
+    if (focus.scroll && window.matchMedia("(max-width: 899.95px)").matches) {
+      box.current?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" });
+    }
     if (focus.kind === "point") m.flyTo({ center: focus.center, zoom: focus.zoom, pitch: focus.pitch, bearing: 0, duration });
     else if (focus.kind === "bounds") m.fitBounds(focus.bounds, { padding: 60, maxZoom: 7, pitch: 0, bearing: 0, duration });
     else resetView(globe);
