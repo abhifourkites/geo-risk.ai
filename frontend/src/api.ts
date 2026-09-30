@@ -8,7 +8,10 @@ export interface Coverage {
   workers_known: Known; owner_known: Known; location_known: Known;
 }
 export interface CountryShare { country_code: string | null; share: number; sites: number; workers_known: number; level: Level }
-export interface OwnerShare { owner: string; share: number; sites: number; level: Level; all_in_one_country: boolean; country: string | null }
+export interface OwnerShare {
+  owner: string; share: number; sites: number; level: Level;
+  all_in_one_country: boolean; country: string | null; countries: number;
+}
 export interface SiteDot {
   os_id: string; name: string; country_code: string | null; lng: number | null; lat: number | null;
   warnings: string[]; owners: string[]; hazard_level: Level;
@@ -16,7 +19,11 @@ export interface SiteDot {
 export interface HazardSite { os_id: string; name: string; country_code: string | null; event_id: string; event_name: string; alert_level: string; level: Level }
 export interface HazardStatus {
   state: "loading" | "ok" | "unavailable"; at: string | null; current_events: number | null; areas: number | null;
-  error: string | null; repeated_rows: number | null;
+  error: string | null; repeated_rows: number | null; repeated_by_type: Record<string, number> | null;
+}
+export interface Owners {
+  top: OwnerShare[]; all: OwnerShare[]; at_high: number; at_watch: number;
+  all_in_one_country: { count: number; of_owners_with_2_plus_sites: number }; owner_known: Known;
 }
 export interface View {
   customer: { customer_id: string; name: string };
@@ -24,8 +31,8 @@ export interface View {
   coverage: Coverage;
   sentence: string;
   countries: CountryShare[];
-  owners: { top: OwnerShare[]; at_high: number; at_watch: number;
-            all_in_one_country: { count: number; of_owners_with_2_plus_sites: number }; owner_known: Known };
+  lists: string[];
+  owners: Owners;
   hazards: { status: HazardStatus; sites: HazardSite[]; areas: FeatureCollection };
   sites: SiteDot[];
 }
@@ -67,13 +74,3 @@ export const api = {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     }),
 };
-
-export const WARNINGS: Record<string, string> = {
-  same_coordinates: "Same coordinates as another site (location may be approximate)",
-  owner_conflict: "Owner conflict: 2 or more owners reported",
-  wrap_expired: "WRAP certificate expired (as of the load date)",
-  bsci_expired: "BSCI audit expired (as of the load date)",
-  slcp_older_than_2y: "SLCP assessment older than 2 years (as of the load date)",
-};
-
-export const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
