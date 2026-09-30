@@ -77,8 +77,8 @@ Raw-material tracing needs the company's own supplier data: supplier, location, 
 - **Lists are dated:** Apple 2019, Samsung 2021, Nike February 2024 (adidas January and April 2026).
 - **GDACS alerts are automatic** and not reviewed by people. Confirm them before making decisions. Source: Global Disaster Awareness and Coordination System, GDACS.
 - **GDACS's event list can skip events when paging.** Querying one type at a time fixed this for five types; wildfires can still be missed (on 30 Sep 2026 the wildfire list repeated 24 rows over 13 pages). The screen shows how many events may be missing.
-- **The map uses only the committed Natural Earth 1:110m outlines**, with no map tiles, so coastlines are coarse when zoomed in to a site.
-- **Small countries have no outline** on the 1:110m map: MT, SG, MU, HK and MC in the demo data. Their sites still show as dots, and the screen names any of them at High or Watch (Samsung: SG, Watch).
+- **The map uses only the committed Natural Earth 1:50m outlines**, with no map tiles, so coastlines are coarse when zoomed in to a site.
+- **Every country in the demo data has an outline at 1:50m.** A country with no outline (none today) would be named under the map, and its sites would still show.
 - **Parent names show as written in GLEIF's file**, in upper case (for example COATS GROUP PLC).
 
 ## 7. How to run from a clean clone

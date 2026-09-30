@@ -22,7 +22,7 @@ import { RISK } from "./theme";
 
 setWorkerUrl(workerUrl);
 
-// Natural Earth 1:110m; ISO_A2_EH is used because ISO_A2 is "-99" for France and Norway.
+// Natural Earth 1:50m; ISO_A2_EH is used because ISO_A2 is "-99" for some countries (France and Norway at 1:110m).
 type World = FeatureCollection<Geometry, { ISO_A2_EH: string; NAME: string }>;
 
 // A style built in code: water as the background; land comes from the committed Natural Earth file.
@@ -59,7 +59,7 @@ export default function MapView(props: {
   const [clusters, setClusters] = useState<ClusterLabel[]>([]);
   const hovered = useRef<number | string | null>(null);
 
-  useEffect(() => { fetch("/ne_110m_admin_0_countries.geojson").then((r) => r.json()).then(setWorld); }, []);
+  useEffect(() => { fetch("/ne_50m_admin_0_countries.geojson").then((r) => r.json()).then(setWorld); }, []);
 
   const high = useMemo(() => view.countries.filter((c) => c.level === "High" && c.country_code).map((c) => c.country_code!), [view]);
   const watch = useMemo(() => view.countries.filter((c) => c.level === "Watch" && c.country_code).map((c) => c.country_code!), [view]);
