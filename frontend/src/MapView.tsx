@@ -14,7 +14,7 @@ import { setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type St
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import Map, { Layer, Marker, NavigationControl, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
+import Map, { Layer, NavigationControl, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
 import type { View } from "./api";
 import { countryName, threshold } from "./format";
 import { boundsOf, coordsOf, WORLD, type Focus } from "./geo";
@@ -40,7 +40,21 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.
 const inList = (codes: string[]): ExpressionSpecification => ["in", ["get", "ISO_A2_EH"], ["literal", codes]];
 
 interface Tip { x: number; y: number; title: string; sub: string }
-interface ClusterLabel { id: number; lng: number; lat: number; count: string }
+
+// Cluster counts are drawn by MapLibre itself, as icons: text in a map layer needs glyph files from a URL,
+// and this app loads nothing from outside. Each count becomes a small image the first time it is needed,
+// so the counts are drawn with their circles (flat map and globe) and never left behind at another zoom.
+const COUNT = "count-";
+function countImage(text: string, ratio: number): ImageData {
+  const w = Math.ceil((8 + 7.5 * text.length) * ratio), h = Math.ceil(16 * ratio);
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const g = canvas.getContext("2d")!;
+  g.font = `700 ${12 * ratio}px Inter, system-ui, sans-serif`;
+  g.fillStyle = "#FFFFFF"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText(text, w / 2, h / 2 + 0.5 * ratio);
+  return g.getImageData(0, 0, w, h);
+}
 
 export default function MapView(props: {
   view: View; high: number; watch: number; focus: Focus | null;
@@ -56,7 +70,7 @@ export default function MapView(props: {
   // An object, not a string: MapLibre 6 reads projection.type ("Unknown projection name: undefined" otherwise).
   const projection = useMemo(() => ({ type: globe ? "globe" : "mercator" }), [globe]);
   const [tip, setTip] = useState<Tip | null>(null);
-  const [clusters, setClusters] = useState<ClusterLabel[]>([]);
+  const [loaded, setLoaded] = useState(false);   // the map's style is loaded: the site layers can be added
   const hovered = useRef<number | string | null>(null);
 
   useEffect(() => { fetch("/ne_50m_admin_0_countries.geojson").then((r) => r.json()).then(setWorld); }, []);
@@ -109,6 +123,19 @@ export default function MapView(props: {
     else m.fitBounds(WORLD, { padding: 10, pitch: 0, bearing: 0, duration });
   }, []);
 
+  const onLoad = () => {
+    const m = map.current?.getMap();
+    if (!m) return;
+    // MapLibre 6 asks this resolver for a missing icon before it treats the icon as missing
+    // (the "styleimagemissing" event fires only afterwards, too late for that tile).
+    m.setMissingStyleImageResolver((id) => {
+      if (!id.startsWith(COUNT) || m.hasImage(id)) return;
+      const ratio = window.devicePixelRatio || 1;
+      m.addImage(id, countImage(id.slice(COUNT.length), ratio), { pixelRatio: ratio });
+    });
+    setLoaded(true);
+  };
+
   // Move the map when the selection asks for it; jump instead of flying when motion is reduced.
   useEffect(() => {
     const m = map.current;
@@ -122,19 +149,6 @@ export default function MapView(props: {
     else if (focus.kind === "bounds") m.fitBounds(focus.bounds, { padding: 60, maxZoom: 7, pitch: 0, bearing: 0, duration });
     else resetView(globe);
   }, [focus]);   // eslint-disable-line react-hooks/exhaustive-deps -- only a new focus moves the map
-
-  const refreshClusters = useCallback(() => {
-    const m = map.current;
-    if (!m || !m.getLayer("clusters")) return;
-    // From the source's loaded tiles, not from what is rendered: in globe view the rendered query misses some clusters.
-    const seen = new globalThis.Map<number, ClusterLabel>();
-    for (const f of m.querySourceFeatures("sites", { filter: ["has", "point_count"] })) {
-      const p = f.properties as { cluster_id: number; point_count_abbreviated: string | number };
-      const [lng, lat] = (f.geometry as Point).coordinates;
-      if (!seen.has(p.cluster_id)) seen.set(p.cluster_id, { id: p.cluster_id, lng, lat, count: String(p.point_count_abbreviated) });
-    }
-    setClusters([...seen.values()]);
-  }, []);
 
   const setHover = (id: number | string | null) => {
     const m = map.current?.getMap();
@@ -188,7 +202,7 @@ export default function MapView(props: {
              projection={projection} renderWorldCopies={false} maxPitch={60}
              interactiveLayerIds={INTERACTIVE} cursor={tip ? "pointer" : "grab"}
              onMouseMove={onMove} onMouseLeave={() => { setHover(null); setTip(null); }} onClick={onClick}
-             onMoveStart={() => setClusters([])} onIdle={refreshClusters}
+             onLoad={onLoad}
              style={{ width: "100%", height: "100%" }} attributionControl={{ compact: true }}>
           {/* Mounted from the start (empty until the file arrives), so the land layers are always added first,
               under the sites; mounted later, they were added on top and hid some clusters. */}
@@ -216,12 +230,19 @@ export default function MapView(props: {
               "circle-stroke-color": RISK.disaster, "circle-stroke-width": 2,
             }} />
           </Source>
+          {/* The site layers are added once the map has loaded, after the count-image resolver is in place;
+              added last, they are drawn above the land and the disaster areas. */}
+          {loaded && <>
           <Source id="sites" type="geojson" data={sites} cluster clusterRadius={36} clusterMaxZoom={6}>
             <Layer id="clusters" type="circle" filter={["has", "point_count"]} paint={{
               "circle-color": RISK.site, "circle-opacity": grouped ? 0.3 : 0.85,
               "circle-radius": ["step", ["get", "point_count"], 12, 10, 15, 50, 19, 200, 24],
               "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 1.5,
             }} />
+            <Layer id="cluster-count" type="symbol" filter={["has", "point_count"]} layout={{
+              "icon-image": ["concat", COUNT, ["to-string", ["get", "point_count_abbreviated"]]],
+              "icon-allow-overlap": true, "icon-ignore-placement": true,
+            }} paint={{ "icon-opacity": grouped ? 0.3 : 1 }} />
             <Layer id="site" type="circle" filter={["!", ["has", "point_count"]]} paint={{
               "circle-color": RISK.site, "circle-opacity": grouped ? 0.3 : 1, "circle-stroke-opacity": grouped ? 0.3 : 1,
               "circle-radius": siteRadius(5, 1.5), "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 1.5,
@@ -239,11 +260,7 @@ export default function MapView(props: {
               "circle-stroke-color": RISK.selected, "circle-stroke-width": 3,
             }} />
           </Source>
-          {clusters.map((c) => (
-            <Marker key={c.id} longitude={c.lng} latitude={c.lat} anchor="center" opacityWhenCovered="0" style={{ pointerEvents: "none" }}>
-              <Typography component="span" sx={{ color: "#fff", fontSize: 12, fontWeight: 700, pointerEvents: "none" }}>{c.count}</Typography>
-            </Marker>
-          ))}
+          </>}
           <NavigationControl position="top-right" visualizePitch />
         </Map>
 
