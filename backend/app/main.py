@@ -1,6 +1,18 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-app = FastAPI(title="Geographic Supplier Risk Intelligence")
+from . import db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    with db.connect() as conn:
+        db.init_schema(conn)
+    yield
+
+
+app = FastAPI(title="Geographic Supplier Risk Intelligence", lifespan=lifespan)
 
 
 @app.get("/api/health")
