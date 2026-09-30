@@ -25,7 +25,7 @@ PARALLEL = 6             # at most 6 area requests at once
 
 # The last refresh result in this backend process: loading, ok or unavailable.
 STATUS: dict = {"state": "loading", "at": None, "current_events": None, "areas": None, "error": None,
-                "repeated_rows": None}
+                "repeated_rows": None, "repeated_by_type": None}
 
 TC_AFFECTED = {("Poly_Green", "60 km/h"), ("Poly_Orange", "90 km/h"), ("Poly_Red", "120 km/h")}
 
@@ -53,12 +53,12 @@ def affected_features(event_type: str, collection: dict) -> list[dict]:
             and is_affected(event_type, f["properties"].get("Class"), f["properties"].get("polygonlabel"))]
 
 
-async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) -> tuple[dict[str, dict], int]:
+async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) -> tuple[dict[str, dict], dict[str, int]]:
     """All current events in the window (today minus 30 days .. today), one row per event, read type by type.
-    Also returns how many rows repeated a row already read for that type: each repeat means GDACS's
-    paging may have skipped one event."""
+    Also returns, per type, how many rows repeated a row already read for that type: each repeat means
+    GDACS's paging may have skipped one event of that type."""
     events: dict[str, dict] = {}
-    repeated = 0
+    repeated: dict[str, int] = {}
     fromdate = (today - datetime.timedelta(days=30)).isoformat()
     for event_type in EVENT_TYPES:
         seen: set[tuple[str, str]] = set()
@@ -70,7 +70,7 @@ async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) 
                 p = f["properties"]
                 row = (str(p["eventid"]), str(p["episodeid"]))
                 if row in seen:
-                    repeated += 1
+                    repeated[event_type] = repeated.get(event_type, 0) + 1
                 seen.add(row)
                 if str(p.get("iscurrent")).lower() != "true":
                     continue
@@ -127,5 +127,5 @@ async def refresh(conn: psycopg.Connection, today: datetime.date | None = None) 
         n_areas = cur.fetchone()["n"]
     STATUS.update(state="ok", at=datetime.datetime.now().isoformat(timespec="seconds"),
                   current_events=len(events), areas=n_areas, fetched=len(fetched), error=None,
-                  repeated_rows=repeated)
+                  repeated_rows=sum(repeated.values()), repeated_by_type=repeated)
     return dict(STATUS)

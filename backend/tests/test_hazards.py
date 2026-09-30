@@ -207,6 +207,7 @@ def test_rows_repeated_across_pages_are_reported(conn, clean_hazards, hazard_sta
     lists = {"WF": [wf, [wf[98], wf[99]]]}                                  # page 2 repeats 2 rows of page 1
     s = _refresh(monkeypatch, conn, lists, {}, seen)
     assert s["repeated_rows"] == 2
+    assert s["repeated_by_type"] == {"WF": 2}
     assert measures.view(conn, "adidas")["hazards"]["status"]["repeated_rows"] == 2
 
 
