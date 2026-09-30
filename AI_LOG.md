@@ -4,7 +4,7 @@
 
 The brief (Section 7.1): "Where your coding agents were confidently wrong, and how you caught it. Two or three specific incidents is plenty. Generic observations about hallucination tell us nothing."
 
-Incidents 1–3 were caught during planning, incidents 4–6 during the build, and incident 7 by an independent check after the build.
+Incidents 1 and 2 were caught during planning, and incident 3 by an independent check after the build.
 
 ---
 
@@ -20,31 +20,7 @@ Incidents 1–3 were caught during planning, incidents 4–6 during the build, a
 - **How we caught it:** we read GDACS's own polygon labels. Some areas were forecast uncertainty cones, not affected areas. The true count was 88.
 - **What was done:** only GDACS's *affected* areas count. Forecast areas, uncertainty cones, distance circles and the flood "Global area" are not counted (ARCHITECTURE.md, section 5).
 
-## 3. A hand-copied list of site flags did not match the file
-
-- **What the tool claimed:** the flag counts were 745 / 179 / 7.
-- **How we caught it:** we checked the counts against the file before running the test. The file gave 742 / 180 / 7.
-- **What was done:** expected values now sit in `scripts/verify_inputs.py`, which reads every count from the files instead of copying it by hand.
-
-## 4. The design said to compare a GDACS field that does not exist
-
-- **What the tool claimed:** the hazard refresh should compare each event's `datetime` to find changed events (`docs/architecture/archive/ARCHITECTURE_detailed.md`, lines 127, 297 and 307).
-- **How we caught it:** we read a real event-list response while writing the refresh. Each event has 28 properties, and none is called `datetime`. The date fields are `datemodified`, `fromdate` and `todate`.
-- **What was done:** the refresh compares `episodeid` and `datemodified`. `test_refresh_pages_filters_and_compares_datemodified` checks it: an unchanged event is not fetched again, and a changed one is.
-
-## 5. The map painted the whole world as a disaster area
-
-- **What the tool claimed:** the stored disaster areas could be drawn as they came from the database.
-- **How we caught it:** a headless-Chrome screenshot of the screen showed the whole globe filled, and no countries. 353 of the 397 stored areas had anticlockwise outer rings. The map library (d3-geo) draws such a ring as "the whole globe minus the shape".
-- **What was done:** the drawing query turns the rings clockwise (`ST_ForcePolygonCW`). This is for drawing only; the inside check is unchanged.
-
-## 6. The stack did not start from a clean clone
-
-- **What the tool claimed:** the stack started with `docker compose up`. It had only been run against a database that already existed.
-- **How we caught it:** we ran `docker compose up` in a fresh clone with an empty database volume. The backend exited: "connection to server at "172.25.0.2", port 5432 failed: Connection refused". On a new volume, the PostGIS image first runs a temporary server that listens only on the Unix socket. The healthcheck asked over that socket and reported the database ready too early.
-- **What was done:** the healthcheck now asks over TCP (`pg_isready -h 127.0.0.1`). From a fresh clone and an empty volume, the stack starts and the tests pass.
-
-## 7. A missing site was put down to live data changing
+## 3. A missing site was put down to live data changing
 
 - **What the tool claimed:** Nike had 2 sites inside current disaster areas, and the earlier count of 3 was a live GDACS change.
 - **How we caught it:** an independent check against live GDACS found Nike 3, with the same flood events and episodes as the app, plus BR2019085Q71GZV inside drought DR1015915, episode 1. In the app's database the drought was stored with `is_current` false: the refresh had not seen it in the event list. GDACS's list read with all six types at once (19 pages) had 1,844 rows but only 1,827 distinct events. Its pages are sorted only by end date, so tied events repeat across pages, and others are on no page. The drought-only list had DR1015915 with `iscurrent` true. That read missed 12 current events in all (11 wildfires and this drought).
@@ -61,3 +37,7 @@ Incidents 1–3 were caught during planning, incidents 4–6 during the build, a
 - **Map country codes.** Natural Earth's `ISO_A2` field is "-99" for France, Norway, Kosovo, N. Cyprus and Somaliland, so France and Norway would never be shaded. Evidence: the committed file's properties. The map uses `ISO_A2_EH` (FR, NO, XK).
 - **An owner's other sites listed twice.** The disaster panel listed ARIK BEY's 2 other sites 4 times, because 2 of the flood's sites share that owner. Evidence: a duplicate-key warning in the browser console. The query now uses `DISTINCT`, and `test_hazard_multi_hop` checks for duplicates.
 - **A test copied a name from the prose, not the file.** A test expected "Coats Group PLC". `data/reference/gleif_parents_checked.csv` has "COATS GROUP PLC". The test was changed to the file's values; the data was not changed.
+- **A hand-copied list of site flags did not match the file.** The flag counts were given as 745 / 179 / 7; the file gave 742 / 180 / 7. Evidence: the expected values now sit in `scripts/verify_inputs.py`, which reads every count from the files.
+- **The design named a GDACS field that does not exist.** It said to compare each event's `datetime` (`docs/architecture/archive/ARCHITECTURE_detailed.md`, lines 127, 297 and 307). Evidence: an event in a real event-list response has 28 properties, and none is `datetime`; the date fields are `datemodified`, `fromdate` and `todate`. The refresh compares `episodeid` and `datemodified`, checked by `test_refresh_pages_filters_and_compares_datemodified`.
+- **The map painted the whole world as a disaster area.** Evidence: a headless-Chrome screenshot showed the globe filled and no countries. 353 of the 397 stored areas had anticlockwise outer rings, which d3-geo draws as "the whole globe minus the shape". The drawing query now turns the rings clockwise (`ST_ForcePolygonCW`); the inside check is unchanged.
+- **The stack did not start from a clean clone.** It had only been run against a database that already existed. Evidence: in a fresh clone with an empty volume, the backend exited with "connection to server at "172.25.0.2", port 5432 failed: Connection refused". The healthcheck had asked PostGIS's temporary init server, which listens only on the Unix socket. The healthcheck now asks over TCP (`pg_isready -h 127.0.0.1`).

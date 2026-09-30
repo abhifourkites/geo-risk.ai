@@ -34,6 +34,15 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - Another source of production locations without the download cap.
   - GLEIF coverage for most matched companies.
 
+### GDACS: one query per event type
+
+- **Chose:** read GDACS's event list once per event type (TC, FL, EQ, VO, DR, WF). It is the documented call with one type in `eventlist`, and each type is paged until a page has fewer than 100 events. The refresh counts rows that repeat across pages, and the screen shows how many events may be missing.
+- **Against:**
+  - *One query for all six types* (the call in `docs/architecture/archive/ARCHITECTURE_detailed.md`, section 8): its pages are sorted only by end date, and many events share one, so events repeat across pages and others are on no page. On 30 Sep 2026 it returned 1,844 rows but 1,827 distinct events, and missed 12 current events: 11 wildfires, and the drought DR1015915 that holds Nike's site BR2019085Q71GZV.
+  - *Shorter date windows* were tested and do not close the wildfire gap: on 30 Sep 2026, 29 of 31 one-day windows still returned a full page of 100 wildfires, so they still need paging. They also found 19 wildfires (2 current) that the 30-day list missed, which confirms the gap is real.
+- **Gave up:** Some current wildfires may be missing. On 30 Sep 2026 the wildfire list repeated 24 rows over 13 pages. The other five types repeated no rows, so none of their events was skipped.
+- **Would change our mind:** A GDACS feed or query that returns every current event without paging.
+
 ## 3. Storage engine: PostgreSQL + PostGIS
 
 - **Chose:** PostgreSQL + PostGIS, run with Docker Compose.

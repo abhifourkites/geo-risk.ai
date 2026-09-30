@@ -76,7 +76,7 @@ Raw-material tracing needs the company's own supplier data: supplier, location, 
 - **Owner names are not merged by spelling.** Nike's 3 "SHAHI" sites and adidas's 4 "SHAHI EXPORTS" sites count as different owners.
 - **Lists are dated:** Apple 2019, Samsung 2021, Nike February 2024 (adidas January and April 2026).
 - **GDACS alerts are automatic** and not reviewed by people. Confirm them before making decisions. Source: Global Disaster Awareness and Coordination System, GDACS.
-- **GDACS's event list can skip events.** Its pages are sorted only by end date, and many events share one, so rows repeat across pages and other events are left out. The app reads each event type separately. On 30 Sep 2026 that was complete for every type except wildfires, whose list repeated 24 rows. The GDACS notice says how many events may be missing.
+- **GDACS's event list can skip events when paging.** Querying one type at a time fixed this for five types; wildfires can still be missed (on 30 Sep 2026 the wildfire list repeated 24 rows over 13 pages). The screen shows how many events may be missing.
 - **Small countries have no outline** on the 1:110m map: MT, SG, MU, HK and MC in the demo data. Their sites still show as dots, and the screen names any of them at High or Watch (Samsung: SG, Watch).
 - **Parent names show as written in GLEIF's file**, in upper case (for example COATS GROUP PLC).
 
