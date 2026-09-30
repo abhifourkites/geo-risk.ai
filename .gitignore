@@ -3,3 +3,6 @@
 data/raw/
 .DS_Store
 __pycache__/
+node_modules/
+dist/
+.pytest_cache/

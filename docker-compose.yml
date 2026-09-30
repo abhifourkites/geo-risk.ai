@@ -1,0 +1,33 @@
+# One command starts everything: docker compose up
+services:
+  db:
+    image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+    environment:
+      POSTGRES_USER: georisk
+      POSTGRES_PASSWORD: georisk
+      POSTGRES_DB: georisk
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U georisk -d georisk"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://georisk:georisk@db:5432/georisk
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
