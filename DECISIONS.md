@@ -40,6 +40,12 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
 - **Against:**
   - *One query for all six types* (the call in `docs/architecture/archive/ARCHITECTURE_detailed.md`, section 8): its pages are sorted only by end date, and many events share one, so events repeat across pages and others are on no page. On 30 Sep 2026 it returned 1,844 rows but 1,827 distinct events, and missed 12 current events: 11 wildfires, and the drought DR1015915 that holds Nike's site BR2019085Q71GZV.
   - *Shorter date windows* were tested and do not close the wildfire gap: on 30 Sep 2026, 29 of 31 one-day windows still returned a full page of 100 wildfires, so they still need paging. They also found 19 wildfires (2 current) that the 30-day list missed, which confirms the gap is real. (one-time browser check, 30 Sep 2026; not repeated by the script)
+  - *Why the list repeats and skips events:* GDACS's own API specification (gdacsapi/swagger/v1/swagger.json) describes geteventlist/search as: "it returns the first 100 elements, it is possible to obtain record by paging specifying the page size and page number. The records are ordered by todate desc." This explains the repeated and skipped events.
+  - *A larger pageSize* does not help: 500 and 2000 both returned exactly 100 rows.
+  - *geteventlist/events4app:* at most 100 events, no droughts or volcanoes; missed FL1104122 and DR1015915.
+  - *geteventlist/map:* a subset only (6 wildfires; the Istanbul flood FL1104183 missing).
+  - *The gdacs-api Python package* (2.0.0, "Alpha", last released June 2022) uses events4app; its per-event GeoJSON file returned HTTP 403 for FL1104183; it calls GDACS without a timeout.
+  - (The five points above: one-time browser check, 30 Sep 2026.)
 - **Gave up:** Some current wildfires may be missing. On 30 Sep 2026 the wildfire list repeated 24 rows over 13 pages. The other five types repeated no rows, so none of their events was skipped.
 - **Would change our mind:** A GDACS feed or query that returns every current event without paging.
 
