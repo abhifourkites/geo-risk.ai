@@ -222,3 +222,15 @@ def test_gdacs_unreachable_keeps_the_app_working(conn, clean_hazards, hazard_sta
     v = measures.view(conn, "adidas")
     assert v["sentence"].endswith("disaster data unavailable.")
     assert v["coverage"]["open_sites"] == 766                              # the rest of the view still works
+
+
+def test_a_failed_refresh_reports_the_error_type_and_details(conn, clean_hazards, hazard_status, monkeypatch, caplog):
+    """str() of some httpx errors is empty; the status and the log must still say what failed."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("", request=request)
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: REAL_CLIENT(transport=httpx.MockTransport(handler), **kw))
+    with caplog.at_level("WARNING", logger="app.hazards"):
+        s = asyncio.run(hazards.refresh(conn, today=datetime.date(2026, 9, 30)))
+    assert s["state"] == "unavailable"
+    assert s["error"] == "ReadTimeout: ReadTimeout('')"
+    assert any("GDACS refresh failed" in r.message and "ReadTimeout('')" in r.message for r in caplog.records)

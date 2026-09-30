@@ -5,6 +5,7 @@ GDACS alerts are automatic, not reviewed by people: confirm them before making d
 import asyncio
 import datetime
 import json
+import logging
 import re
 
 import httpx
@@ -26,6 +27,15 @@ PARALLEL = 6             # at most 6 area requests at once
 # The last refresh result in this backend process: loading, ok or unavailable.
 STATUS: dict = {"state": "loading", "at": None, "current_events": None, "areas": None, "error": None,
                 "repeated_rows": None, "repeated_by_type": None}
+
+log = logging.getLogger(__name__)
+
+
+def describe(err: BaseException) -> str:
+    """An error's type and details, never empty: str() of some httpx errors is "" (the refresh after a
+    backend restart on 30 Sep 2026 stored an empty error)."""
+    return f"{type(err).__name__}: {err!r}"
+
 
 TC_AFFECTED = {("Poly_Green", "60 km/h"), ("Poly_Orange", "90 km/h"), ("Poly_Red", "120 km/h")}
 
@@ -106,7 +116,9 @@ async def refresh(conn: psycopg.Connection, today: datetime.date | None = None) 
 
             fetched = dict(await asyncio.gather(*(areas(e) for e in changed)))
     except (httpx.HTTPError, ValueError, KeyError) as err:
-        STATUS.update(state="unavailable", at=datetime.datetime.now().isoformat(timespec="seconds"), error=str(err))
+        message = describe(err)
+        log.warning("GDACS refresh failed, stored disaster data kept: %s", message)
+        STATUS.update(state="unavailable", at=datetime.datetime.now().isoformat(timespec="seconds"), error=message)
         return dict(STATUS)
 
     with conn.transaction(), conn.cursor() as cur:
