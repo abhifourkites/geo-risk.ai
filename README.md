@@ -53,7 +53,7 @@ Only features tested on the final build. Tests: `backend/tests/` (54, pytest) an
 | Disaster levels (Orange / Red → High, Green → Watch), and event → sites → owners → those owners' other sites | `test_hazard_levels_r9`; `test_hazard_multi_hop` |
 | GDACS unreachable: "Disaster data unavailable", and the rest keeps working | `test_gdacs_unreachable_keeps_the_app_working`; in the browser, with `www.gdacs.org` blocked in the backend container |
 | Upload: file in → list strings with site counts → pick lists, mark current → load. One company's upload changes only that company | `test_api_upload.py`; in the browser (the Samsung file loaded as a new company) |
-| Screen: company selector; the one-sentence summary; three answer cards (countries, owner companies, disasters now); map (countries at High / Watch, site dots, disaster areas); site, owner, disaster and country panels; countries and owners tables; "How these numbers are worked out" and "Source and limits of the data" | `frontend/src/summary.test.tsx` (the three cards with the adidas numbers). Headless Chrome at 1440 and 390 px: the numbers shown for the 4 companies are the same as before the redesign; the panels and map highlights; keyboard focus; Samsung's Singapore note; the upload flow; no page-level sideways scroll; no console errors |
+| Screen: company selector; the one-sentence summary; three answer cards (countries, owner companies, disasters now); an interactive map (MapLibre, no map tiles: countries at High / Watch, clustered sites, disaster areas, fly-to with tilt, flat map or globe); site, owner, disaster and country panels; Countries and Owner companies tables (sortable, searchable, paged); "How these numbers are worked out" and "Source and limits of the data" | `frontend/src/summary.test.tsx` (the three cards with the adidas numbers). Headless Chrome with WebGL at 1440 and 390 px: the map renders; the numbers shown for the 4 companies are the same as the previous screen on the same data; panels, map moves and globe view; keyboard access; reduced motion; the upload flow; no page-level sideways scroll; no console errors |
 
 ## 5. What does not work / not built
 
@@ -77,6 +77,7 @@ Raw-material tracing needs the company's own supplier data: supplier, location, 
 - **Lists are dated:** Apple 2019, Samsung 2021, Nike February 2024 (adidas January and April 2026).
 - **GDACS alerts are automatic** and not reviewed by people. Confirm them before making decisions. Source: Global Disaster Awareness and Coordination System, GDACS.
 - **GDACS's event list can skip events when paging.** Querying one type at a time fixed this for five types; wildfires can still be missed (on 30 Sep 2026 the wildfire list repeated 24 rows over 13 pages). The screen shows how many events may be missing.
+- **The map uses only the committed Natural Earth 1:110m outlines**, with no map tiles, so coastlines are coarse when zoomed in to a site.
 - **Small countries have no outline** on the 1:110m map: MT, SG, MU, HK and MC in the demo data. Their sites still show as dots, and the screen names any of them at High or Watch (Samsung: SG, Watch).
 - **Parent names show as written in GLEIF's file**, in upper case (for example COATS GROUP PLC).
 
