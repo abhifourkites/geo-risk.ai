@@ -1,0 +1,50 @@
+[
+  {
+    "customer_id": "adidas",
+    "name": "adidas",
+    "file": "facilities.csv",
+    "lists": [
+      "adidas (OSHub-Data-Template-adidas-Primary-Jan 2026)",
+      "adidas (OSHub-Data-Template-adidas-Licensee-Jan 2026)",
+      "adidas (OSHub-Data-Template-adidas-Wet Process Suppliers-Apr 2026)"
+    ],
+    "current_lists": [
+      "adidas (OSHub-Data-Template-adidas-Primary-Jan 2026)",
+      "adidas (OSHub-Data-Template-adidas-Licensee-Jan 2026)",
+      "adidas (OSHub-Data-Template-adidas-Wet Process Suppliers-Apr 2026)"
+    ]
+  },
+  {
+    "customer_id": "nike",
+    "name": "Nike",
+    "file": "facilities.csv",
+    "lists": [
+      "Nike [Public List] (Nike Inc. Brand(s) February 2024 Facility List)"
+    ],
+    "current_lists": [
+      "Nike [Public List] (Nike Inc. Brand(s) February 2024 Facility List)"
+    ]
+  },
+  {
+    "customer_id": "apple",
+    "name": "Apple",
+    "file": "apple-osh.csv",
+    "lists": [
+      "Apple [Public List] (Apple 2019 Facility List)"
+    ],
+    "current_lists": [
+      "Apple [Public List] (Apple 2019 Facility List)"
+    ]
+  },
+  {
+    "customer_id": "samsung",
+    "name": "Samsung",
+    "file": "samsung.csv",
+    "lists": [
+      "Samsung [Public List] (Samsung 2021 Facility List)"
+    ],
+    "current_lists": [
+      "Samsung [Public List] (Samsung 2021 Facility List)"
+    ]
+  }
+]

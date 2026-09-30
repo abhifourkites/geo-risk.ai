@@ -2,13 +2,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from . import db
+from . import db, loader
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     with db.connect() as conn:
         db.init_schema(conn)
+        loader.seed_demo(conn)      # first start only: the 4 demo companies
     yield
 
 
