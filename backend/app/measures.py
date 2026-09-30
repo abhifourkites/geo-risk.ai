@@ -72,9 +72,10 @@ def hazard_sites(cur: psycopg.Cursor, c: str, event_id: str | None = None) -> li
 
 
 def hazard_areas(cur: psycopg.Cursor) -> list[dict]:
-    """Current affected areas, simplified for drawing only (the inside check uses the stored shapes)."""
+    """Current affected areas, simplified for drawing only (the inside check uses the stored shapes).
+    Outer rings are made clockwise because d3-geo draws an anticlockwise ring as the whole globe minus the shape."""
     cur.execute("""SELECT e.event_id, e.event_type, e.name, e.alert_level,
-                          ST_AsGeoJSON(ST_SimplifyPreserveTopology(a.area, 0.02), 3) AS geometry
+                          ST_AsGeoJSON(ST_ForcePolygonCW(ST_SimplifyPreserveTopology(a.area, 0.02)), 3) AS geometry
                    FROM hazard_area a JOIN hazard_event e USING (event_id) WHERE e.is_current""")
     return [{"type": "Feature", "geometry": json.loads(r["geometry"]),
              "properties": {"event_id": r["event_id"], "event_type": r["event_type"], "name": r["name"],
@@ -196,7 +197,8 @@ def hazard_detail(conn: psycopg.Connection, c: str, event_id: str) -> dict | Non
             return None
         inside = hazard_sites(cur, c, event_id)
         ids = [s["os_id"] for s in inside]
-        cur.execute("""SELECT o.owner_name, s2.os_id, s2.name, s2.country_code
+        # DISTINCT: two inside sites with the same owner would otherwise list that owner's other sites twice
+        cur.execute("""SELECT DISTINCT o.owner_name, s2.os_id, s2.name, s2.country_code
                        FROM site_owner o
                        JOIN site_owner o2 ON o2.customer_id = o.customer_id AND o2.owner_name = o.owner_name
                        JOIN site s2 ON s2.customer_id = o2.customer_id AND s2.os_id = o2.os_id

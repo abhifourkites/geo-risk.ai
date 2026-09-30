@@ -1,0 +1,1 @@
+ne_110m_admin_0_countries.geojson: Natural Earth 1:110m Admin 0 Countries (v5.1.1), unchanged copy of https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson (git blob 1e6ab74c7042f97013be69ceec798be8e1aff27d); public domain per https://www.naturalearthdata.com/about/terms-of-use/.
