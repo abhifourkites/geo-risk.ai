@@ -1,7 +1,5 @@
 # Architecture: Geographic Supplier Risk Intelligence (MVP)
 
-**[▶ Play the step-by-step diagram](architecture_walkthrough.html)**. Open it in a browser from the local repo; GitHub's website shows HTML files as code.
-
 **What it does:** a company uploads its supplier list and sees, on a map, where its suppliers are concentrated, which owner companies hold many of its sites, and which sites sit inside a current disaster area.
 
 **Who uses it:** the company's own team. Per the brief, that is "Procurement Managers, Supply Chain Risk Analysts and Strategic Sourcing Managers", plus the CPO, who "wants a single answer about where the company is exposed".
@@ -25,13 +23,22 @@
 
 ```mermaid
 flowchart LR
-  osh[("Supplier list<br/>(Open Supply Hub file,<br/>uploaded)")] --> load["Load and clean<br/>(Python)"]
-  gleif[("Company register<br/>(GLEIF files)")] --> match["Match names and<br/>find parent companies<br/>(offline tools)"]
-  gdacs[["Disaster alerts<br/>(GDACS, live)"]] --> refresh["Hazard refresh<br/>(Python)"]
-  load --> db[("PostgreSQL + PostGIS")]
-  match --> db
-  refresh --> db
-  db --> api["FastAPI"] --> ui["React screen:<br/>map, summary sentence,<br/>site and owner panels"]
+  osh[("Supplier list<br/>(Open Supply Hub file,<br/>uploaded)")] e1@--> load["Load and clean<br/>(Python)"]
+  gleif[("Company register<br/>(GLEIF files)")] e2@--> match["Match names and<br/>find parent companies<br/>(offline tools)"]
+  gdacs[["Disaster alerts<br/>(GDACS, live)"]] e3@--> refresh["Hazard refresh<br/>(Python)"]
+  load e4@--> db[("PostgreSQL + PostGIS")]
+  match e5@--> db
+  refresh e6@--> db
+  db e7@--> api["FastAPI"]
+  api e8@--> ui["React screen:<br/>map, summary sentence,<br/>site and owner panels"]
+  e1@{ animate: true }
+  e2@{ animate: true }
+  e3@{ animate: true }
+  e4@{ animate: true }
+  e5@{ animate: true }
+  e6@{ animate: true }
+  e7@{ animate: true }
+  e8@{ animate: true }
 ```
 
 - **Load and clean:** keeps only the columns needed, and drops the personal contact columns (`claim_*`). It cleans owner names, and never merges different spellings. It works out estimated workers and warnings.
