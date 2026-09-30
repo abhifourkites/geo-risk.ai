@@ -1,5 +1,5 @@
 -- The 7 tables of docs/architecture/ARCHITECTURE.md, section 3.
--- Differences from section 3 (see the build notes in README.md):
+-- Differences from section 3 (also listed under "Changed in the build" there):
 --   gleif_match has customer_id (a site's key is customer_id + os_id);
 --   gleif_parent is keyed on (lei, type) (a company can have a direct and a top parent);
 --   site has warnings (rule R3);

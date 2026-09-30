@@ -71,6 +71,7 @@ erDiagram
     geometry location
     numeric workers_est
     text list_names
+    text_array warnings
   }
   site_owner {
     text customer_id PK
@@ -78,8 +79,9 @@ erDiagram
     text owner_name PK
   }
   gleif_match {
-    text os_id
-    text lei "GLEIF company ID"
+    text customer_id PK
+    text os_id PK
+    text lei PK "GLEIF company ID"
     text review_level "likely, possible, unlikely"
     text person_verdict "yes, no or empty"
   }
@@ -87,12 +89,16 @@ erDiagram
     text lei PK
     text parent_lei
     text parent_name
-    text type "direct or top parent"
+    text type PK "direct, top or branch"
   }
   hazard_event {
     text event_id PK
     text alert_level "Green, Orange, Red"
     bool is_current
+    text event_type
+    int episode_id
+    text name
+    text date_modified
   }
   hazard_area {
     text event_id FK
@@ -101,6 +107,19 @@ erDiagram
 ```
 
 A site is inside a disaster area when its point lies in a current event's `hazard_area`. The database works this out when asked; it isn't stored.
+
+**Changed in the build:**
+- `gleif_match` has `customer_id`, because a site's key is `customer_id` + `os_id`.
+- `gleif_parent` is keyed on (`lei`, `type`), because a company can have both a direct and a top parent. `type` also allows `branch` (IS_INTERNATIONAL_BRANCH_OF).
+- `site` has `warnings`, for the site warnings.
+- `hazard_event` has four more columns:
+  - `event_type` and `episode_id`: the GDACS area request needs them.
+  - `name`: shown on screen.
+  - `date_modified`: the refresh compares it to find changed events. GDACS's event list has no `datetime` field; `datemodified` is the change marker.
+- Spatial indexes on `site.location` and `hazard_area.area`.
+- A site's disaster level comes from its **event's** alert level: Orange or Red means High, Green means Watch. It does not come from the colour of a cyclone's wind-speed band.
+- Map areas are simplified, and their rings are turned clockwise, for drawing only. The inside check uses the stored shapes.
+- GLEIF files are read again, and GDACS is refreshed once in the background, on every backend start. If the last refresh failed, stored areas stay in the database but are not shown or counted; the screen says "Hazard data unavailable".
 
 ---
 
@@ -115,7 +134,7 @@ sequenceDiagram
   participant API as FastAPI
   participant DB as PostgreSQL
   U->>UI: clicks an owner, e.g. POU CHEN
-  UI->>API: GET /owners/POU CHEN
+  UI->>API: GET /api/customers/adidas/owners/POU CHEN
   API->>DB: company -> its sites -> owner -> that owner's other sites
   DB-->>API: sites, countries, disaster status
   API-->>UI: owner panel + sites highlighted on the map
@@ -185,5 +204,7 @@ Full list and reasons: README.md.
 | Countries at High | 3 | 3 | 2 | 4 |
 | Largest owner (on the share basis) | POU CHEN 7.4% (Watch) | FENG TAY 9.3% (Watch) | INTEL, 9 sites (1.2%) | HITACHI, 9 sites (4.8%) |
 | Sites inside a current disaster area | 5 (Green) | 3 (Green) | 0 | 0 |
+
+The last row is live GDACS data as of 30 Sep 2026, and changes with every refresh. The other rows, and the GLEIF numbers below, are checked by the tests (`backend/tests/`).
 
 **GLEIF:** 30 likely name matches (from the adidas and Nike names). Of those, 3 have a parent company in GLEIF: Coats Group PLC, Avery Dennison Corporation and SAYE S.P.A. They are shown once a person confirms the match.
