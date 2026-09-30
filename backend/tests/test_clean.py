@@ -44,3 +44,14 @@ def test_open_site_and_warnings():
     assert [s["os_id"] for s in sites] == ["A"]              # B is closed; C is only on a list that is not current
     assert "same_coordinates" in sites[0]["warnings"]        # same point as closed row B of the same file
     assert "owner_conflict" in sites[0]["warnings"]
+
+
+def test_certificate_warnings_with_a_fixed_as_of_date():
+    """R3 certificates on hand-made dates (the demo counts depend on the run date, so they are not tested)."""
+    as_of = datetime.date(2026, 9, 30)
+    row = {"wrap_certification.expiration_date": "2026-09-29|2025-01-01",
+           "amfori_compliance_status.bsci_audit.expiration_date": "2025-01-01|2026-10-01",   # latest is not expired
+           "slcp_assessment.most_recent_assessment_date": "2024-09-29"}
+    assert clean.certificate_warnings(row, as_of) == ["wrap_expired", "slcp_older_than_2y"]
+    assert clean.certificate_warnings({}, as_of) == []                  # only where those dates exist
+    assert clean.certificate_warnings({"slcp_assessment.most_recent_assessment_date": "2024-09-30"}, as_of) == []

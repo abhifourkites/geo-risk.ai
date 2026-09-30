@@ -87,6 +87,8 @@ def test_routes():
     assert client.get("/api/customers/nobody/view").status_code == 404
     owner = client.get("/api/customers/adidas/owners/POU CHEN").json()      # multi-hop
     assert (len(owner["sites"]), owner["countries"], owner["all_in_one_country"]) == (9, ["CN", "ID", "MM", "VN"], False)
+    owner = client.get("/api/customers/adidas/owners/STYLE TEXTILE").json()   # ASSUMPTIONS.md #7
+    assert (len(owner["sites"]), owner["countries"], owner["all_in_one_country"]) == (4, ["PK"], True)
     site = client.get("/api/customers/adidas/sites/TR201909837HW3X").json()
     assert site["site"]["os_id"] == "TR201909837HW3X" and site["owners"]
     assert client.get("/api/customers/adidas/sites/NOPE").status_code == 404
