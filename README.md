@@ -39,7 +39,7 @@ The demo uses the public supplier lists of **adidas, Nike, Apple and Samsung** f
 
 ## 4. What works
 
-Only features tested on the final build. Tests: `backend/tests/` (52, pytest). The screen was checked in headless Chrome with a script that is not in the repo.
+Only features tested on the final build. Tests: `backend/tests/` (53, pytest) and `frontend/src/summary.test.tsx` (6, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
 
 | Feature | Tested by |
 |---|---|
@@ -51,9 +51,9 @@ Only features tested on the final build. Tests: `backend/tests/` (52, pytest). T
 | GLEIF candidates (adidas and Nike only) and parents, shown only after a "yes" verdict in the CSV | `test_gleif.py` |
 | GDACS refresh: one list read per event type, paging, 30-day window, all alert levels, affected areas only (R8), refetch only changed events; rows GDACS repeats across pages are counted and shown | `test_hazards.py`, with a mocked GDACS, including a drought the all-types list skips (`test_a_drought_skipped_by_the_all_types_list_is_still_found`). Live, 30 Sep 2026: 251 current events, 404 affected areas; adidas 5 and Nike 3 sites inside, the same sites and episodes as an independent check |
 | Disaster levels (Orange / Red → High, Green → Watch), and event → sites → owners → those owners' other sites | `test_hazard_levels_r9`; `test_hazard_multi_hop` |
-| GDACS unreachable: "Hazard data unavailable", and the rest keeps working | `test_gdacs_unreachable_keeps_the_app_working`; in the browser, with `www.gdacs.org` blocked in the backend container |
+| GDACS unreachable: "Disaster data unavailable", and the rest keeps working | `test_gdacs_unreachable_keeps_the_app_working`; in the browser, with `www.gdacs.org` blocked in the backend container |
 | Upload: file in → list strings with site counts → pick lists, mark current → load. One company's upload changes only that company | `test_api_upload.py`; in the browser (the Samsung file loaded as a new company) |
-| Screen: company selector, map (countries, site dots, disaster areas), summary and basis, site / owner / disaster panels, GDACS notice, not-built note | Headless Chrome: 177 country outlines, 766 adidas dots, owner and disaster highlights, all three panels, Samsung's SG note, the upload flow, no console errors |
+| Screen: company selector; the one-sentence summary; three answer cards (countries, owner companies, disasters now); map (countries at High / Watch, site dots, disaster areas); site, owner, disaster and country panels; countries and owners tables; "How these numbers are worked out" and "Source and limits of the data" | `frontend/src/summary.test.tsx` (the three cards with the adidas numbers). Headless Chrome at 1440 and 390 px: the numbers shown for the 4 companies are the same as before the redesign; the panels and map highlights; keyboard focus; Samsung's Singapore note; the upload flow; no page-level sideways scroll; no console errors |
 
 ## 5. What does not work / not built
 
@@ -92,8 +92,8 @@ docker compose up
 ```
 
 - Open http://localhost:5173 (API: http://localhost:8000/api/health).
-- The first start loads the 4 demo companies. Each start also runs one GDACS refresh in the background; until it finishes, the screen says "Hazard data loading".
-- **Tests**, in a second terminal: `docker compose run --rm backend pytest`. They use a separate database (`georisk_test`) and never call GDACS.
+- The first start loads the 4 demo companies. Each start also runs one GDACS refresh in the background; until it finishes, the screen says "Checking for current disasters…".
+- **Tests**, in a second terminal: `docker compose run --rm backend pytest`. They use a separate database (`georisk_test`) and never call GDACS. **Frontend check:** `docker compose run --rm --no-deps frontend npm test`.
 - **After a code change:** `docker compose up --build`. **Start with an empty database:** `docker compose down -v`.
 - **GLEIF verdicts:** fill `person_verdict (same company? yes / no)` in `data/reference/gleif_slice_for_our_data.csv`, then `docker compose restart backend`. The files are read again on each start.
 - **Optional full input check:** `python3 -B scripts/verify_inputs.py` needs `data/raw/` (the original downloads). That folder is git-ignored (large files, and personal contact columns), so this check cannot run from a clean clone.

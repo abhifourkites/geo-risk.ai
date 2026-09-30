@@ -84,7 +84,7 @@ flowchart LR
     gdc["GDACS connector"]
     db[("PostgreSQL + PostGIS<br/>tables keyed by customer_id<br/>+ measure views")]
     api["FastAPI<br/>8 routes"]
-    ui["React + TypeScript<br/>customer selector (last chosen), map,<br/>CPO sentence, coverage strip, not-built note,<br/>site / owner / hazard panels, upload page"]
+    ui["React + TypeScript<br/>customer selector (last chosen), map,<br/>CPO sentence, coverage strip,<br/>site / owner / hazard panels, upload page"]
   end
 
   tiles["Map tiles<br/>PENDING LICENCE CHECK"]:::pend
