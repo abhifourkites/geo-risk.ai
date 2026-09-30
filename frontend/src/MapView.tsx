@@ -9,7 +9,8 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
 import type { ExpressionSpecification, GeoJSONSource, StyleSpecification } from "maplibre-gl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { SxProps, Theme } from "@mui/material/styles";
 import Map, { Layer, Marker, NavigationControl, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
 import type { View } from "./api";
 import { countryName, threshold } from "./format";
@@ -254,21 +255,9 @@ export default function MapView(props: {
           </Paper>
         )}
 
-        <Paper variant="outlined" component="ul" aria-label="Map legend" sx={{ position: "absolute", left: 8, bottom: 8, m: 0, px: 1, py: 0.75, listStyle: "none", width: 196, display: { xs: "none", sm: "block" }, opacity: 0.95 }}>
-          {[
-            [<Swatch key="h" color={RISK.high} opacity={0.55} />, `High: ${threshold(props.high)} or more`],
-            [<Swatch key="w" color={RISK.watchFill} opacity={0.55} />, `Watch: ${threshold(props.watch)} to under ${threshold(props.high)}`],
-            [<Swatch key="d" color={RISK.disaster} opacity={0.15} border={RISK.disaster} />, "Disaster area"],
-            [<Dot key="s" size={9} />, "Your site"],
-            [<Dot key="c" size={14} />, "Group of sites (count)"],
-            [<Dot key="x" size={12} ring />, "Selected site"],
-          ].map(([icon, text], i) => (
-            <Box component="li" key={i} sx={{ display: "flex", alignItems: "center", gap: 1, lineHeight: 1.6 }}>
-              {icon}<Typography variant="caption" sx={{ fontSize: 12 }}>{text as string}</Typography>
-            </Box>
-          ))}
-        </Paper>
+        <Legend high={props.high} watch={props.watch} sx={{ position: "absolute", left: 8, bottom: 8, display: { xs: "none", sm: "block" } }} />
       </Box>
+      <Legend high={props.high} watch={props.watch} sx={{ mt: 1, display: { xs: "block", sm: "none" } }} />
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
         <Typography variant="caption" color="text.secondary">Disaster data: GDACS, automatic alerts. Confirm before acting.</Typography>
         {noOutline.length > 0 && (
@@ -278,6 +267,27 @@ export default function MapView(props: {
         )}
       </Stack>
     </Box>
+  );
+}
+
+/** The map legend in plain words: in the map's corner, or under the map on a phone. */
+function Legend({ high, watch, sx }: { high: number; watch: number; sx: SxProps<Theme> }) {
+  const items: [ReactNode, string][] = [
+    [<Swatch key="h" color={RISK.high} opacity={0.55} />, `High: ${threshold(high)} or more`],
+    [<Swatch key="w" color={RISK.watchFill} opacity={0.55} />, `Watch: ${threshold(watch)} to under ${threshold(high)}`],
+    [<Swatch key="d" color={RISK.disaster} opacity={0.15} border={RISK.disaster} />, "Disaster area"],
+    [<Dot key="s" size={9} />, "Your site"],
+    [<Dot key="c" size={14} />, "Group of sites (count)"],
+    [<Dot key="x" size={12} ring />, "Selected site"],
+  ];
+  return (
+    <Paper variant="outlined" component="ul" aria-label="Map legend" sx={[{ m: 0, px: 1, py: 0.75, listStyle: "none", width: 196, opacity: 0.95 }, ...(Array.isArray(sx) ? sx : [sx])]}>
+      {items.map(([icon, text], i) => (
+        <Box component="li" key={i} sx={{ display: "flex", alignItems: "center", gap: 1, lineHeight: 1.6 }}>
+          {icon}<Typography variant="caption" sx={{ fontSize: 12 }}>{text}</Typography>
+        </Box>
+      ))}
+    </Paper>
   );
 }
 
