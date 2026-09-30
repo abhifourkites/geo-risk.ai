@@ -56,7 +56,7 @@ def owner_shares(cur: psycopg.Cursor, c: str, basis: str, high: float, watch: fl
         share = float(r["workers"] if basis == "workers" else r["sites"]) / total
         out.append({"owner": r["owner_name"], "share": share, "sites": r["sites"], "level": level(share, high, watch),
                     "all_in_one_country": r["sites"] >= 2 and r["countries"] == 1,
-                    "country": r["country"] if r["countries"] == 1 else None})
+                    "country": r["country"] if r["countries"] == 1 else None, "countries": r["countries"]})
     return sorted(out, key=lambda x: (-x["share"], -x["sites"], x["owner"]))
 
 
@@ -136,11 +136,16 @@ def view(conn: psycopg.Connection, c: str, high: float = 10, watch: float = 5) -
                        FROM site s LEFT JOIN site_owner o USING (customer_id, os_id)
                        WHERE s.customer_id = %s GROUP BY s.os_id, s.name, s.country_code, s.location, s.warnings""", (c,))
         sites = [dict(r, hazard_level=by_site.get(r["os_id"])) for r in cur.fetchall()]
+        # the company's list names, as stored on its sites (each site's list_names joins them with " | ")
+        cur.execute("""SELECT l FROM site, unnest(string_to_array(list_names, ' | ')) AS l
+                       WHERE customer_id = %s GROUP BY l ORDER BY count(*) DESC, l""", (c,))
+        lists = [r["l"] for r in cur.fetchall()]
         return {
             "customer": customer, "thresholds": {"high": high, "watch": watch}, "coverage": cov,
             "sentence": sentence(cov, countries, owners, state, hz),
             "countries": countries,
-            "owners": {"top": owners[:15], "at_high": sum(o["level"] == "High" for o in owners),
+            "lists": lists,
+            "owners": {"top": owners[:15], "all": owners, "at_high": sum(o["level"] == "High" for o in owners),
                        "at_watch": sum(o["level"] == "Watch" for o in owners),
                        "all_in_one_country": {"count": sum(o["all_in_one_country"] for o in owners),
                                               "of_owners_with_2_plus_sites": sum(o["sites"] >= 2 for o in owners)},

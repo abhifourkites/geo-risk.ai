@@ -1,6 +1,7 @@
 """API routes and the two-step upload. One company's upload does not change another's rows."""
 import csv
 import io
+import json
 
 from fastapi.testclient import TestClient
 
@@ -96,3 +97,14 @@ def test_routes():
 
 def test_health():
     assert client.get("/api/health").json() == {"status": "ok"}
+
+
+def test_view_read_only_fields_for_the_screen():
+    v = client.get("/api/customers/adidas/view").json()
+    assert [o["owner"] for o in v["owners"]["all"][:15]] == [o["owner"] for o in v["owners"]["top"]]
+    assert len(v["owners"]["all"]) >= len(v["owners"]["top"])
+    by_owner = {o["owner"]: o for o in v["owners"]["all"]}
+    assert (by_owner["POU CHEN"]["countries"], by_owner["STYLE TEXTILE"]["countries"]) == (4, 1)
+    demo = {c["customer_id"]: c for c in json.loads((loader.DEMO_DIR / "demo_companies.json").read_text())}
+    for c in DEMO:
+        assert sorted(client.get(f"/api/customers/{c}/view").json()["lists"]) == sorted(demo[c]["current_lists"])
