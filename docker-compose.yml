@@ -7,7 +7,9 @@ services:
       POSTGRES_PASSWORD: georisk
       POSTGRES_DB: georisk
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U georisk -d georisk"]
+      # over TCP: on a new volume the image first runs a socket-only init server, which pg_isready
+      # on the socket reports as ready while the backend's TCP connection is still refused
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U georisk -d georisk"]
       interval: 3s
       timeout: 3s
       retries: 30
