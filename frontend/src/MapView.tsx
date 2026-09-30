@@ -8,7 +8,10 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
-import type { ExpressionSpecification, GeoJSONSource, StyleSpecification } from "maplibre-gl";
+import { setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type StyleSpecification } from "maplibre-gl";
+// MapLibre's documented setup for Vite (https://maplibre.org/maplibre-gl-js/docs/, Installation): "?worker&url"
+// bundles the worker with its sibling maplibre-gl-shared.mjs into one chunk, in development and in production builds.
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import Map, { Layer, Marker, NavigationControl, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
@@ -16,6 +19,8 @@ import type { View } from "./api";
 import { countryName, threshold } from "./format";
 import { boundsOf, coordsOf, WORLD, type Focus } from "./geo";
 import { RISK } from "./theme";
+
+setWorkerUrl(workerUrl);
 
 // Natural Earth 1:110m; ISO_A2_EH is used because ISO_A2 is "-99" for France and Norway.
 type World = FeatureCollection<Geometry, { ISO_A2_EH: string; NAME: string }>;
