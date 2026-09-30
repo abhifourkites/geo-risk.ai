@@ -287,3 +287,31 @@ def test_a_request_that_always_fails_is_tried_3_times(conn, clean_hazards, hazar
     with conn.cursor() as cur:
         cur.execute("SELECT count(*) AS n FROM hazard_area")
         assert cur.fetchone()["n"] == 1                           # stored data left as it was
+
+
+def _status_mock(first_status: int, calls: list):
+    """A fake GDACS whose first request answers first_status, then 200 with no events."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        if len(calls) == 1:
+            return httpx.Response(first_status, request=request)
+        return httpx.Response(200, json={"features": []})
+    return handler
+
+
+def test_a_404_is_not_retried(conn, clean_hazards, hazard_status, monkeypatch):
+    calls: list = []; waits: list = []
+    monkeypatch.setattr(hazards, "_sleep", _no_wait(waits))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: REAL_CLIENT(transport=httpx.MockTransport(_status_mock(404, calls)), **kw))
+    s = asyncio.run(hazards.refresh(conn, today=datetime.date(2026, 9, 30)))
+    assert (len(calls), waits) == (1, [])                              # tried once, no wait
+    assert s["state"] == "unavailable" and s["error"].startswith("HTTPStatusError: HTTPStatusError(") and "404" in s["error"]
+
+
+def test_a_429_is_retried(conn, clean_hazards, hazard_status, monkeypatch):
+    calls: list = []; waits: list = []
+    monkeypatch.setattr(hazards, "_sleep", _no_wait(waits))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: REAL_CLIENT(transport=httpx.MockTransport(_status_mock(429, calls)), **kw))
+    s = asyncio.run(hazards.refresh(conn, today=datetime.date(2026, 9, 30)))
+    assert calls[0] == calls[1] and waits == [2]                       # the same request again, after 2 s
+    assert (s["state"], s["error"]) == ("ok", None)

@@ -41,15 +41,23 @@ RETRY_WAITS = (2, 5)     # seconds before the 2nd and the 3rd try of a failed GD
 _sleep = asyncio.sleep   # replaced in tests
 
 
+def _worth_retrying(err: httpx.HTTPError) -> bool:
+    """Network errors, 5xx, 408 (timeout) and 429 (too many requests) may pass; other 4xx will not fix themselves."""
+    if isinstance(err, httpx.HTTPStatusError):
+        code = err.response.status_code
+        return code >= 500 or code in (408, 429)
+    return True
+
+
 async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response:
-    """GET from GDACS; on a network error or an HTTP error status, try up to 2 more times (after 2 s, then 5 s)."""
+    """GET from GDACS; on a network error, a 5xx, 408 or 429, try up to 2 more times (after 2 s, then 5 s)."""
     for wait in (*RETRY_WAITS, None):
         try:
             r = await client.get(url)
             r.raise_for_status()
             return r
         except httpx.HTTPError as err:
-            if wait is None:
+            if wait is None or not _worth_retrying(err):
                 raise
             log.warning("GDACS request failed (%s); trying again in %s s: %s", describe(err), wait, url)
             await _sleep(wait)
