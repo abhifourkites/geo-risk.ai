@@ -15,7 +15,7 @@ export type GraphNode = Node<InfoData, "info"> | Node<HeaderData, "header">;
 
 export const NODE_W = 184;
 export const ROW = 54;                       // one site row (sites are one-line boxes)
-const GAP = 40, LABEL_GAP = 150, GROUP = 76, BELOW = 108;   // LABEL_GAP: room for the candidate line's label
+const GAP = 40, LABEL_GAP = 150, GROUP = 76, BELOW = 132;   // BELOW: room for a 3-line parent name and its line's label   // LABEL_GAP: room for the candidate line's label
 const LINE = "#5D6B70", CONFIRMED = "#1F3A5F";
 const PARENT_LABEL: Record<string, string> = { direct: "direct parent", top: "top parent", branch: "branch of" };
 const PARENT_CAPTION: Record<string, string> = { direct: "GLEIF · direct parent", top: "GLEIF · top parent", branch: "GLEIF · head office" };

@@ -236,7 +236,7 @@ export default function App() {
         {page === "map" && !view && !error && (
           <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 4 }} role="status" data-testid="view-loading">
             <CircularProgress size={20} />
-            <Typography color="text.secondary">Loading {companyName || "the company"}…</Typography>
+            <Typography color="text.secondary">Loading {companyName.replace(/\.$/, "") || "the company"}…</Typography>
           </Stack>
         )}
 

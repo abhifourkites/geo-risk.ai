@@ -39,7 +39,7 @@ The demo uses the public supplier lists of **adidas, Nike, Apple and Samsung** f
 
 ## 4. What works
 
-Only features tested on the final build. Tests: `backend/tests/` (129, pytest) and `frontend/src/summary.test.tsx`, `uploadLists.test.ts` and `networkGraph.test.ts` (17, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
+Only features tested on the final build. Tests: `backend/tests/` (132, pytest) and `frontend/src/summary.test.tsx`, `uploadLists.test.ts`, `networkGraph.test.ts` and `format.test.ts` (20, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
 
 | Feature | Tested by |
 |---|---|

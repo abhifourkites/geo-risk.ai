@@ -44,7 +44,7 @@ function InfoNode({ data }: NodeProps<Node<InfoData, "info">>) {
       <Handle type="target" position={Position.Top} id="t" style={HIDDEN} isConnectable={false} />
       {data.caption && <Typography component="div" sx={{ fontSize: 11, lineHeight: 1.3, color: "text.secondary" }}>{data.caption}</Typography>}
       <Typography component="div" title={data.title}
-                  sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: data.oneLine ? 1 : 2, WebkitBoxOrient: "vertical", wordBreak: "break-word" }}>
+                  sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: data.oneLine ? 1 : data.tone === "parent" ? 3 : 2, WebkitBoxOrient: "vertical", wordBreak: "break-word" }}>
         {data.title}
       </Typography>
       {data.detail && <Typography component="div" sx={{ fontSize: 11.5, lineHeight: 1.3, color: "text.secondary" }}>{data.detail}</Typography>}
