@@ -198,6 +198,26 @@ def test_parents_are_fetched_only_after_a_confirm(conn, fake):
     assert len(fake.requests) == n                                             # parents are cached: not fetched again
 
 
+def test_a_shared_candidate_has_one_verdict_and_each_companys_own_rating(conn, fake):
+    """Apple and Samsung both have the owner INTEL: one candidate per name and LEI, one verdict for both, rated with
+    each company's own site countries (likely for a company with a site in the LEI's country, else possible)."""
+    fake.names = {"INTEL": [record("IE0000000000000INTEL", "INTEL CORPORATION", "IE")]}
+    run(conn, "apple")
+    run(conn, "samsung")
+    with conn.cursor() as cur:
+        cur.execute("""SELECT o.customer_id, bool_or(s.country_code = 'IE') AS ie FROM site_owner o JOIN site s USING (customer_id, os_id)
+                       WHERE o.owner_name = 'INTEL' AND o.customer_id IN ('apple', 'samsung') GROUP BY 1 ORDER BY 1""")
+        has_ie = {r["customer_id"]: r["ie"] for r in cur.fetchall()}
+    seen = {c: [x for x in client.get("/api/network/candidates", params={"company": c}).json() if x["our_names"] == "INTEL"]
+            for c in ("apple", "samsung")}
+    [a], [s] = seen["apple"], seen["samsung"]
+    assert a["id"] == s["id"] and a["applies_to"] == s["applies_to"] == ["Apple", "Samsung"]
+    assert (a["level"], s["level"]) == tuple("1" if has_ie[c] else "2" for c in ("apple", "samsung"))
+    client.put(f"/api/network/candidates/{a['id']}/verdict", json={"verdict": "yes"})
+    assert [x["verdict"] for x in client.get("/api/network/candidates", params={"company": "samsung"}).json()
+            if x["our_names"] == "INTEL"] == ["yes"]
+
+
 def test_adidas_and_nike_keep_their_file_candidates(conn, fake):
     before = {c: [x["id"] for x in network.candidates(conn, c)] for c in ("adidas", "nike")}
     assert client.post("/api/network/jobs/adidas").status_code == 400

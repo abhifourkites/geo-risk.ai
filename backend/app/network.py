@@ -60,15 +60,18 @@ class _Sites:
 
 def _rows(cur: psycopg.Cursor) -> dict[int, dict]:
     """Every candidate by id: the slice file's rows, then the GLEIF API candidates (one per owner name and
-    LEI: its companies are every company with that owner name searched; its level the most likely one)."""
+    LEI: its companies are every company with that owner name searched; its level the most likely one, and
+    `own` each company's own row, rated with that company's site countries)."""
     rows = {i: dict(r, source="file") for i, r in enumerate(gleif._read(gleif.SLICE), 1)}
     grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in gleif.api_rows(cur):
         grouped[(r["our_names"], r["LEI"])].append(r)
-    for same in sorted(grouped.values(), key=lambda g: min(r["api_id"] for r in g)):
-        first = min(same, key=lambda r: (r["review_level"], r["api_id"]))
+    best = {k: min(g, key=lambda r: (r["review_level"], r["api_id"])) for k, g in grouped.items()}
+    for k in sorted(grouped, key=lambda k: (best[k]["review_level"], k[0], best[k]["api_id"])):   # most likely first
+        same, first = grouped[k], best[k]
         rows[API_ID + min(r["api_id"] for r in same)] = dict(
-            first, source="api", customer_ids=sorted({r["customer_id"] for r in same}))
+            first, source="api", customer_ids=sorted({r["customer_id"] for r in same}),
+            own={r["customer_id"]: r for r in same})
     return rows
 
 
@@ -158,6 +161,13 @@ def candidates(conn: psycopg.Connection, company: str | None = None) -> list[dic
         rows, sites, saved, linked, conflicts, applies = _context(cur)
     items = [_item(i, r, rows, sites, saved, linked, conflicts, applies) for i, r in rows.items()
              if company is None or company in sites.companies(r)]
+    if company:       # a GLEIF API candidate is shown with the company's own rating (its own site countries)
+        for c in items:
+            own = rows[c["id"]].get("own", {}).get(company)
+            if own:
+                c.update(review_level=own["review_level"], level=own["review_level"][:1], match_type=own["match_type"])
+        items = [c for c in items if c["source"] == "file"] + \
+            sorted((c for c in items if c["source"] == "api"), key=lambda c: (c["review_level"], c["our_names"], c["id"]))
     return items
 
 
