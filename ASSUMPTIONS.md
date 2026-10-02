@@ -63,7 +63,7 @@ For each point where the brief was unclear: what was unclear, what we decided, w
 - **Decided:** Show **owner dependency** instead, clearly labelled as such:
   - owners holding many sites or a large share;
   - owners with all their sites in one country.
-- **Why:** The owner is the only shared dependency the data records. The brief names this risk itself: "a corporate group collapses". Owner is known for 72.1% of adidas sites and 100.0% of Nike sites.
+- **Why:** The owner is the only shared dependency the data records. The brief names this risk itself: "a corporate group collapses". Owner is known for 71.9% of adidas sites and 100.0% of Nike sites.
 - **Would change our mind:** Material or component data per site, or supplier-to-supplier links.
 
 ## 8. What counts as "risk concentration"

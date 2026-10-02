@@ -50,7 +50,7 @@ A measure switches on for a customer when the field it needs is known for at lea
 | Risk basis | workers (719 of 766, 93.9%) | workers (625 of 625, 100.0%) | **sites** (workers 65 of 749, 8.7%) | **sites** (workers 4 of 187, 2.1%) |
 | Country level | yes | yes | yes | yes |
 | Region level | waits for boundary file | waits for boundary file | waits for boundary file | waits for boundary file |
-| Owner measures (owner known) | yes (552, 72.1%) | yes (625, 100.0%) | yes (66, 8.8%) | yes (187, 100.0%) |
+| Owner measures (owner known) | yes (551, 71.9%) | yes (625, 100.0%) | yes (66, 8.8%) | yes (187, 100.0%) |
 | Certificate warnings | WRAP, BSCI, SLCP | WRAP, BSCI, SLCP | SLCP only (1 site) | none |
 | Facility type | 432 | 494 | not reported | not reported |
 | Hazard exposure | yes | yes | yes | yes |
@@ -435,7 +435,7 @@ The customer's own supplier data gives supplier, location, material or part, and
 3. punctuation → space;
 4. collapse spaces (a no-break space counts as a space);
 5. remove these legal-form words: CO, COMPANY, CORP, CORPORATION, GMBH, GROUP, HOLDING, HOLDINGS, INC, JSC, LIMITED, LLC, LTD, PLC, PRIVATE, PT, PVT, SA;
-6. drop placeholders (`NO GROUP (..)`, `N/A`, `NA`, tested before step 5), and drop an owner name equal to the site's own name ONLY when the site has another owner name; if it is the site's only owner, keep it.
+6. drop placeholders (`NO GROUP (..)`, `N/A`, `NA`, `NULL` in any case, tested before step 5), and drop an owner name equal to the site's own name ONLY when the site has another owner name; if it is the site's only owner, keep it.
 
 **Why step 6 keeps a sole self-named owner:** some lists name a site after the company that owns it. Always dropping the self-name deleted real owner groups: Apple's INTEL (9 sites) and MICRON TECHNOLOGY (6), and Samsung's HITACHI (9). See DECISIONS #13.
 
@@ -509,8 +509,8 @@ The reference files are **regression checks, not the definition of correct**. Wh
 | R2 workers | same, `workers_est_median` | 1,536/1,536 |
 | R3 same coordinates as another site | same, `shared_point_any_site` | 1,536/1,536 |
 | R3 certificate flags | same, 3 flag columns | reproduced for any as-of date from 2026-09-23 to 2026-09-29 |
-| R4 owner names | same, `parent_groups` | **1,443/1,536, expected difference**: 93 sites differ. By reason (a site can have more than one): 72 keep a sole self-named owner, 18 keep non-ASCII letters, 8 have site and owner names that differ only by accents, and 1 has a no-break space treated as a space. The reference drops or deletes these |
-| R5 owner conflict | same, `parent_conflict` | **1,532/1,536, expected difference**: 4 more conflicts, from the letter and accent differences |
+| R4 owner names | same, `parent_groups` | **1,437/1,536, expected difference**: 99 sites differ. By reason (a site can have more than one): 73 keep a sole self-named owner, 18 keep non-ASCII letters, 8 have site and owner names that differ only by accents, 6 drop "null" as a placeholder where the reference keeps it as an owner, and 1 has a no-break space treated as a space. The reference drops or deletes these, or keeps "null" |
+| R5 owner conflict | same, `parent_conflict` | **1,529/1,536, expected difference**: 4 more conflicts, from the letter and accent differences, and 3 fewer, where the reference counts "null" as a second owner |
 | Region shares (adidas, Nike) | same, `region_key` | Nike VN:Dong Nai 5.4% of sites and 13.5% of workers; adidas ID-JT 10.5%; regions at ≥10% / ≥5%: adidas 1 / 4, Nike 2 / 5 — all match |
 | Vietnam correction | same, `region_key` | 318/318 |
 | GDACS | gdacs_current_exposure_2026-09-30.csv | 8 sites (adidas 5, Nike 3), 3 events, all Green — match |
@@ -552,17 +552,17 @@ The GDACS fixture has labels but no shapes, so the point-in-area step cannot be 
 | | adidas | Nike | Apple | Samsung |
 |---|---|---|---|---|
 | Open sites | 766 | 625 | 749 | 187 |
-| Owner known (R4; equals `parent_company` filled) | 552 (72.1%) | 625 (100.0%) | 66 (8.8%) | 187 (100.0%) |
+| Owner known (R4; `parent_company` filled for 552 adidas sites, one with only "null") | 551 (71.9%) | 625 (100.0%) | 66 (8.8%) | 187 (100.0%) |
 | Workers known | 719 (93.9%) | 625 (100.0%) | 65 (8.7%) | 4 (2.1%) |
 | `facility_type` filled | 432 | 494 | 0 | 0 |
 | WRAP / BSCI / SLCP dates filled | 75 / 20 / 254 | 54 / 10 / 411 | 0 / 0 / 1 | 0 / 0 / 0 |
 | Coordinates, country | all | all | all | all |
 | Same coordinates as another site (location may be approximate) | 66 | 58 | 70 | 17 |
-| Owner conflicts | 189 | 232 | 3 | 0 |
+| Owner conflicts | 187 | 231 | 3 | 0 |
 
 - **Owner known equals the share of open sites with `parent_company` filled** for all four demo customers, because R4 keeps a self-named owner when it is the site's only owner.
 - **Many sites carry only their own company name as owner:** Samsung 179 of 187 sites; Apple 45 of the 66 sites that have an owner (for example INTEL, 9 Apple sites; HITACHI, 9 Samsung sites).
-- **Owner unknown:** adidas 214 (27.9%). Open sites with an owner conflict, adidas and Nike counted once: 359.
+- **Owner unknown:** adidas 215 (28.1%). Open sites with an owner conflict, adidas and Nike counted once: 356.
 
 ### C.3 Results
 
@@ -583,8 +583,8 @@ The GDACS fixture has labels but no shapes, so the point-in-area step cannot be 
 
 | Customer | Owners | Watch (≥ 5%) | Owners with 2+ sites | All in one country | All in one region |
 |---|---|---|---|---|---|
-| adidas | 509 | POU CHEN 7.4%, THE LOOK MACAO COMMERCIAL OFFSHORE 5.9% | 157 | 56 | 27 |
-| Nike | 530 | FENG TAY 9.3%, TAEKWANG 6.6%, POU CHEN 6.1%, CHANGSHIN 5.9% | 156 | 50 | 19 |
+| adidas | 509 | POU CHEN 7.4%, THE LOOK MACAO COMMERCIAL OFFSHORE 5.9% | 156 | 56 | 27 |
+| Nike | 530 | FENG TAY 9.3%, TAEKWANG 6.6%, POU CHEN 6.1%, CHANGSHIN 5.9% | 155 | 49 | 19 |
 | Apple | 41 | — | 12 | 2 | — |
 | Samsung | 102 | — | 42 | 4 | — |
 

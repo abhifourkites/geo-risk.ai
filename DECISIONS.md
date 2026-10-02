@@ -99,12 +99,13 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
     - Different spellings are never merged.
     - Conflicting reports are shown as conflicts.
   - **A self-named owner is kept when it is the site's only owner.**
+  - **"NULL" (any case) is a placeholder, like NO GROUP (..), N/A and NA:** data/demo/facilities.csv has "null" as an owner value 6 times, and counting it made a fake owner "NULL" (4 adidas sites, 2 Nike sites).
   - **GLEIF name matches are candidates** until a person confirms them.
 - **Against:**
   - *Merging similar names automatically.*
   - *Dropping non-Latin letters:* owners written only in Chinese would disappear, for example `三芳化學工業股份有限公司`.
   - *Always dropping a self-named owner:* it deleted real owner groups, such as INTEL (9 Apple sites) and HITACHI (9 Samsung sites). Owner known fell to 21 of 749 Apple sites and 8 of 187 Samsung sites.
-  - *Never dropping it:* a site that lists itself next to its real parent would show a false conflict. Conflicts would rise from 189 to 207 for adidas, and from 232 to 257 for Nike.
+  - *Never dropping it:* a site that lists itself next to its real parent would show a false conflict. Conflicts would rise from 187 to 204 for adidas, and from 231 to 256 for Nike.
   - *Trusting GLEIF name matches:* "FAR EASTERN" matched a Taiwanese bank and a securities firm, and "XING YE" matched a Hong Kong bank branch (`興業銀行股份有限公司香港分行`).
 - **Gave up:**
   - One company can be split. Nike's 3 "SHAHI" sites are not linked to adidas's 4 "SHAHI EXPORTS" sites.
