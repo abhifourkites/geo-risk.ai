@@ -116,7 +116,7 @@
         <g class="n" data-id="refresh"><rect rx="10" x="300" y="300" width="200" height="76"></rect>
           <text x="318" y="332">Hazard refresh</text><text class="sub" x="318" y="356">Python</text></g>
         <g class="n" data-id="db"><rect rx="10" x="580" y="150" width="180" height="120"></rect>
-          <text x="598" y="190">Database</text><text class="sub" x="598" y="214">PostgreSQL + PostGIS</text><text class="sub" x="598" y="236">7 tables</text></g>
+          <text x="598" y="190">Database</text><text class="sub" x="598" y="214">PostgreSQL + PostGIS</text><text class="sub" x="598" y="236">8 tables</text></g>
         <g class="n" data-id="api"><rect rx="10" x="830" y="172" width="90" height="76"></rect>
           <text x="875" y="216" text-anchor="middle">FastAPI</text></g>
         <g class="n" data-id="ui"><rect rx="10" x="970" y="150" width="120" height="120"></rect>
@@ -173,7 +173,7 @@ const STEPS = [
   { title: "Match names to the company register", on: ["gleif","match","db"], edges: ["e-gleif","e-match"],
     body: `<p>GLEIF's entity file (3,446,215 records) and relationship file (489,389 records) are read offline.</p>
     <ul>
-      <li>Our owner and site names become candidate matches. A match is shown only after a person confirms it.</li>
+      <li>Our owner and site names become candidate matches. A match is shown only after a person confirms it, on the Company network page.</li>
       <li>30 likely matches. 3 of them have a parent company in GLEIF: Coats Group PLC, Avery Dennison Corporation and SAYE S.P.A.</li>
       <li>Why a person must confirm: "FAR EASTERN" matched a Taiwanese bank.</li>
     </ul>` },
@@ -181,8 +181,8 @@ const STEPS = [
     body: `<p>GDACS is the one live source. The refresh reads current events, and keeps only each event's <strong>affected</strong> areas. Forecast areas, uncertainty cones, distance circles and the flood "Global area" do not count.</p>
     <p>On 30 September 2026, 8 of our sites were inside a current event: adidas 5, Nike 3, all Green. Apple and Samsung: 0.</p>` },
   { title: "One database", on: ["db"], edges: [],
-    body: `<p>PostgreSQL with PostGIS, in 7 tables:</p>
-    <ul><li>customer, site, site_owner</li><li>gleif_match, gleif_parent</li><li>hazard_event, hazard_area</li></ul>
+    body: `<p>PostgreSQL with PostGIS, in 8 tables:</p>
+    <ul><li>customer, site, site_owner</li><li>gleif_match, gleif_parent, gleif_verdict (the verdicts given on the Company network page)</li><li>hazard_event, hazard_area</li></ul>
     <p>PostGIS checks whether a site's point lies inside a disaster area. A hop between things, like site to owner, is a join.</p>` },
   { title: "The screen", on: ["db","api","ui"], edges: ["e-db","e-api"],
     body: `<p>FastAPI serves a React screen: a map, a one-sentence summary for the CPO, and site and owner panels.</p>

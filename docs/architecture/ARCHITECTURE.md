@@ -42,7 +42,7 @@ flowchart LR
 ```
 
 - **Load and clean:** keeps only the columns needed, and drops the personal contact columns (`claim_*`). It cleans owner names, and never merges different spellings. It works out estimated workers and warnings.
-- **Match names (GLEIF):** our owner and site names are matched to GLEIF's company register. **A match is shown only after a person confirms it.** Parent companies come from GLEIF's relationship file.
+- **Match names (GLEIF):** our owner and site names are matched to GLEIF's company register. **A match is shown only after a person confirms it**, on the Company network page. Parent companies come from GLEIF's relationship file.
 - **Hazard refresh:** reads the current events from GDACS, and keeps only each event's *affected* areas.
 - **One upload changes one company only.** Other companies' data is never touched.
 - **Stack:** Python + FastAPI and React + TypeScript (the brief's house stack), with PostgreSQL + PostGIS for the map checks (point inside a disaster area).
@@ -57,6 +57,7 @@ erDiagram
   site ||--o{ site_owner : "owned by"
   site ||--o{ gleif_match : "matched to"
   gleif_match }o--o{ gleif_parent : "parent of the matched company"
+  gleif_verdict }o--o{ gleif_match : "applied when candidates are linked"
   hazard_event ||--o{ hazard_area : "has"
 
   customer {
@@ -85,6 +86,13 @@ erDiagram
     text review_level "likely, possible, unlikely"
     text person_verdict "yes, no or empty"
   }
+  gleif_verdict {
+    text kind PK "owner or site"
+    text our_names PK "as in the GLEIF slice file"
+    text lei PK
+    text verdict "yes or no"
+    timestamptz decided_at
+  }
   gleif_parent {
     text lei PK
     text parent_lei
@@ -111,6 +119,9 @@ A site is inside a disaster area when its point lies in a current event's `hazar
 **Changed in the build:**
 - `gleif_match` has `customer_id`, because a site's key is `customer_id` + `os_id`.
 - `gleif_parent` is keyed on (`lei`, `type`), because a company can have both a direct and a top parent. `type` also allows `branch` (IS_INTERNATIONAL_BRANCH_OF).
+- `gleif_verdict` (an 8th table) holds the verdicts given on the Company network page. It is keyed like a candidate of the GLEIF slice file (`kind`, `our_names`, `lei`), so one verdict covers every company and site the candidate links to. No row means no verdict; every verdict starts empty.
+  - It is created on backend start only if it does not exist, like every table. A start never resets data: existing companies, including uploaded ones, are kept, and no `docker compose down -v` is needed.
+  - On every start, and at once after each verdict, the candidates are linked again (`gleif_match` is rebuilt): a saved verdict is used over the file's `person_verdict` column, and a site linked to one LEI by two candidates is confirmed when either says yes, otherwise rejected when either says no.
 - `site` has `warnings`, for the site warnings.
 - `hazard_event` has four more columns:
   - `event_type` and `episode_id`: the GDACS area request needs them.

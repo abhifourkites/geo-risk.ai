@@ -71,16 +71,17 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
 - **Chose:** PostgreSQL + PostGIS, run with Docker Compose.
   - FourKites' geo-service schema uses PostgreSQL: it has `enable_extension "plpgsql"`, `enable_extension "pg_trgm"` and `jsonb` columns.
   - PostGIS is our addition, for the map check (is a point inside a disaster area?).
-- **Against:** *A separate graph database:* every question the screen asks is a few joins over 7 tables (#4).
+- **Against:** *A separate graph database:* every question the screen asks is a few joins over 8 tables (#4).
 - **Gave up:**
   - It needs Docker.
   - Database size and query time at 50× the demo (116,350 site rows) were not measured.
 - **Would change our mind:** Evidence that FourKites' own services use a different store.
 
-## 4. Graph model: 7 tables, a hop is a join
+## 4. Graph model: 8 tables, a hop is a join
 
 - **Chose:**
-  - 7 tables: customer, site, site_owner, gleif_match, gleif_parent, hazard_event, hazard_area.
+  - 8 tables: customer, site, site_owner, gleif_match, gleif_parent, gleif_verdict, hazard_event, hazard_area.
+  - **Verdicts in their own table, `gleif_verdict`**, keyed by the GLEIF slice file's candidate (kind, our names, LEI). One verdict answers "is this name that company?" for every company and site the candidate links to. Like every table, it is created on start only if it does not exist, so adding it needed no database reset.
   - A hop is a join. The multi-hop questions are:
     - site → owner → that owner's other sites;
     - site → confirmed GLEIF entity → parent;
@@ -89,6 +90,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
 - **Against:**
   - *One shared site table keyed only by the Open Supply Hub ID:* a second company's upload would overwrite the first company's site data. 7 sites are on both Apple's and Samsung's lists.
   - *A separate database per company:* more to run and back up, for no gain at demo size.
+  - *Verdicts as a column of `gleif_match`:* that table is rebuilt from the slice file on every start and every upload, so the verdicts would be lost.
 - **Gave up:** A site on two companies' lists is stored twice. For the 7 shared sites, the needed columns are identical in both files today.
 - **Would change our mind:** An existing FourKites tenancy model that this data should follow.
 
@@ -101,12 +103,14 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
     - Conflicting reports are shown as conflicts.
   - **A self-named owner is kept when it is the site's only owner.**
   - **"NULL" (any case) is a placeholder, like NO GROUP (..), N/A and NA:** data/demo/facilities.csv has "null" as an owner value 6 times, and counting it made a fake owner "NULL" (4 adidas sites, 2 Nike sites).
-  - **GLEIF name matches are candidates** until a person confirms them.
+  - **GLEIF name matches are candidates** until a person confirms them, on the Company network page (Confirm / Reject / Undo), not only by editing the CSV: "an interface that only its author can operate has failed" (brief 3.3).
+  - **A site linked to one LEI by two candidates is confirmed when either says yes**, otherwise rejected when either says no. 47 links of adidas and Nike sites are reached by two candidates, for example one site's two owner names FAR EASTERN and FAR EASTERN NEW CENTURY (LEI 254900CDLU5OS06M6K24). The slice file also has one question twice: VERTICAL KNITS with LEI 4469000001E9305R6057 (an exact match on another name, and a starts-with match on the legal name); both rows share one verdict.
 - **Against:**
   - *Merging similar names automatically.*
   - *Dropping non-Latin letters:* owners written only in Chinese would disappear, for example `三芳化學工業股份有限公司`.
   - *Always dropping a self-named owner:* it deleted real owner groups, such as INTEL (9 Apple sites) and HITACHI (9 Samsung sites). Owner known fell to 21 of 749 Apple sites and 8 of 187 Samsung sites.
   - *Never dropping it:* a site that lists itself next to its real parent would show a false conflict. Conflicts would rise from 187 to 204 for adidas, and from 231 to 256 for Nike.
+  - *Taking only the most likely candidate's verdict for a site and LEI (as the CSV-only build did):* a confirm on one candidate could be hidden by an undecided candidate for the same site, so a confirmed match would not show its parent.
   - *Trusting GLEIF name matches:* "FAR EASTERN" matched a Taiwanese bank and a securities firm, and "XING YE" matched a Hong Kong bank branch (`興業銀行股份有限公司香港分行`).
 - **Gave up:**
   - One company can be split. Nike's 3 "SHAHI" sites are not linked to adidas's 4 "SHAHI EXPORTS" sites.
