@@ -5,10 +5,10 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel
 
-from . import contributors, db, gleif, hazards, loader, measures
+from . import contributors, db, gleif, hazards, loader, measures, network
 
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "uploads"   # an uploaded file waits here until it is confirmed
 
@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     with db.connect() as conn:
         db.init_schema(conn)
         loader.seed_demo(conn)      # first start only: the 4 demo companies
-        gleif.refresh_all(conn)     # every start: re-read the GLEIF files (verdicts are edited in the CSV)
+        gleif.refresh_all(conn)     # every start: re-read the GLEIF files, with the saved verdicts
     task = asyncio.create_task(_refresh_hazards())   # every start: one GDACS refresh in the background
     yield
     task.cancel()
@@ -129,6 +129,56 @@ def confirm(upload_id: str, body: Confirm) -> dict:
         raise HTTPException(400, "Give a company name, and mark at least one of the picked lists as current.")
     customer_id = body.customer_id or re.sub(r"[^a-z0-9]+", "-", body.name.strip().lower()).strip("-")
     with db.connect() as conn:
+        with conn.cursor() as cur:
+            network.lock(cur)       # not at the same time as a verdict: both re-link GLEIF candidates
         out = loader.load_customer(conn, customer_id, body.name.strip(), path.read_bytes(), body.lists, body.current_lists)
     path.unlink(missing_ok=True)
     return out
+
+
+@app.get("/api/network/candidates")
+def network_candidates() -> list[dict]:
+    """Company network page: every GLEIF candidate of the slice file, with its sites and verdict."""
+    with db.connect() as conn:
+        return network.candidates(conn)
+
+
+@app.get("/api/network/candidates/{i}")
+def network_candidate(i: int) -> dict:
+    with db.connect() as conn:
+        out = network.candidate(conn, i)
+    if out is None:
+        raise HTTPException(404, "Unknown candidate.")
+    return out
+
+
+class Verdict(BaseModel):
+    verdict: str                # yes (confirm) or no (reject)
+
+
+@app.put("/api/network/candidates/{i}/verdict")
+def network_verdict(i: int, body: Verdict) -> dict:
+    if body.verdict not in ("yes", "no"):
+        raise HTTPException(400, "The verdict is yes or no.")
+    with db.connect() as conn:
+        out = network.set_verdict(conn, i, body.verdict)
+    if out is None:
+        raise HTTPException(404, "Unknown candidate.")
+    return out
+
+
+@app.delete("/api/network/candidates/{i}/verdict")
+def network_undo(i: int) -> dict:
+    with db.connect() as conn:
+        out = network.set_verdict(conn, i, None)
+    if out is None:
+        raise HTTPException(404, "Unknown candidate.")
+    return out
+
+
+@app.get("/api/network/verdicts.csv")
+def network_verdicts_csv() -> Response:
+    with db.connect() as conn:
+        body = network.verdicts_csv(conn)
+    return Response(body, media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="gleif_verdicts.csv"'})
