@@ -67,6 +67,8 @@ export interface NetworkCandidate {
   applies_to: string[];
   sites: number; file_sites: number; countries: string[];
   review_level: string; level: "1" | "2" | "3"; flags: string; match_type: string; gleif_name_field: string; gleif_matched_name: string;
+  /** The slice file's own level (adidas and Nike), kept for reference; the app uses the written rules' level. */
+  file_review_level: string | null;
   lei: string; gleif_legal_name: string; gleif_country: string; entity_status: string; registration_status: string;
   verdict: NetworkVerdict; verdict_from: "page" | "file" | null; decided_at: string | null;
   /** Sites whose link to this LEI is confirmed / has yes and no from two candidates; the candidates giving the opposite verdict. */

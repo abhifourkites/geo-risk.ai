@@ -279,7 +279,9 @@ export default function Network({ company }: { company: Customer | undefined }) 
                   </Typography>
                   <Typography variant="body2">↔ {c.gleif_legal_name} <Typography component="span" variant="body2" color="text.secondary">({countryName(c.gleif_country || null)})</Typography></Typography>
                   <Typography variant="caption" color="text.secondary">
-                    LEI {c.lei} · {MATCH(c)} · {LEVELS[c.level]}{c.flags ? ` · ${c.flags}` : ""}
+                    LEI {c.lei} · {MATCH(c)} · {LEVELS[c.level]}
+                    {c.file_review_level && c.file_review_level[0] !== c.level && ` (file: ${LEVELS[c.file_review_level[0]]})`}
+                    {c.flags ? ` · ${c.flags}` : ""}
                     {c.source === "api" && " · found by a GLEIF API search"}
                     {c.applies_to.length > 1 && <> · <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }} data-testid="applies-to">applies to {c.applies_to.join(" and ")}</Box></>}
                   </Typography>

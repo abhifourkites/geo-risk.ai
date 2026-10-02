@@ -9,7 +9,7 @@ const paxar: NetworkCandidate = {
   countries: ["ID"], review_level: "1 likely - confirm", level: "1", flags: "", match_type: "exact", gleif_name_field: "LegalName",
   gleif_matched_name: "PT PAXAR INDONESIA", lei: "549300YDGYNJ5OSNWF92", gleif_legal_name: "PT PAXAR INDONESIA", gleif_country: "ID",
   entity_status: "ACTIVE", registration_status: "ISSUED", verdict: null, verdict_from: null, decided_at: null,
-  confirmed_sites: 0, conflict_sites: 0, conflict_with: [], conflict_with_names: [],
+  confirmed_sites: 0, conflict_sites: 0, conflict_with: [], conflict_with_names: [], file_review_level: "1 likely - confirm",
 };
 const AVERY = { parent_lei: "549300PW7VPFCYKLIV37", parent_name: "AVERY DENNISON CORPORATION" };
 const graph = (verdict: NetworkCandidate["verdict"]): NetworkGraph => ({
