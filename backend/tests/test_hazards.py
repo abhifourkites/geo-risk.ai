@@ -155,6 +155,36 @@ def test_an_event_with_no_country_list_uses_the_area_alone(conn, clean_hazards, 
     assert measures.hazard_sites_unlisted(conn.cursor(), "adidas") == []
 
 
+def test_large_areas_are_tested_as_pieces_with_the_same_answer(conn, clean_hazards, hazard_status):
+    """A large area is kept as small pieces too (triggers on hazard_area): the sites found are the same as with
+    the whole area, the map shape is worked out once, and deleting the event deletes its pieces."""
+    import math
+    hazard_status.update(state="ok")
+    with conn.cursor() as cur:
+        cur.execute("SELECT ST_X(location) AS x, ST_Y(location) AS y FROM site WHERE customer_id = %s AND os_id = %s", SITE)
+        p = cur.fetchone()
+    ring = [[p["x"] + 3 * math.cos(2 * math.pi * i / 3000), p["y"] + 2 * math.sin(2 * math.pi * i / 3000)] for i in range(3000)]
+    _add_event(conn, "DR9", "Orange", {"type": "Polygon", "coordinates": [ring + [ring[0]]]})   # 3,001 points
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) AS n, max(ST_NPoints(piece)) AS most FROM hazard_area_part WHERE event_id = 'DR9'")
+        parts = cur.fetchone()
+        assert parts["n"] > 1 and parts["most"] <= 255
+        cur.execute("""SELECT DISTINCT s.customer_id, s.os_id FROM site s JOIN hazard_area a ON ST_Intersects(a.area, s.location)
+                       WHERE a.event_id = 'DR9' ORDER BY 1, 2""")
+        whole = cur.fetchall()
+        cur.execute("""SELECT DISTINCT s.customer_id, s.os_id FROM site s JOIN hazard_area_part a ON ST_Intersects(a.piece, s.location)
+                       WHERE a.event_id = 'DR9' ORDER BY 1, 2""")
+        assert cur.fetchall() == whole and len(whole) > 1
+        cur.execute("SELECT draw = ST_AsGeoJSON(ST_ForcePolygonCW(ST_SimplifyPreserveTopology(area, 0.02)), 3) AS same FROM hazard_area")
+        assert [r["same"] for r in cur.fetchall()] == [True]
+    assert {(h["customer_id"], h["os_id"]) for h in whole if h["customer_id"] == "adidas"} == \
+        {("adidas", h["os_id"]) for h in measures.hazard_sites(conn.cursor(), "adidas", "DR9")}
+    with conn.transaction(), conn.cursor() as cur:
+        cur.execute("DELETE FROM hazard_event WHERE event_id = 'DR9'")
+        cur.execute("SELECT count(*) AS n FROM hazard_area_part")
+        assert cur.fetchone()["n"] == 0
+
+
 REAL_CLIENT = httpx.AsyncClient
 
 

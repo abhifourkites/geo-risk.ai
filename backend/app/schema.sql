@@ -84,6 +84,51 @@ CREATE TABLE IF NOT EXISTS hazard_area (
 );
 CREATE INDEX IF NOT EXISTS hazard_area_gix ON hazard_area USING gist (area);
 
+-- Speed (added after the first build; on start, no reset). A large area (drought DR1018332: 22,021 points)
+-- made every site-in-area test unpack the whole shape again: 7.8 s for Amazon's 1,732 sites. So each area is
+-- also kept as small pieces (ST_Subdivide, at most 255 points; a point is in the area exactly when it is in
+-- one of its pieces), and its map shape is worked out once. Triggers keep both in step with hazard_area,
+-- whichever code inserts or deletes an area.
+ALTER TABLE hazard_area ADD COLUMN IF NOT EXISTS id bigserial;
+ALTER TABLE hazard_area ADD COLUMN IF NOT EXISTS draw text;       -- GeoJSON, simplified for drawing only
+CREATE TABLE IF NOT EXISTS hazard_area_part (
+    area_id  bigint NOT NULL,                -- hazard_area.id
+    event_id text NOT NULL REFERENCES hazard_event ON DELETE CASCADE,
+    piece    geometry(Geometry, 4326) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hazard_area_part_gix ON hazard_area_part USING gist (piece);
+CREATE INDEX IF NOT EXISTS hazard_area_part_area ON hazard_area_part (area_id);
+
+CREATE OR REPLACE FUNCTION hazard_area_draw() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    -- outer rings clockwise: d3-geo draws an anticlockwise ring as the whole globe minus the shape
+    NEW.draw := ST_AsGeoJSON(ST_ForcePolygonCW(ST_SimplifyPreserveTopology(NEW.area, 0.02)), 3);
+    RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS hazard_area_draw ON hazard_area;
+CREATE TRIGGER hazard_area_draw BEFORE INSERT OR UPDATE OF area ON hazard_area
+    FOR EACH ROW EXECUTE FUNCTION hazard_area_draw();
+
+CREATE OR REPLACE FUNCTION hazard_area_pieces() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF TG_OP IN ('UPDATE', 'DELETE') THEN
+        DELETE FROM hazard_area_part WHERE area_id = OLD.id;
+    END IF;
+    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+        INSERT INTO hazard_area_part (area_id, event_id, piece) SELECT NEW.id, NEW.event_id, ST_Subdivide(NEW.area, 255);
+    END IF;
+    RETURN NULL;
+END $$;
+DROP TRIGGER IF EXISTS hazard_area_pieces ON hazard_area;
+CREATE TRIGGER hazard_area_pieces AFTER INSERT OR UPDATE OF area OR DELETE ON hazard_area
+    FOR EACH ROW EXECUTE FUNCTION hazard_area_pieces();
+
+-- areas stored before the triggers existed
+UPDATE hazard_area SET draw = ST_AsGeoJSON(ST_ForcePolygonCW(ST_SimplifyPreserveTopology(area, 0.02)), 3) WHERE draw IS NULL;
+INSERT INTO hazard_area_part (area_id, event_id, piece)
+    SELECT a.id, a.event_id, ST_Subdivide(a.area, 255) FROM hazard_area a
+    WHERE NOT EXISTS (SELECT 1 FROM hazard_area_part p WHERE p.area_id = a.id);
+
 -- GLEIF API candidates for any company (backend/app/gleif_api.py). Added after the first build; like every
 -- table, created only if it does not exist, so a start never resets data.
 -- Every GLEIF API response, so nothing is fetched twice.

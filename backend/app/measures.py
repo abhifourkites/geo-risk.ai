@@ -68,34 +68,36 @@ LISTED = """(coalesce(cardinality(e.affected_countries), 0) = 0
              OR coalesce(s.country_code = ANY(e.affected_countries), false))"""
 
 
-def _in_areas(cur: psycopg.Cursor, c: str, event_id: str | None, listed: bool) -> list[dict]:
+def _in_areas(cur: psycopg.Cursor, c: str, event_id: str | None, listed: bool, os_id: str | None = None) -> list[dict]:
+    # tested against the areas' small pieces (hazard_area_part): the same answer as the whole areas, much faster
     cur.execute(f"""SELECT DISTINCT s.os_id, s.name, s.country_code, e.event_id, e.name AS event_name, e.alert_level
                     FROM site s
-                    JOIN hazard_area a ON ST_Intersects(a.area, s.location)
+                    JOIN hazard_area_part a ON ST_Intersects(a.piece, s.location)
                     JOIN hazard_event e ON e.event_id = a.event_id AND e.is_current
-                    WHERE s.customer_id = %s AND (%s::text IS NULL OR e.event_id = %s) AND {"" if listed else "NOT "}{LISTED}
-                    ORDER BY e.event_id, s.os_id""", (c, event_id, event_id))
+                    WHERE s.customer_id = %s AND (%s::text IS NULL OR e.event_id = %s) AND (%s::text IS NULL OR s.os_id = %s)
+                      AND {"" if listed else "NOT "}{LISTED}
+                    ORDER BY e.event_id, s.os_id""", (c, event_id, event_id, os_id, os_id))
     return [dict(r, level=HAZARD_LEVEL.get(r["alert_level"]) if listed else None) for r in cur.fetchall()]
 
 
-def hazard_sites(cur: psycopg.Cursor, c: str, event_id: str | None = None) -> list[dict]:
+def hazard_sites(cur: psycopg.Cursor, c: str, event_id: str | None = None, os_id: str | None = None) -> list[dict]:
     """The company's sites inside a current GDACS event: the site's point is inside an affected area, and its
     country is in the event's affectedcountries list (an event with no list: the area alone)."""
-    return _in_areas(cur, c, event_id, listed=True)
+    return _in_areas(cur, c, event_id, listed=True, os_id=os_id)
 
 
-def hazard_sites_unlisted(cur: psycopg.Cursor, c: str, event_id: str | None = None) -> list[dict]:
+def hazard_sites_unlisted(cur: psycopg.Cursor, c: str, event_id: str | None = None, os_id: str | None = None) -> list[dict]:
     """Sites inside an affected area of a current event, in a country the event does not list: not counted,
     but shown (the hazard and site panels), so none is left out silently."""
-    return _in_areas(cur, c, event_id, listed=False)
+    return _in_areas(cur, c, event_id, listed=False, os_id=os_id)
 
 
 def hazard_areas(cur: psycopg.Cursor) -> list[dict]:
     """Current affected areas, simplified for drawing only (the inside check uses the stored shapes).
     Outer rings are made clockwise because d3-geo draws an anticlockwise ring as the whole globe minus the shape."""
     cur.execute("""SELECT e.event_id, e.event_type, e.name, e.alert_level,
-                          ST_AsGeoJSON(ST_ForcePolygonCW(ST_SimplifyPreserveTopology(a.area, 0.02)), 3) AS geometry
-                   FROM hazard_area a JOIN hazard_event e USING (event_id) WHERE e.is_current""")
+                          coalesce(a.draw, ST_AsGeoJSON(ST_ForcePolygonCW(ST_SimplifyPreserveTopology(a.area, 0.02)), 3)) AS geometry
+                   FROM hazard_area a JOIN hazard_event e USING (event_id) WHERE e.is_current""")     # draw: worked out on insert
     return [{"type": "Feature", "geometry": json.loads(r["geometry"]),
              "properties": {"event_id": r["event_id"], "event_type": r["event_type"], "name": r["name"],
                             "alert_level": r["alert_level"]}} for r in cur.fetchall()]
@@ -192,8 +194,8 @@ def site_detail(conn: psycopg.Connection, c: str, os_id: str) -> dict | None:
         cur.execute("SELECT owner_name FROM site_owner WHERE customer_id = %s AND os_id = %s ORDER BY 1", (c, os_id))
         owners = [r["owner_name"] for r in cur.fetchall()]
         ok = hazards.STATUS["state"] == "ok"
-        hz = [h for h in hazard_sites(cur, c) if h["os_id"] == os_id] if ok else []
-        unlisted = [h for h in hazard_sites_unlisted(cur, c) if h["os_id"] == os_id] if ok else []
+        hz = hazard_sites(cur, c, os_id=os_id) if ok else []
+        unlisted = hazard_sites_unlisted(cur, c, os_id=os_id) if ok else []
         cur.execute("""SELECT m.lei, m.review_level, m.person_verdict FROM gleif_match m
                        WHERE m.customer_id = %s AND m.os_id = %s ORDER BY m.review_level, m.lei""", (c, os_id))
         matches = cur.fetchall()
