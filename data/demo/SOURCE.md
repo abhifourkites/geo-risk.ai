@@ -1,6 +1,6 @@
 # Demo data: source and licence
 
-These three files are Open Supply Hub downloads, used as demo data:
+These four files are Open Supply Hub downloads, used as demo data:
 
 | File | Rows | Demo company | Its list in the file |
 |---|---|---|---|
@@ -8,6 +8,7 @@ These three files are Open Supply Hub downloads, used as demo data:
 | `facilities.csv` | (same file) | Nike | `Nike [Public List] (Nike Inc. Brand(s) February 2024 Facility List)` |
 | `apple-osh.csv` | 749 | Apple | `Apple [Public List] (Apple 2019 Facility List)` |
 | `samsung.csv` | 187 | Samsung | `Samsung [Public List] (Samsung 2021 Facility List)` |
+| `amazon.csv` | 3,798 | Amazon (not loaded on first start: upload it on the Upload page) | `Amazon.com, Inc. (Amazon Facility List 2026)` (current); also its 2022, 2023 and 2024 lists |
 
 **One change from the download:** every `claim_*` column (34 of 181) was removed, because these columns can hold personal contact details. All other columns and values are unchanged.
 
