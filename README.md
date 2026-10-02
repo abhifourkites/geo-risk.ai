@@ -39,7 +39,7 @@ The demo uses the public supplier lists of **adidas, Nike, Apple and Samsung** f
 
 ## 4. What works
 
-Only features tested on the final build. Tests: `backend/tests/` (138, pytest) and `frontend/src/summary.test.tsx`, `uploadLists.test.ts`, `networkGraph.test.ts` and `format.test.ts` (20, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
+Only features tested on the final build. Tests: `backend/tests/` (139, pytest) and `frontend/src/summary.test.tsx`, `uploadLists.test.ts`, `networkGraph.test.ts` and `format.test.ts` (20, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
 
 | Feature | Tested by |
 |---|---|
@@ -88,6 +88,7 @@ Raw-material tracing needs the company's own supplier data: supplier, location, 
 - **A new GLEIF API search needs the internet**, and takes about a second per owner name not searched before (Amazon: about 5 minutes). Cached answers do not need the internet.
 - **Generic one-word owner names (for example DELTA, FLEX, MAS) inflate the "possible" list.**
 - **The GLEIF API search matches legal names only** ("contains"). Groups whose GLEIF legal name is in another script are not found by their English name (on 2 Oct 2026: LG DISPLAY, MURATA MANUFACTURING, TOKYO ELECTRON), and a subsidiary can come first (WISTRON: Wistron Hong Kong). Every candidate waits for a person's verdict.
+- **The app has no login, so its API is not a privacy boundary:** /api/network/candidates without ?company= returns every company's candidates. In production, per-customer access needs authentication.
 
 ## 7. How to run from a clean clone
 

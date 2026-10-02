@@ -1,4 +1,5 @@
--- The 8 tables of docs/architecture/ARCHITECTURE.md, section 3, and (at the end) 5 for the GLEIF API search.
+-- 14 tables: the 8 graph tables of docs/architecture/ARCHITECTURE.md, section 3, + hazard_area_part
+-- (disaster areas cut into small pieces, for speed) + (at the end) 5 GLEIF API tables.
 -- Differences from section 3 (also listed under "Changed in the build" there):
 --   gleif_match has customer_id (a site's key is customer_id + os_id);
 --   gleif_parent is keyed on (lei, type) (a company can have a direct and a top parent);

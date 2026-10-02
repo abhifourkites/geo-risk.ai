@@ -88,13 +88,17 @@ def _key(r: dict) -> tuple[str, str, str]:
     return r["kind"], r["our_names"], r["LEI"]
 
 
-def _seen_by(r: dict, company: str | None) -> dict:
-    """The candidate as `company` sees it: a GLEIF API candidate with that company's own rating (its own site
-    countries); the verdict stays the shared one."""
+def _seen_by(r: dict, company: str | None, sites: _Sites) -> dict:
+    """The candidate as `company` sees it, rated with only that company's own site countries: a GLEIF API
+    candidate with that company's own row, a slice-file row on several lists rated again (gleif.level_seen_by,
+    as gleif.link_customer stores it). The verdict stays the shared one."""
     own = r.get("own", {}).get(company)
-    if not own:
-        return r
-    return dict(r, **{k: own[k] for k in ("review_level", "flags", "match_type", "gleif_name_field", "gleif_matched_name")})
+    if own:
+        return dict(r, **{k: own[k] for k in ("review_level", "flags", "match_type", "gleif_name_field", "gleif_matched_name")})
+    if company is not None and gleif.on_several_lists(r):
+        countries = {sites.site[(c, o)]["country_code"] for c, o, _ in sites.links(r, company)} - {None, ""}
+        return dict(r, review_level=gleif.level_seen_by(r, countries))
+    return r
 
 
 def _saved(cur: psycopg.Cursor) -> dict[tuple[str, str, str], dict]:
@@ -177,11 +181,11 @@ def _context(cur: psycopg.Cursor) -> tuple:
 def candidates(conn: psycopg.Connection, company: str | None = None) -> list[dict]:
     """Every candidate: the slice file's 440 rows in its order (`id` is the row number), then the GLEIF API
     candidates. With `company` (a customer_id): only the candidates whose companies include it (from the
-    file: adidas 221, Nike 345; 126 are both's), each with that company's sites only, and a GLEIF API
-    candidate with that company's own rating. Without: every company's (the verdicts file, tests)."""
+    file: adidas 221, Nike 345; 126 are both's), each with that company's sites only and rated with its own
+    site countries. Without: every company's (a file row rated with the file's countries; tests)."""
     with conn.cursor() as cur:
         rows, sites, saved, linked, conflicts, per_question = _context(cur)
-    items = [_item(i, _seen_by(r, company), rows, sites, saved, linked, conflicts, per_question, company)
+    items = [_item(i, _seen_by(r, company, sites), rows, sites, saved, linked, conflicts, per_question, company)
              for i, r in rows.items() if company is None or company in sites.companies(r)]
     if company:       # GLEIF API candidates in the company's own order (its own rating)
         items = [c for c in items if c["source"] == "file"] + \
@@ -200,7 +204,7 @@ def candidate(conn: psycopg.Connection, i: int, company: str | None = None) -> d
         rows, sites, saved, linked, conflicts, per_question = _context(cur)
         if i not in rows or (company is not None and company not in sites.companies(rows[i])):
             return None
-        r = _seen_by(rows[i], company)
+        r = _seen_by(rows[i], company, sites)
         item = _item(i, r, rows, sites, saved, linked, conflicts, per_question, company)
         parents, fetching = [], False
         if item["verdict"] == "yes" and item["confirmed_sites"]:

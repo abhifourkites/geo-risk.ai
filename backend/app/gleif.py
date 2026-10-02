@@ -76,6 +76,17 @@ def file_rows() -> list[dict]:
     return [dict(r, review_level=rating.rate_file_row(r), file_review_level=r["review_level"]) for r in _read(SLICE)]
 
 
+def on_several_lists(r: dict) -> bool:
+    """A slice-file row on more than one company's list (our_brands "both": adidas and Nike)."""
+    return len(BRANDS.get(r.get("our_brands") or "", [])) > 1
+
+
+def level_seen_by(r: dict, countries: set[str]) -> str:
+    """A slice-file row on several companies' lists, as one company sees it: rated with only that company's own
+    site countries (of the sites the row links to on its list), not the file's countries of both."""
+    return rating.rate_file_row(dict(r, our_countries="|".join(sorted(countries))))
+
+
 def api_file_verdicts() -> dict[tuple[str, str, str], str]:
     """(company, our name, LEI) -> yes / no, from data/reference/gleif_api_verdicts.csv: the GLEIF API candidates'
     saved verdicts, used like the slice file's verdict column (a verdict given on the page is used over them).
@@ -139,10 +150,12 @@ def verdict_of(r: dict, saved: dict[tuple[str, str, str], str]) -> str | None:
 def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
     """Replace this company's GLEIF candidates, re-linked to its open sites by name (R7)."""
     cur.execute("DELETE FROM gleif_match WHERE customer_id = %s", (customer_id,))
-    cur.execute("SELECT os_id, name FROM site WHERE customer_id = %s", (customer_id,))
+    cur.execute("SELECT os_id, name, country_code FROM site WHERE customer_id = %s", (customer_id,))
     by_site_name: dict[str, list[str]] = {}
+    country: dict[str, str | None] = {}
     for r in cur.fetchall():
         by_site_name.setdefault(clean.basic(r["name"]), []).append(r["os_id"])
+        country[r["os_id"]] = r["country_code"]
     cur.execute("SELECT os_id, owner_name FROM site_owner WHERE customer_id = %s", (customer_id,))
     by_owner: dict[str, list[str]] = {}
     for r in cur.fetchall():
@@ -160,10 +173,11 @@ def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
         else:
             sites = {s for n in names for s in by_site_name.get(clean.basic(n), [])}
         verdict = verdict_of(r, saved)
+        level = level_seen_by(r, {country[s] for s in sites} - {None, ""}) if on_several_lists(r) else r["review_level"]
         for os_id in sites:
             key = (os_id, r["LEI"])
-            if key not in best or r["review_level"] < best[key]:   # keep the most likely review level
-                best[key] = r["review_level"]
+            if key not in best or level < best[key]:              # keep the most likely review level
+                best[key] = level
             if r["file_review_level"] and (key not in file_best or r["file_review_level"] < file_best[key]):
                 file_best[key] = r["file_review_level"]
             if verdict:

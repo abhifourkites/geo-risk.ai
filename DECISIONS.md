@@ -124,10 +124,10 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - Database size and query time at 50× the demo (116,350 site rows) were not measured.
 - **Would change our mind:** Evidence that FourKites' own services use a different store.
 
-## 4. Graph model: 8 tables, a hop is a join
+## 4. Graph model: 8 graph tables (14 in all), a hop is a join
 
 - **Chose:**
-  - 8 tables: customer, site, site_owner, gleif_match, gleif_parent, gleif_verdict, hazard_event, hazard_area. Five more hold the GLEIF API search (`gleif_api_cache`, `_job`, `_name`, `_candidate`, `_parent`); they are not part of the graph.
+  - 14 tables: 8 graph tables (customer, site, site_owner, gleif_match, gleif_parent, gleif_verdict, hazard_event, hazard_area) + `hazard_area_part` (each disaster area cut into small pieces, for speed) + 5 GLEIF API tables (`gleif_api_cache`, `_job`, `_name`, `_candidate`, `_parent`). The last 6 are not part of the graph.
   - **Verdicts in their own table, `gleif_verdict`**, keyed by the GLEIF slice file's candidate (kind, our names, LEI). One verdict answers "is this name that company?" for every company and site the candidate links to. Like every table, it is created on start only if it does not exist, so adding it needed no database reset.
   - A hop is a join. The multi-hop questions are:
     - site → owner → that owner's other sites;
@@ -159,7 +159,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
     - likely: an equal name, the GLEIF country (legal address) is one of the owner's site countries, and the entity is ACTIVE; **capped at possible** when the GLEIF category is SOLE_PROPRIETOR or FUND or the registration is LAPSED. Evidence: rows 173, 223 and 289 are sole proprietors; without the cap ARYAN APPARELS would have two likely LEIs.
     - possible: an equal name in another country, or a GLEIF name that starts with our name, as whole words, in one of the owner's site countries (subsidiaries such as "HITACHI AMERICA" or "Avery Dennison België").
     - unlikely: everything else. Flags: not active, registration lapsed, fund, sole proprietor.
-    - Each company sees a candidate it shares with another company (the same owner name and LEI, one verdict) rated with its own site countries.
+    - Each company sees a candidate on several companies' lists rated with only its own site countries: a GLEIF API candidate with the same owner name and LEI, and a slice-file row on adidas's and Nike's lists (one verdict either way). 8 AVERY DENNISON rows are possible with both companies' countries but unlikely with one company's own: the GLEIF company is in NL, where adidas has no AVERY DENNISON site (6 rows), or in BR, where Nike has none (2).
   - **Agreement with the slice file's own levels: 241 of 440** (with the first rules, legal name only and no cap: 270):
 
     | File level | Rules: likely | Rules: possible | Rules: unlikely |
@@ -169,7 +169,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
     | 362 unlikely | 0 | 163 | 199 |
 
     The other names moved 37 (2 possible → likely, 11 unlikely → likely, 24 unlikely → possible), the dropped words 8 (1 possible → likely, 7 unlikely → possible), and the cap 21 (likely → possible: 17 lapsed, 3 lapsed sole proprietors, 1 sole proprietor). Of the 163 the file calls unlikely and the rules possible, 156 are an equal name in another country, and 125 are names the file marked "generic name / fund / sole proprietor".
-  - **Under the rules:** adidas 25 likely, 107 possible, 89 unlikely (the file: 23 / 40 / 158); Nike 10 / 151 / 184 (the file: 9 / 28 / 308); all 440: 33 / 201 / 206 (the file: 30 / 48 / 362). PT. Paxar Indonesia, PT. COATS REJO INDONESIA and Racing Force S.p.A. stay likely. 32 distinct LEIs are likely, 5 of them with a GLEIF parent record (the file: 30 and 3); the 2 more are MAS Active (Private) Limited (LK) and ACE TURTLE OMNI PRIVATE LIMITED (IN), whose parents' names are not in our GLEIF files.
+  - **Under the rules:** adidas 25 likely, 101 possible, 95 unlikely (the file: 23 / 40 / 158); Nike 10 / 149 / 186 (the file: 9 / 28 / 308), each with its own site countries; all 440, with the file's countries: 33 / 201 / 206 (the file: 30 / 48 / 362). PT. Paxar Indonesia, PT. COATS REJO INDONESIA and Racing Force S.p.A. stay likely. 32 distinct LEIs are likely, 5 of them with a GLEIF parent record (the file: 30 and 3); the 2 more are MAS Active (Private) Limited (LK) and ACE TURTLE OMNI PRIVATE LIMITED (IN), whose parents' names are not in our GLEIF files.
   - **A site linked to one LEI by two candidates:** yes from one and nothing from the other confirms the link; no from one and nothing from the other rejects it; **yes from one and no from the other is a conflict**: the link is not confirmed (no parent shown), and the Company network list marks both candidates "conflicting verdicts – needs review", each naming the other. 47 links of adidas and Nike sites are reached by two candidates, for example one site's two owner names FAR EASTERN and FAR EASTERN NEW CENTURY (LEI 25490051NUU24RRHW523, which has a GLEIF parent). The slice file also has one question twice: VERTICAL KNITS with LEI 4469000001E9305R6057 (an exact match on another name, and a starts-with match on the legal name); both rows share one verdict.
   - **13 rows of the slice file reach one more site than its `our_sites` column says** (FAR EASTERN 8 → 9 on 10 rows, POU CHEN 13 → 14, UNIVERSAL APPAREL 1 → 2 on 2 rows): the file's counts used the older owner rule that dropped every self-named owner; the current rule keeps a sole self-named owner, so each name reaches one more site (CN2019093WZSXE8 "FAR EASTERN", TW202206598XFKC "Pou Chen Corporation", TH2019098FKBF6V "Universal Apparel Co.,Ltd"). The page shows the sites the app links.
 - **Against:**

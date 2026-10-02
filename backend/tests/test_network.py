@@ -296,6 +296,42 @@ def test_a_shared_row_shows_each_company_only_its_own_sites(conn):
     assert [x["verdict"] for x in client.get("/api/network/candidates", params={"company": "nike"}).json() if x["id"] == i] == ["yes"]
 
 
+RACING_FORCE = "8156005B22B0857C7357"
+
+
+def test_a_row_on_two_lists_is_rated_with_each_companys_own_site_countries(conn):
+    """The 126 rows on adidas's and Nike's lists: each company's level uses only its own site countries. 8 differ
+    from the rating with the file's countries (both companies'): AVERY DENNISON, whose GLEIF company is in NL (no adidas
+    AVERY DENNISON site there) or BR (no Nike one there). The stored links (the map's site panel) carry the same
+    per-company level; no verdict changes, and the demo parents stay likely."""
+    every = {c["id"]: c for c in candidates()}
+    seen = {co: {c["id"]: c for c in client.get("/api/network/candidates", params={"company": co}).json()} for co in ("adidas", "nike")}
+    changed = sorted((co, i, c["our_names"], c["lei"], every[i]["level"], c["level"])
+                     for co, items in seen.items() for i, c in items.items() if c["level"] != every[i]["level"])
+    assert changed == [("adidas", i, "AVERY DENNISON", lei, "2", "3") for i, lei in (
+        (33, "213800CKDNK3Z4ST6412"), (35, "549300B8KUXF7IG4VL41"), (38, "549300W6UCQQG5IIUM21"), (39, "549300XFF8571WGRDW37"),
+        (40, "549300ZJXK0VC755FW69"), (41, "6354006HIECTE1NUD634"))] + \
+        [("nike", 31, "AVERY DENNISON", "2138004WKONVOSRTU954", "2", "3"), ("nike", 32, "AVERY DENNISON", "213800AZ2WRS3GSXCQ93", "2", "3")]
+    assert {co: collections.Counter(c["level"] for c in items.values()) for co, items in seen.items()} == \
+        {"adidas": {"1": 25, "2": 101, "3": 95}, "nike": {"1": 10, "2": 149, "3": 186}}
+    assert all((c["verdict"], c["verdict_from"]) == (every[i]["verdict"], every[i]["verdict_from"]) for items in seen.values() for i, c in items.items())
+    assert sorted((co, c["our_names"], c["level"]) for co, items in seen.items() for c in items.values()
+                  if c["lei"] in (PAXAR, COATS_REJO, RACING_FORCE)) == \
+        [("adidas", "PT. COATS REJO INDONESIA", "1"), ("adidas", "Racing Force S.p.A.", "1"), ("nike", "PT. Paxar Indonesia", "1")]
+    # each stored link (company, site, LEI) has the most likely level of that company's candidates for it
+    rows = dict(enumerate(gleif.file_rows(), 1))
+    with conn.cursor() as cur:
+        sites = network._Sites(cur)
+        cur.execute("SELECT customer_id, os_id, lei, review_level FROM gleif_match WHERE customer_id IN ('adidas', 'nike')")
+        stored = {(r["customer_id"], r["os_id"], r["lei"]): r["review_level"] for r in cur.fetchall()}
+    page: dict[tuple[str, str, str], str] = {}
+    for co, items in seen.items():
+        for i, c in items.items():
+            for _, s, _ in sites.links(rows[i], co):
+                page[(co, s, c["lei"])] = min(page.get((co, s, c["lei"]), c["review_level"]), c["review_level"])
+    assert page == stored
+
+
 def test_the_graph_shows_at_most_15_sites():
     """On a company's page: its largest candidate (today MAS on Nike's list, 16 Nike sites) shows 15 and "+N more"."""
     big, co = max(((c, co) for co in ("adidas", "nike")
