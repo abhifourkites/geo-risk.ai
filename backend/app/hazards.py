@@ -49,8 +49,9 @@ def _worth_retrying(err: httpx.HTTPError) -> bool:
     return True
 
 
-async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response:
-    """GET from GDACS; on a network error, a 5xx, 408 or 429, try up to 2 more times (after 2 s, then 5 s)."""
+async def _get(client: httpx.AsyncClient, url: str, source: str = "GDACS") -> httpx.Response:
+    """GET (from GDACS, or GLEIF: gleif_api.py); on a network error, a 5xx, 408 or 429, try up to 2 more times
+    (after 2 s, then 5 s)."""
     for wait in (*RETRY_WAITS, None):
         try:
             r = await client.get(url)
@@ -59,7 +60,7 @@ async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response:
         except httpx.HTTPError as err:
             if wait is None or not _worth_retrying(err):
                 raise
-            log.warning("GDACS request failed (%s); trying again in %s s: %s", describe(err), wait, url)
+            log.warning("%s request failed (%s); trying again in %s s: %s", source, describe(err), wait, url)
             await _sleep(wait)
     raise AssertionError("unreachable")
 

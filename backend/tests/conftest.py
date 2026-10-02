@@ -10,7 +10,7 @@ TEST_DB = "georisk_test"
 TEST_URL = MAIN_URL.rsplit("/", 1)[0] + "/" + TEST_DB
 os.environ["DATABASE_URL"] = TEST_URL          # before the app is imported: app.db reads it at import
 
-from app import db, gleif, hazards, loader  # noqa: E402
+from app import db, gleif, gleif_api, hazards, loader  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -29,6 +29,15 @@ def seeded_db():
 def conn():
     with db.connect(TEST_URL) as c:
         yield c
+
+
+@pytest.fixture(autouse=True)
+def no_gleif_worker(monkeypatch):
+    """Tests never call GLEIF: the background worker is off when a test runs the app's start-up
+    (test_gleif_api.py runs the jobs itself, against a fake GLEIF)."""
+    async def off():
+        return None
+    monkeypatch.setattr(gleif_api, "worker", off)
 
 
 @pytest.fixture

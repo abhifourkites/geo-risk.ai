@@ -83,3 +83,59 @@ CREATE TABLE IF NOT EXISTS hazard_area (
     area     geometry(Geometry, 4326) NOT NULL   -- affected areas only (rule R8)
 );
 CREATE INDEX IF NOT EXISTS hazard_area_gix ON hazard_area USING gist (area);
+
+-- GLEIF API candidates for any company (backend/app/gleif_api.py). Added after the first build; like every
+-- table, created only if it does not exist, so a start never resets data.
+-- Every GLEIF API response, so nothing is fetched twice.
+CREATE TABLE IF NOT EXISTS gleif_api_cache (
+    url        text PRIMARY KEY,
+    status     integer NOT NULL,            -- 200, or 404 (no such parent)
+    body       jsonb,
+    fetched_at timestamptz NOT NULL DEFAULT now()
+);
+-- One search job per company: one GLEIF search per distinct owner name.
+CREATE TABLE IF NOT EXISTS gleif_api_job (
+    customer_id text PRIMARY KEY REFERENCES customer ON DELETE CASCADE,
+    state       text NOT NULL,              -- queued, running, done or failed
+    names_total integer NOT NULL,
+    names_done  integer NOT NULL DEFAULT 0,
+    requests    integer NOT NULL DEFAULT 0, -- sent to GLEIF (cached answers are not sent)
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    started_at  timestamptz,
+    finished_at timestamptz,
+    error       text
+);
+CREATE TABLE IF NOT EXISTS gleif_api_name (
+    customer_id text NOT NULL REFERENCES customer ON DELETE CASCADE,
+    owner_name  text NOT NULL,              -- as in site_owner (R4)
+    core_name   text NOT NULL,              -- what is searched: no commas, no legal-form words
+    done        boolean NOT NULL DEFAULT false,
+    results     integer,                    -- records GLEIF returned
+    error       text,
+    PRIMARY KEY (customer_id, owner_name)
+);
+-- At most 10 rated GLEIF records per owner name. Verdicts are in gleif_verdict (kind 'owner', our_names = owner_name).
+CREATE TABLE IF NOT EXISTS gleif_api_candidate (
+    id                  serial UNIQUE,
+    customer_id         text NOT NULL REFERENCES customer ON DELETE CASCADE,
+    owner_name          text NOT NULL,
+    lei                 text NOT NULL,
+    rank                integer NOT NULL,   -- place in GLEIF's answer (0 = first)
+    legal_name          text NOT NULL,
+    legal_country       text,
+    entity_status       text,
+    registration_status text,
+    category            text,
+    review_level        text NOT NULL,      -- gleif_api.rate
+    flags               text NOT NULL,
+    match_type          text NOT NULL,      -- exact, starts_with or contains, after R4 cleaning
+    PRIMARY KEY (customer_id, owner_name, lei)
+);
+-- Parents of a confirmed API candidate, fetched only after the confirm. parent_lei NULL: GLEIF has none.
+CREATE TABLE IF NOT EXISTS gleif_api_parent (
+    lei         text NOT NULL,
+    type        text NOT NULL,              -- direct or top
+    parent_lei  text,
+    parent_name text,
+    PRIMARY KEY (lei, type)
+);
