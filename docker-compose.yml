@@ -6,6 +6,9 @@ services:
       POSTGRES_USER: georisk
       POSTGRES_PASSWORD: georisk
       POSTGRES_DB: georisk
+    volumes:
+      # a named volume: `docker compose down` keeps the data; only `docker compose down -v` erases it
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       # over TCP: on a new volume the image first runs a socket-only init server, which pg_isready
       # on the socket reports as ready while the backend's TCP connection is still refused
@@ -33,3 +36,6 @@ services:
       - backend
     ports:
       - "5173:5173"
+
+volumes:
+  pgdata:
