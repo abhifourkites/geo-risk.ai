@@ -62,7 +62,7 @@ def _rows(cur: psycopg.Cursor) -> dict[int, dict]:
     """Every candidate by id: the slice file's rows, then the GLEIF API candidates (one per owner name and
     LEI: its companies are every company with that owner name searched; its level the most likely one, and
     `own` each company's own row, rated with that company's site countries)."""
-    rows = {i: dict(r, source="file") for i, r in enumerate(gleif._read(gleif.SLICE), 1)}
+    rows = {i: dict(r, source="file") for i, r in enumerate(gleif.file_rows(), 1)}
     grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in gleif.api_rows(cur):
         grouped[(r["our_names"], r["LEI"])].append(r)
@@ -134,6 +134,7 @@ def _item(i: int, r: dict, rows: dict[int, dict], sites: _Sites, saved: dict, li
         "sites": len(os_ids), "file_sites": int(r["our_sites"] or 0),
         "countries": sorted({sites.site[(c, o)]["country_code"] or "" for c, o, _ in links} - {""}),
         "review_level": r["review_level"], "level": r["review_level"][:1], "flags": r["flags"],
+        "file_review_level": r.get("file_review_level"),   # the slice file's own level, for reference
         "match_type": r["match_type"], "gleif_name_field": r["gleif_name_field"], "gleif_matched_name": r["gleif_matched_name"],
         "lei": r["LEI"], "gleif_legal_name": r["gleif_legal_name"], "gleif_country": r["legal_country"],
         "entity_status": r["entity_status"], "registration_status": r["registration_status"],
@@ -233,7 +234,7 @@ def set_verdict(conn: psycopg.Connection, i: int, verdict: str | None) -> dict |
 
 
 VERDICT_FIELDS = ["kind", "our_names", "LEI", "gleif_legal_name", "review_level", gleif.VERDICT_COLUMN,
-                  "given_on", "decided_at_utc"]
+                  "given_on", "decided_at_utc", "file_review_level"]
 
 
 def verdicts_csv(conn: psycopg.Connection) -> str:
@@ -246,5 +247,6 @@ def verdicts_csv(conn: psycopg.Connection) -> str:
         if c["verdict"]:
             w.writerow({"kind": c["kind"], "our_names": c["our_names"], "LEI": c["lei"],
                         "gleif_legal_name": c["gleif_legal_name"], "review_level": c["review_level"],
-                        gleif.VERDICT_COLUMN: c["verdict"], "given_on": c["verdict_from"], "decided_at_utc": c["decided_at"] or ""})
+                        gleif.VERDICT_COLUMN: c["verdict"], "given_on": c["verdict_from"], "decided_at_utc": c["decided_at"] or "",
+                        "file_review_level": c["file_review_level"] or ""})
     return buf.getvalue()

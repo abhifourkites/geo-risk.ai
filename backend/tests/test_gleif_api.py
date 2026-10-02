@@ -139,6 +139,14 @@ def test_the_comparison_drops_words_r4_keeps_but_r4_is_unchanged():
     assert clean.clean_owner("VERTICAL KNITS SA DE CV") == "VERTICAL KNITS DE CV"   # R4 as before
 
 
+def test_the_file_candidates_use_the_rules_and_keep_the_files_level():
+    rows = {r["LEI"]: r for r in gleif.file_rows()}
+    for lei in ("549300YDGYNJ5OSNWF92", "213800TIMLY8NHYC2I61", "8156005B22B0857C7357"):   # Paxar, Coats Rejo, Racing Force
+        assert (rows[lei]["review_level"], rows[lei]["file_review_level"]) == (L, "1 likely - confirm")
+    assert [(r["review_level"], r["file_review_level"][0]) for r in gleif.file_rows() if r["our_names"] == "ARYAN APPARELS"] == \
+        [(L, "2"), (P, "3")]                                               # one likely LEI for ARYAN APPARELS, not two
+
+
 def test_flags():
     assert rating.flags("ACTIVE", "ISSUED", "GENERAL") == ""
     assert rating.flags("INACTIVE", "LAPSED", "FUND") == "not active; registration lapsed; fund"

@@ -6,11 +6,13 @@ from app import gleif, measures
 
 def test_likely_candidates_parents_and_verdicts(conn):
     with conn.cursor() as cur:
-        cur.execute("SELECT count(DISTINCT lei) AS n FROM gleif_match WHERE review_level LIKE '1%'")
-        assert cur.fetchone()["n"] == 30                     # 30 likely candidates
-        cur.execute("""SELECT count(DISTINCT m.lei) AS n FROM gleif_match m
-                       JOIN gleif_parent p USING (lei) WHERE m.review_level LIKE '1%'""")
-        assert cur.fetchone()["n"] == 3                      # 3 of them have a parent record
+        # the written rules (rating.py) rate the file's candidates too; the file's own level is kept for reference
+        for column, likely, with_parent in (("review_level", 32, 5), ("file_review_level", 30, 3)):
+            cur.execute(f"SELECT count(DISTINCT lei) AS n FROM gleif_match WHERE {column} LIKE '1%'")
+            assert cur.fetchone()["n"] == likely, column
+            cur.execute(f"""SELECT count(DISTINCT m.lei) AS n FROM gleif_match m
+                            JOIN gleif_parent p USING (lei) WHERE m.{column} LIKE '1%'""")
+            assert cur.fetchone()["n"] == with_parent, column
         cur.execute("SELECT count(*) AS n FROM gleif_match WHERE person_verdict = 'yes'")
         assert cur.fetchone()["n"] == 0                      # no verdicts yet
 
@@ -37,11 +39,12 @@ def test_no_parent_is_shown_without_a_verdict(conn):
 
 def test_known_parent_names(conn):
     with conn.cursor() as cur:
-        cur.execute("""SELECT DISTINCT p.parent_name FROM gleif_match m JOIN gleif_parent p USING (lei)
-                       WHERE m.review_level LIKE '1%' ORDER BY 1""")
-        # names as written in data/reference/gleif_parents_checked.csv
-        assert [r["parent_name"] for r in cur.fetchall()] == [
-            "AVERY DENNISON CORPORATION", "COATS GROUP PLC", "SAYE S.P.A."]
+        # names as written in data/reference/gleif_parents_checked.csv (None: a parent whose name is not in it)
+        for column, names in (("file_review_level", ["AVERY DENNISON CORPORATION", "COATS GROUP PLC", "SAYE S.P.A."]),
+                              ("review_level", ["AVERY DENNISON CORPORATION", "COATS GROUP PLC", "SAYE S.P.A.", None])):
+            cur.execute(f"""SELECT DISTINCT p.parent_name FROM gleif_match m JOIN gleif_parent p USING (lei)
+                            WHERE m.{column} LIKE '1%' ORDER BY 1""")
+            assert [r["parent_name"] for r in cur.fetchall()] == names, column
 
 
 def test_a_yes_verdict_in_the_csv_shows_the_parent(conn, tmp_path, monkeypatch):

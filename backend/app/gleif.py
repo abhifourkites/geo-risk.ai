@@ -20,7 +20,7 @@ from pathlib import Path
 
 import psycopg
 
-from . import clean
+from . import clean, rating
 
 REF_DIR = Path(os.environ.get("DATA_DIR", "/data")) / "reference"
 SLICE = REF_DIR / "gleif_slice_for_our_data.csv"
@@ -69,6 +69,12 @@ def lock(cur: psycopg.Cursor) -> None:
     cur.execute("SELECT pg_advisory_xact_lock(%s)", (LINK_LOCK,))
 
 
+def file_rows() -> list[dict]:
+    """The slice file's candidates, rated with the written rules like every other company's (rating.py).
+    The file's own level is kept in `file_review_level`, for reference."""
+    return [dict(r, review_level=rating.rate_file_row(r), file_review_level=r["review_level"]) for r in _read(SLICE)]
+
+
 def api_rows(cur: psycopg.Cursor, customer_id: str | None = None) -> list[dict]:
     """GLEIF API candidates (gleif_api.py), shaped like rows of the slice file (kind owner)."""
     cur.execute("""SELECT id, customer_id, owner_name, lei, legal_name, legal_country, entity_status,
@@ -78,7 +84,7 @@ def api_rows(cur: psycopg.Cursor, customer_id: str | None = None) -> list[dict]:
     return [{"api_id": r["id"], "customer_id": r["customer_id"], "kind": "owner", "our_names": r["owner_name"],
              "our_brands": None, "our_sites": "", "review_level": r["review_level"], "flags": r["flags"],
              "match_type": r["match_type"], "gleif_name_field": r["name_field"] or "LegalName",
-             "gleif_matched_name": r["matched_name"] or r["legal_name"],
+             "gleif_matched_name": r["matched_name"] or r["legal_name"], "file_review_level": None,
              "LEI": r["lei"], "gleif_legal_name": r["legal_name"], "legal_country": r["legal_country"] or "",
              "entity_status": r["entity_status"] or "", "registration_status": r["registration_status"] or "",
              "entity_category": r["category"] or "", VERDICT_COLUMN: ""} for r in cur.fetchall()]
@@ -114,9 +120,10 @@ def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
         by_owner.setdefault(r["owner_name"], []).append(r["os_id"])
 
     saved = saved_verdicts(cur)
-    best: dict[tuple[str, str], str] = {}                  # (os_id, lei) -> the most likely review level
+    best: dict[tuple[str, str], str] = {}                  # (os_id, lei) -> the most likely review level (the rules)
+    file_best: dict[tuple[str, str], str] = {}             # ... and the most likely level the slice file gave
     said: dict[tuple[str, str], set[str]] = defaultdict(set)   # (os_id, lei) -> the verdicts of its candidates
-    rows = [r for r in _read(SLICE) if customer_id in BRANDS.get(r["our_brands"], [])] + api_rows(cur, customer_id)
+    rows = [r for r in file_rows() if customer_id in BRANDS.get(r["our_brands"], [])] + api_rows(cur, customer_id)
     for r in rows:
         names = [n for n in r["our_names"].split(" | ") if n.strip()]
         if r["kind"] == "owner":
@@ -128,13 +135,16 @@ def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
             key = (os_id, r["LEI"])
             if key not in best or r["review_level"] < best[key]:   # keep the most likely review level
                 best[key] = r["review_level"]
+            if r["file_review_level"] and (key not in file_best or r["file_review_level"] < file_best[key]):
+                file_best[key] = r["file_review_level"]
             if verdict:
                 said[key].add(verdict)
     combined = {k: "conflict" if len(v) > 1 else next(iter(v)) for k, v in said.items()}   # {yes, no}: a conflict
     keys = list(best)
-    cur.execute("INSERT INTO gleif_match (customer_id, os_id, lei, review_level, person_verdict) "
-                "SELECT %s, * FROM unnest(%s::text[], %s::text[], %s::text[], %s::text[])",      # one statement
-                (customer_id, [k[0] for k in keys], [k[1] for k in keys], [best[k] for k in keys], [combined.get(k) for k in keys]))
+    cur.execute("INSERT INTO gleif_match (customer_id, os_id, lei, review_level, person_verdict, file_review_level) "
+                "SELECT %s, * FROM unnest(%s::text[], %s::text[], %s::text[], %s::text[], %s::text[])",      # one statement
+                (customer_id, [k[0] for k in keys], [k[1] for k in keys], [best[k] for k in keys],
+                 [combined.get(k) for k in keys], [file_best.get(k) for k in keys]))
     return len(best)
 
 

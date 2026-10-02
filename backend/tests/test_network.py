@@ -58,7 +58,8 @@ def site_panel_parents(customer: str, os_id: str) -> list[dict]:
 def test_every_candidate_is_listed_and_every_verdict_starts_empty():
     cs = candidates()
     assert len(cs) == 440
-    assert collections.Counter(c["level"] for c in cs) == {"1": 30, "2": 48, "3": 362}
+    assert collections.Counter(c["level"] for c in cs) == {"1": 33, "2": 201, "3": 206}           # the written rules
+    assert collections.Counter(c["file_review_level"][0] for c in cs) == {"1": 30, "2": 48, "3": 362}   # the file's own
     assert collections.Counter(c["kind"] for c in cs) == {"owner": 391, "site": 49}
     assert {c["verdict"] for c in cs} == {None} and {c["verdict_from"] for c in cs} == {None}
 
@@ -174,7 +175,8 @@ def test_the_two_rows_of_one_question_share_a_verdict():
     """VERTICAL KNITS / 4469000001E9305R6057 is in the file twice (an exact match on another name, and a
     starts-with match on the legal name): the same question, so one verdict."""
     rows = [c for c in candidates() if c["lei"] == "4469000001E9305R6057"]
-    assert [(c["our_names"], c["level"]) for c in rows] == [("VERTICAL KNITS", "1"), ("VERTICAL KNITS", "2")]
+    assert [(c["our_names"], c["level"], c["file_review_level"][0]) for c in rows] == [
+        ("VERTICAL KNITS", "1", "1"), ("VERTICAL KNITS", "1", "2")]      # the rules: equal once DE CV is dropped
     verdict(rows[0]["id"], "yes")
     assert [c["verdict"] for c in candidates() if c["lei"] == "4469000001E9305R6057"] == ["yes", "yes"]
 
