@@ -41,7 +41,7 @@ def country_shares(cur: psycopg.Cursor, c: str, basis: str, high: float, watch: 
     total = float(sum(r[key] for r in rows)) or 1.0
     out = [{"country_code": r["country_code"], "share": float(r[key]) / total, "sites": r["sites"],
             "workers_known": r["workers_known"], "level": level(float(r[key]) / total, high, watch)} for r in rows]
-    return sorted(out, key=lambda x: -x["share"])
+    return sorted(out, key=lambda x: (-x["share"], country_name(x["country_code"])))   # equal shares: by name, the same on every load
 
 
 def owner_shares(cur: psycopg.Cursor, c: str, basis: str, high: float, watch: float) -> list[dict]:

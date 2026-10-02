@@ -39,13 +39,13 @@ The demo uses the public supplier lists of **adidas, Nike, Apple and Samsung** f
 
 ## 4. What works
 
-Only features tested on the final build. Tests: `backend/tests/` (69, pytest) and `frontend/src/summary.test.tsx` and `uploadLists.test.ts` (11, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
+Only features tested on the final build. Tests: `backend/tests/` (78, pytest) and `frontend/src/summary.test.tsx` and `uploadLists.test.ts` (11, vitest). The screen was checked in headless Chrome with a script that is not in the repo.
 
 | Feature | Tested by |
 |---|---|
 | Starts from a clean clone with one command, and seeds the 4 demo companies on first start | A fresh `git clone` and an empty database volume (section 7); `test_routes` |
 | Load and clean (R1–R4): open sites, estimated workers, owner names, warnings (same coordinates, owner conflict, certificates); `claim_*` columns dropped | `test_clean.py`; `test_no_stored_table_has_a_claim_column` |
-| Country shares on the share basis, High / Watch, thresholds as request parameters | `test_section_8_numbers`; `test_thresholds_are_request_parameters` |
+| Country shares on the share basis, High / Watch, thresholds as request parameters; equal shares ordered by country name, so the order is the same on every load | `test_section_8_numbers`; `test_thresholds_are_request_parameters`; `test_measures_order.py` |
 | Owner shares; owners with all their sites in one country | `test_largest_owner_on_the_share_basis`; `test_routes` |
 | One-sentence summary, and every number with its base | `test_samsung_sentence_follows_appendix_c3`; `test_every_number_has_its_base`; `test_hazard_levels_r9` |
 | GLEIF candidates (adidas and Nike only) and parents, shown only after a "yes" verdict in the CSV | `test_gleif.py` |

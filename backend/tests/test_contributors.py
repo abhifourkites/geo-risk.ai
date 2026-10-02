@@ -87,10 +87,9 @@ def test_a_one_company_file_preselects_it(cid):
 
 
 def _same_order(v: dict) -> dict:
-    """Countries with equal shares, and sites, come back in no fixed order (also when the seed's own picks are
-    loaded again), so they are compared sorted."""
-    return {**v, "countries": sorted(v["countries"], key=lambda x: str(x["country_code"])),
-            "sites": sorted(v["sites"], key=lambda x: x["os_id"])}
+    """Sites come back in no fixed order (also when the seed's own picks are loaded again), so they are compared
+    sorted. Countries are compared as returned: equal shares are ordered by name."""
+    return {**v, "sites": sorted(v["sites"], key=lambda x: x["os_id"])}
 
 
 def test_loading_with_the_pre_filled_picks_gives_the_seed_numbers(conn):
