@@ -54,6 +54,23 @@ export interface HazardDetail {
   owners_other_sites: Record<string, { os_id: string; name: string; country_code: string | null }[]>;
 }
 
+/** Company network page (backend/app/network.py): one row of the GLEIF slice file. */
+export type NetworkVerdict = "yes" | "no" | null;
+export interface NetworkCandidate {
+  id: number; kind: "owner" | "site"; our_names: string; names: string[]; companies: string[];
+  sites: number; file_sites: number; countries: string[];
+  review_level: string; level: "1" | "2" | "3"; flags: string; match_type: string; gleif_name_field: string; gleif_matched_name: string;
+  lei: string; gleif_legal_name: string; gleif_country: string; entity_status: string; registration_status: string;
+  verdict: NetworkVerdict; verdict_from: "page" | "file" | null; decided_at: string | null;
+}
+export interface NetworkSite { os_id: string; name: string; country_code: string | null; companies: string[]; owners: string[] }
+export interface NetworkGraph {
+  candidate: NetworkCandidate;
+  companies: { customer_id: string; name: string }[];
+  sites: NetworkSite[]; more_sites: number; owners: string[];
+  parents: { type: string; parent_lei: string; parent_name: string | null }[];
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, init);
   if (!r.ok) {
@@ -75,6 +92,11 @@ export const api = {
     const f = new FormData(); f.append("file", file);
     return call<UploadResult>("/api/uploads", { method: "POST", body: f });
   },
+  networkCandidates: () => call<NetworkCandidate[]>("/api/network/candidates"),
+  networkCandidate: (i: number) => call<NetworkGraph>(`/api/network/candidates/${i}`),
+  setVerdict: (i: number, verdict: "yes" | "no" | null) => call<NetworkCandidate>(`/api/network/candidates/${i}/verdict`, verdict
+    ? { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ verdict }) }
+    : { method: "DELETE" }),
   confirm: (id: string, body: { name: string; lists: string[]; current_lists: string[] }) =>
     call<{ customer_id: string; open_sites: number; gleif_matches: number; as_of: string }>(`/api/uploads/${enc(id)}/confirm`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),

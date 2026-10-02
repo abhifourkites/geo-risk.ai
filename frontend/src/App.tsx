@@ -14,10 +14,12 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import type { Customer, View } from "./api";
 import AnswerCards, { type CardKind } from "./Cards";
@@ -28,10 +30,12 @@ import DetailPanel, { type Detail } from "./Panel";
 import DataTables from "./Tables";
 import Upload from "./Upload";
 
+const Network = lazy(() => import("./Network"));     // React Flow is loaded only for this page
+
 type FocusSpec = { kind: "point"; center: [number, number]; zoom: number; pitch: number } | { kind: "bounds"; bounds: [[number, number], [number, number]] };
 
 export default function App() {
-  const [page, setPage] = useState<"map" | "upload">("map");
+  const [page, setPage] = useState<"map" | "upload" | "network">("map");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [c, setC] = useState<string>("");
   const [high, setHigh] = useState(10);
@@ -176,16 +180,21 @@ export default function App() {
           <Box sx={{ flex: 1 }} />
           <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
             <Button variant="contained" onClick={refreshHazards} disabled={refreshing}>{refreshing ? "Checking…" : "Check for new disasters"}</Button>
-            {page === "map"
-              ? <Button variant="outlined" onClick={() => setPage("upload")}>Upload a supplier list</Button>
-              : <Button variant="outlined" onClick={() => setPage("map")}>Back to the map</Button>}
           </Stack>
         </Toolbar>
+        <Box sx={{ maxWidth: 1440, width: "100%", mx: "auto", px: 3 }}>
+          <Tabs value={page} onChange={(_, v) => setPage(v)} aria-label="Pages" sx={{ minHeight: 40, "& .MuiTab-root": { minHeight: 40, py: 0.5 } }}>
+            <Tab value="map" label="Risk map" />
+            <Tab value="upload" label="Upload a supplier list" />
+            <Tab value="network" label="Company network" />
+          </Tabs>
+        </Box>
       </AppBar>
 
       <Container maxWidth={false} sx={{ maxWidth: 1440, py: 3, px: { xs: 2, md: 3 } }}>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {page === "upload" && <Upload onDone={(id) => { loadCustomers(id).then(() => setPage("map")); }} />}
+        {page === "network" && <Suspense fallback={<Typography color="text.secondary">Loading…</Typography>}><Network /></Suspense>}
         {page === "map" && !view && !error && <Typography color="text.secondary">Loading…</Typography>}
 
         {page === "map" && view && (
