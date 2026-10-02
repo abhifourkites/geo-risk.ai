@@ -13,8 +13,9 @@ def test_likely_candidates_parents_and_verdicts(conn):
             cur.execute(f"""SELECT count(DISTINCT m.lei) AS n FROM gleif_match m
                             JOIN gleif_parent p USING (lei) WHERE m.{column} LIKE '1%'""")
             assert cur.fetchone()["n"] == with_parent, column
-        cur.execute("SELECT count(*) AS n FROM gleif_match WHERE person_verdict = 'yes'")
-        assert cur.fetchone()["n"] == 0                      # no verdicts yet
+        # confirmed: only the 5 verdicts saved in the slice file (adidas 4, Nike 1)
+        cur.execute("SELECT customer_id, count(DISTINCT lei) AS n FROM gleif_match WHERE person_verdict = 'yes' GROUP BY 1 ORDER BY 1")
+        assert {r["customer_id"]: r["n"] for r in cur.fetchall()} == {"adidas": 4, "nike": 1}
 
 
 def test_no_candidates_for_apple_and_samsung(conn):
@@ -27,14 +28,15 @@ def test_no_candidates_for_apple_and_samsung(conn):
 
 def test_no_parent_is_shown_without_a_verdict(conn):
     with conn.cursor() as cur:
-        cur.execute("""SELECT m.customer_id, m.os_id FROM gleif_match m JOIN gleif_parent p USING (lei)
+        cur.execute("""SELECT DISTINCT m.customer_id, m.os_id, m.lei, m.person_verdict FROM gleif_match m JOIN gleif_parent p USING (lei)
                        WHERE m.review_level LIKE '1%'""")
         rows = cur.fetchall()
-    assert rows
+    assert rows and {r["person_verdict"] for r in rows} == {None, "yes"}
     for r in rows:
         d = measures.site_detail(conn, r["customer_id"], r["os_id"])
         assert d["gleif"]["candidates"] >= 1
-        assert d["gleif"]["confirmed"] == []                 # 0 parents shown
+        shown = {m["lei"] for m in d["gleif"]["confirmed"]}
+        assert (r["lei"] in shown) == (r["person_verdict"] == "yes")     # a parent only after a yes
 
 
 def test_known_parent_names(conn):

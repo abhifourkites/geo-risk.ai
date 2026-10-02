@@ -8,7 +8,7 @@ import pytest
 from app import contributors, loader, measures
 
 DEMO = {c["customer_id"]: c for c in json.loads((loader.DEMO_DIR / "demo_companies.json").read_text())}
-# Amazon's own list strings in an Open Supply Hub download for Amazon (2 Oct 2026; the file is not in the repo:
+# Amazon's own list strings in data/demo/amazon.csv (an Open Supply Hub download for Amazon, 2 Oct 2026:
 # 3,798 rows, every one names Amazon.com, Inc.), most sites first
 AMAZON = ["Amazon.com, Inc. (Amazon Facility List 2024)", "Amazon.com, Inc. (Amazon Facility List 2023)",
           "Amazon.com, Inc. (Amazon Facility List 2022)", "Amazon.com, Inc. (Amazon Facility List 2026)", "Amazon.com, Inc."]
@@ -75,6 +75,16 @@ def test_adidas_and_nike_file_shows_suggestions():
         "Nike [Public List] (Nike Inc. Brand(s) August 2023 Facility List)",
         "Nike [Public List] (Nike Inc. February 2022 Facility List)",
         "Nike [Public List] (Nike Facility List November 2020)"}
+
+
+def test_the_amazon_file_preselects_amazon_and_its_2026_list():
+    import datetime
+    rows = loader.read_rows((loader.DEMO_DIR / "amazon.csv").read_bytes())
+    s = contributors.suggest(rows)
+    c = picked(s, "Amazon.com, Inc.")
+    assert (s["preselect"], c["share"], c["lists"], c["current_lists"]) == ("Amazon.com, Inc.", 1.0, AMAZON, [AMAZON[3]])
+    assert len(loader.prepare_sites(rows, c["current_lists"], c["current_lists"], datetime.date(2026, 10, 2))) == 1732
+    assert not any(k.startswith("claim_") for k in rows[0])
 
 
 @pytest.mark.parametrize("cid", ["apple", "samsung"])

@@ -71,7 +71,8 @@ def _rows(cur: psycopg.Cursor) -> dict[int, dict]:
         same, first = grouped[k], best[k]
         rows[API_ID + min(r["api_id"] for r in same)] = dict(
             first, source="api", customer_ids=sorted({r["customer_id"] for r in same}),
-            own={r["customer_id"]: r for r in same})
+            own={r["customer_id"]: r for r in same},
+            **{gleif.VERDICT_COLUMN: next((r[gleif.VERDICT_COLUMN] for r in same if r[gleif.VERDICT_COLUMN]), "")})
     return rows
 
 

@@ -12,6 +12,10 @@ from app.main import app
 
 client = TestClient(app)          # no lifespan; `restart()` runs it
 PAXAR, AVERY = "549300YDGYNJ5OSNWF92", "549300PW7VPFCYKLIV37"
+COATS_REJO = "213800TIMLY8NHYC2I61"            # PT. COATS REJO INDONESIA: likely, a GLEIF parent, no saved verdict
+# the verdicts saved in the slice file (data/reference/gleif_slice_for_our_data.csv), by row
+SAVED = {21: "PT. Paxar Indonesia", 22: "QINGDAO YALINA APPAREL CO.,LTD.", 23: "Qingdao Atago Apparel Co., Ltd.",
+         59: "ACE TURTLE OMNI", 60: "ALPINE APPARELS"}
 
 
 @pytest.fixture(autouse=True)
@@ -55,13 +59,14 @@ def site_panel_parents(customer: str, os_id: str) -> list[dict]:
     return client.get(f"/api/customers/{customer}/sites/{os_id}").json()["gleif"]["confirmed"]
 
 
-def test_every_candidate_is_listed_and_every_verdict_starts_empty():
+def test_every_candidate_is_listed_with_only_the_saved_verdicts():
     cs = candidates()
     assert len(cs) == 440
     assert collections.Counter(c["level"] for c in cs) == {"1": 33, "2": 201, "3": 206}           # the written rules
     assert collections.Counter(c["file_review_level"][0] for c in cs) == {"1": 30, "2": 48, "3": 362}   # the file's own
     assert collections.Counter(c["kind"] for c in cs) == {"owner": 391, "site": 49}
-    assert {c["verdict"] for c in cs} == {None} and {c["verdict_from"] for c in cs} == {None}
+    decided = {c["id"]: (c["our_names"], c["verdict"], c["verdict_from"]) for c in cs if c["verdict"]}
+    assert decided == {i: (n, "yes", "file") for i, n in SAVED.items()}        # adidas 4, Nike 1; nothing else
 
 
 def test_the_list_follows_the_selected_company(conn):
@@ -97,16 +102,13 @@ def test_the_page_links_the_same_sites_as_the_stored_candidates(conn):
     assert page == stored and len(stored) == 1854
 
 
-def test_confirming_paxar_shows_avery_dennison_as_its_parent():
+def test_confirmed_paxar_shows_avery_dennison_as_its_parent():
+    """PT. Paxar Indonesia's verdict is saved in the slice file, so an empty database shows its parent at once."""
     c = find(PAXAR)
-    assert (c["names"], c["kind"], c["companies"], c["sites"], c["gleif_legal_name"]) == \
-        (["PT. Paxar Indonesia"], "site", ["Nike"], 1, "PT PAXAR INDONESIA")
+    assert (c["names"], c["kind"], c["companies"], c["sites"], c["gleif_legal_name"], c["verdict"], c["verdict_from"]) == \
+        (["PT. Paxar Indonesia"], "site", ["Nike"], 1, "PT PAXAR INDONESIA", "yes", "file")
     g = client.get(f"/api/network/candidates/{c['id']}").json()
-    assert g["parents"] == []                                 # not shown before a verdict
     [site] = g["sites"]
-
-    assert verdict(c["id"], "yes")["verdict"] == "yes"
-    g = client.get(f"/api/network/candidates/{c['id']}").json()
     assert {(p["type"], p["parent_lei"], p["parent_name"]) for p in g["parents"]} == {
         ("direct", AVERY, "AVERY DENNISON CORPORATION"), ("top", AVERY, "AVERY DENNISON CORPORATION")}
     # the map's site panel, as for a "yes" in the CSV
@@ -116,25 +118,38 @@ def test_confirming_paxar_shows_avery_dennison_as_its_parent():
         ("direct", AVERY, "AVERY DENNISON CORPORATION"), ("top", AVERY, "AVERY DENNISON CORPORATION")}
 
 
-def test_reject_hides_the_parent_and_undo_clears_the_verdict(conn):
-    c = find(PAXAR)
+def test_confirm_shows_the_parent_reject_hides_it_and_undo_clears_the_verdict(conn):
+    c = find(COATS_REJO)
     os_id = client.get(f"/api/network/candidates/{c['id']}").json()["sites"][0]["os_id"]
+    customer = "adidas" if "adidas" in c["company_ids"] else "nike"
+    assert (c["verdict"], client.get(f"/api/network/candidates/{c['id']}").json()["parents"]) == (None, [])
     verdict(c["id"], "yes")
+    assert {p["parent_name"] for p in client.get(f"/api/network/candidates/{c['id']}").json()["parents"]} == {"COATS GROUP PLC"}
+    assert [m["lei"] for m in site_panel_parents(customer, os_id)] == [COATS_REJO]
     out = verdict(c["id"], "no")                              # a confirm can be changed to a reject
     assert (out["verdict"], out["verdict_from"]) == ("no", "page")
     assert client.get(f"/api/network/candidates/{c['id']}").json()["parents"] == []
-    assert site_panel_parents("nike", os_id) == []
+    assert site_panel_parents(customer, os_id) == []
     with conn.cursor() as cur:
-        cur.execute("SELECT person_verdict FROM gleif_match WHERE lei = %s", (PAXAR,))
+        cur.execute("SELECT DISTINCT person_verdict FROM gleif_match WHERE lei = %s", (COATS_REJO,))
         assert [r["person_verdict"] for r in cur.fetchall()] == ["no"]
 
-    out = verdict(c["id"], None)                              # undo: back to the file's verdict (empty)
+    out = verdict(c["id"], None)                              # undo: back to the file's verdict (none for this row)
     assert (out["verdict"], out["verdict_from"], out["decided_at"]) == (None, None, None)
     with conn.cursor() as cur:
         cur.execute("SELECT count(*) AS n FROM gleif_verdict")
         assert cur.fetchone()["n"] == 0
-        cur.execute("SELECT person_verdict FROM gleif_match WHERE lei = %s", (PAXAR,))
+        cur.execute("SELECT DISTINCT person_verdict FROM gleif_match WHERE lei = %s", (COATS_REJO,))
         assert [r["person_verdict"] for r in cur.fetchall()] == [None]
+
+
+def test_a_verdict_on_the_page_is_used_over_the_saved_one_and_undo_goes_back_to_it(conn):
+    c = find(PAXAR)
+    os_id = client.get(f"/api/network/candidates/{c['id']}").json()["sites"][0]["os_id"]
+    assert (verdict(c["id"], "no")["verdict"], site_panel_parents("nike", os_id)) == ("no", [])
+    out = verdict(c["id"], None)
+    assert (out["verdict"], out["verdict_from"]) == ("yes", "file")
+    assert [m["lei"] for m in site_panel_parents("nike", os_id)] == [PAXAR]
 
 
 def test_verdicts_survive_a_restart(monkeypatch):
@@ -254,14 +269,14 @@ def test_the_graph_shows_at_most_15_sites():
 
 def test_download_verdicts_csv():
     c = find(PAXAR)
-    verdict(c["id"], "yes")
+    verdict(c["id"], "yes")                                   # given again on the page
     r = client.get("/api/network/verdicts.csv")
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
     assert 'filename="gleif_verdicts.csv"' in r.headers["content-disposition"]
-    [row] = list(csv.DictReader(io.StringIO(r.text)))
-    assert list(row) == network.VERDICT_FIELDS
-    assert (row["kind"], row["our_names"], row["LEI"], row[gleif.VERDICT_COLUMN], row["given_on"]) == \
-        ("site", "PT. Paxar Indonesia", PAXAR, "yes", "page")
+    rows = list(csv.DictReader(io.StringIO(r.text)))
+    assert list(rows[0]) == network.VERDICT_FIELDS
+    assert [(row["our_names"], row[gleif.VERDICT_COLUMN], row["given_on"]) for row in rows] == \
+        [(n, "yes", "page" if n == "PT. Paxar Indonesia" else "file") for n in SAVED.values()]
 
 
 def test_verdicts_do_not_change_the_numbers(conn):

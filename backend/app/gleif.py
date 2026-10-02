@@ -26,6 +26,7 @@ REF_DIR = Path(os.environ.get("DATA_DIR", "/data")) / "reference"
 SLICE = REF_DIR / "gleif_slice_for_our_data.csv"
 RELATIONSHIPS = REF_DIR / "rr_for_our_leis.csv"
 PARENT_NAMES = REF_DIR / "gleif_parents_checked.csv"
+API_VERDICTS = REF_DIR / "gleif_api_verdicts.csv"     # saved verdicts on GLEIF API candidates (company, our name, LEI)
 
 BRANDS = {"adidas": ["adidas"], "Nike": ["nike"], "both": ["adidas", "nike"]}
 TYPES = {"IS_DIRECTLY_CONSOLIDATED_BY": "direct", "IS_ULTIMATELY_CONSOLIDATED_BY": "top",
@@ -75,8 +76,18 @@ def file_rows() -> list[dict]:
     return [dict(r, review_level=rating.rate_file_row(r), file_review_level=r["review_level"]) for r in _read(SLICE)]
 
 
+def api_file_verdicts() -> dict[tuple[str, str, str], str]:
+    """(company, our name, LEI) -> yes / no, from data/reference/gleif_api_verdicts.csv: the GLEIF API candidates'
+    saved verdicts, used like the slice file's verdict column (a verdict given on the page is used over them).
+    They apply whenever the company has that candidate: on load, and after every GLEIF API search."""
+    if not API_VERDICTS.exists():
+        return {}
+    return {(r["company"], r["our_name"], r["LEI"]): r["verdict"].strip().lower() for r in _read(API_VERDICTS)}
+
+
 def api_rows(cur: psycopg.Cursor, customer_id: str | None = None) -> list[dict]:
     """GLEIF API candidates (gleif_api.py), shaped like rows of the slice file (kind owner)."""
+    saved = api_file_verdicts()
     cur.execute("""SELECT id, customer_id, owner_name, lei, legal_name, legal_country, entity_status,
                           registration_status, category, review_level, flags, match_type, matched_name, name_field
                    FROM gleif_api_candidate WHERE %s::text IS NULL OR customer_id = %s
@@ -87,7 +98,8 @@ def api_rows(cur: psycopg.Cursor, customer_id: str | None = None) -> list[dict]:
              "gleif_matched_name": r["matched_name"] or r["legal_name"], "file_review_level": None,
              "LEI": r["lei"], "gleif_legal_name": r["legal_name"], "legal_country": r["legal_country"] or "",
              "entity_status": r["entity_status"] or "", "registration_status": r["registration_status"] or "",
-             "entity_category": r["category"] or "", VERDICT_COLUMN: ""} for r in cur.fetchall()]
+             "entity_category": r["category"] or "",
+             VERDICT_COLUMN: saved.get((r["customer_id"], r["owner_name"], r["lei"]), "")} for r in cur.fetchall()]
 
 
 ENTITY_URL = "https://api.gleif.org/api/v1/lei-records/{lei}"   # one LEI's GLEIF record (gleif_api.py): a parent's name

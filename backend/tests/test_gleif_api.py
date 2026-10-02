@@ -55,6 +55,17 @@ class FakeGleif:
         return [r.url.path for _, r in self.requests if not r.url.path.endswith("/lei-records")]
 
 
+def work(conn):
+    """The worker's pending steps (parent names, parents, jobs), with the fake GLEIF."""
+    async def go():
+        async with gleif_api.client() as http:
+            await gleif_api.run_until_idle(http)
+    asyncio.run(go())
+
+
+ACE_TURTLE, ACE_PARENT = "3358006WJQ5NKCOILG39", "9845008E3DZ3B8366596"   # its direct parent: no name in our GLEIF files
+
+
 @pytest.fixture
 def fake(monkeypatch, conn):
     """A fake GLEIF, a virtual clock (no real waiting), and an empty GLEIF API state before and after."""
@@ -79,6 +90,11 @@ def fake(monkeypatch, conn):
             gleif.relink_all(cur)
         conn.commit()
     wipe()
+    # the slice file's saved verdicts confirm ACE TURTLE OMNI: its parent's name is fetched first; settle that, then start clean
+    g.entities = {ACE_PARENT: record(ACE_PARENT, "AUGUST PURPLE SERVICES PRIVATE LIMITED", "IN")}
+    work(conn)
+    g.requests.clear()
+    g.entities = {}
     yield g
     wipe()
 
@@ -93,15 +109,6 @@ def run(conn, customer="apple"):
     return gleif_api.job(conn, customer)
 
 
-def work(conn):
-    """The worker's pending steps (parent names, parents, jobs), with the fake GLEIF."""
-    async def go():
-        async with gleif_api.client() as http:
-            await gleif_api.run_until_idle(http)
-    asyncio.run(go())
-
-
-ACE_TURTLE, ACE_PARENT = "3358006WJQ5NKCOILG39", "9845008E3DZ3B8366596"   # its direct parent: no name in our GLEIF files
 
 
 def _confirm_ace_turtle(conn):
@@ -113,7 +120,14 @@ def _confirm_ace_turtle(conn):
     return c["id"], site
 
 
+def _forget_ace_parent_name(conn):
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM gleif_api_cache WHERE url = %s", (gleif.ENTITY_URL.format(lei=ACE_PARENT),))
+    conn.commit()
+
+
 def test_a_confirmed_parent_without_a_name_gets_it_from_gleif_once(conn, fake):
+    _forget_ace_parent_name(conn)                                              # as before its first fetch
     fake.entities = {ACE_PARENT: record(ACE_PARENT, "AUGUST PURPLE SERVICES PRIVATE LIMITED", "IN")}   # as GLEIF named it live
     i, site = _confirm_ace_turtle(conn)
     g = client.get(f"/api/network/candidates/{i}").json()
@@ -131,6 +145,7 @@ def test_a_confirmed_parent_without_a_name_gets_it_from_gleif_once(conn, fake):
 
 
 def test_a_parent_name_that_cannot_be_fetched_says_so(conn, fake):
+    _forget_ace_parent_name(conn)
     fake.fail = [503, 503, 503]                                                # 3 tries, then given up
     i, _ = _confirm_ace_turtle(conn)
     work(conn)
@@ -329,6 +344,22 @@ def test_a_shared_candidate_has_one_verdict_and_each_companys_own_rating(conn, f
     client.put(f"/api/network/candidates/{a['id']}/verdict", json={"verdict": "yes"})
     assert [x["verdict"] for x in client.get("/api/network/candidates", params={"company": "samsung"}).json()
             if x["our_names"] == "INTEL"] == ["yes"]
+
+
+def test_saved_verdicts_of_api_candidates_apply_after_a_search(conn, fake):
+    """data/reference/gleif_api_verdicts.csv holds (apple, HENKEL AG AND KGAA, 549300VZCL1HTH4O4Y49, yes): once Apple's
+    search finds that LEI for that owner name, it is confirmed, from the file."""
+    henkel = "549300VZCL1HTH4O4Y49"
+    assert gleif.api_file_verdicts()[("apple", "HENKEL AG AND KGAA", henkel)] == "yes"
+    fake.names = {"HENKEL AG AND KGAA": [record(henkel, "Henkel AG & Co. KGaA", "DE")]}
+    run(conn)
+    [c] = [x for x in client.get("/api/network/candidates", params={"company": "apple"}).json() if x["lei"] == henkel]
+    assert (c["our_names"], c["level"], c["verdict"], c["verdict_from"]) == ("HENKEL AG AND KGAA", "1", "yes", "file")
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) AS n, count(*) FILTER (WHERE person_verdict = 'yes') AS yes FROM gleif_match "
+                    "WHERE customer_id = 'apple' AND lei = %s", (henkel,))
+        assert cur.fetchone() == {"n": 4, "yes": 4}                            # HENKEL's 4 Apple sites
+    assert f"/api/v1/lei-records/{henkel}/ultimate-parent" in fake.parent_requests()   # its parents are fetched, as after a confirm
 
 
 def test_adidas_and_nike_keep_their_file_candidates(conn, fake):

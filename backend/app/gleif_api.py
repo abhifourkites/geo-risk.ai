@@ -250,9 +250,10 @@ async def fetch_parents(conn: psycopg.Connection, http: httpx.AsyncClient, lei: 
 
 
 def parents_pending(cur: psycopg.Cursor) -> list[str]:
-    """LEIs of confirmed API candidates whose parents are not fetched yet (and not known from the GLEIF files)."""
+    """LEIs of confirmed API candidates (a yes on the page or in gleif_api_verdicts.csv: a confirmed site link)
+    whose parents are not fetched yet (and not known from the GLEIF files)."""
     cur.execute("""SELECT DISTINCT c.lei FROM gleif_api_candidate c
-                   JOIN gleif_verdict v ON v.kind = 'owner' AND v.our_names = c.owner_name AND v.lei = c.lei AND v.verdict = 'yes'
+                   JOIN gleif_match m ON m.customer_id = c.customer_id AND m.lei = c.lei AND m.person_verdict = 'yes'
                    WHERE NOT EXISTS (SELECT 1 FROM gleif_api_parent p WHERE p.lei = c.lei AND p.type = 'top')
                      AND NOT EXISTS (SELECT 1 FROM gleif_parent p WHERE p.lei = c.lei)
                    ORDER BY 1""")
