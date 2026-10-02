@@ -26,7 +26,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - *GLEIF's live API for adidas and Nike too:* they keep the slice file's 440 candidates and its verdicts, so nothing about them changes. A one-time check on 2026-09-30 gave the same 3 parents as the file.
   - *GLEIF's fund links:* they are 227,252 of the 489,389 relationship rows (46.4%). They are fund managers, sub-funds and feeders, not company parents.
   - *FMCSA:* it covers carriers, which the brief's glossary separates from suppliers.
-  - *Loading every contributor in an uploaded file as a company:* the upload page fills in one company, and a person checks it and clicks "Load this company". Anonymous types ("A Brand / Retailer") and "(Claimed)" entries are not a company's lists. A download made for one company is also partial for every other contributor in it: all 3,798 rows of an Amazon download (2 Oct 2026, not in the repo) name Amazon.com, Inc., so Target's 233 sites in it (its February 2026 list) are all shared with Amazon.
+  - *Loading every contributor in an uploaded file as a company:* the upload page fills in one company, and a person checks it and clicks "Load this company". Anonymous types ("A Brand / Retailer") and "(Claimed)" entries are not a company's lists. A download made for one company is also partial for every other contributor in it: all 3,798 rows of an Amazon download (2 Oct 2026; `data/demo/amazon.csv`) name Amazon.com, Inc., so Target's 233 sites in it (its February 2026 list) are all shared with Amazon.
 - **Gave up:**
   - Open Supply Hub allows 5,000 downloaded locations a year, and the lists are dated.
   - The GLEIF files are a snapshot (29 Sep 2026, 16:00), and they give no reason when a parent is missing.
@@ -151,6 +151,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - **A self-named owner is kept when it is the site's only owner.**
   - **"NULL" (any case) is a placeholder, like NO GROUP (..), N/A and NA:** data/demo/facilities.csv has "null" as an owner value 6 times, and counting it made a fake owner "NULL" (4 adidas sites, 2 Nike sites).
   - **GLEIF name matches are candidates** until a person confirms them, on the Company network page (Confirm / Reject / Undo), not only by editing the CSV: "an interface that only its author can operate has failed" (brief 3.3).
+  - **Verdicts are saved in committed files**, so a fresh clone (an empty database) shows the same confirmed matches: the GLEIF file's verdict column for adidas's and Nike's candidates, and `data/reference/gleif_api_verdicts.csv` (company, our name, LEI, verdict, decided_at) for GLEIF API candidates, applied when that company's search finds the candidate. A verdict given on the page is used over a saved one, and Undo goes back to it.
   - **One set of written rules rates every GLEIF candidate** (`rating.py`), for every company: the slice file's 440 (adidas, Nike) and GLEIF API results (any other company). The file's own level is kept for reference (`file_review_level`; on the Company network page as "file: …" where it differs).
     - Names are compared after R4 cleaning, and, for this comparison only, without DE CV, SRL, S R L and PTE; R4 itself is unchanged. Evidence: row 3 "VERTICAL KNITS SA DE CV" (MX) and row 13 "L.I.M. (LAVORAZONI INDUSTRIALI METALLICHE) S.R.L." (IT).
     - Our name is compared with the GLEIF legal name and with each GLEIF other name (the file's matched name when it matched an other name; the API's `entity.otherNames`); the best match decides. Evidence: rows 5, 10, 22, 23, 24 and 26 matched on GLEIF other names in the file, but their legal names are Vietnamese, Chinese or French. Transliterated other names are not used: 26 file rows matched one, and using them would change 12 (11 unlikely → possible, 1 unlikely → likely).
@@ -190,7 +191,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - One company can be split. Nike's 3 "SHAHI" sites are not linked to adidas's 4 "SHAHI EXPORTS" sites.
   - Names that differ only by accents also stay apart.
   - A company can count as its own owner.
-  - No GLEIF parent is shown until a person confirms the match; 0 are confirmed today.
+  - No GLEIF parent is shown until a person confirms the match. 12 verdicts are saved (all yes, given on 2 Oct 2026): adidas 4 and Nike 1 in the GLEIF file's verdict column, Apple 1 and Amazon 9 in `data/reference/gleif_api_verdicts.csv` (ACE TURTLE OMNI and ALPINE APPARELS are shared by adidas and Amazon, HENKEL AG AND KGAA by Apple and Amazon).
   - The rules know no "generic name": an equal name in another country is possible however common the name, so many more file candidates are possible than the file said (201 against 48).
 - **Would change our mind:** A reliable company identifier across sources (for example a confirmed LEI), or a reviewed list of name variants.
 

@@ -15,7 +15,7 @@ const names = (o: Partial<Parameters<typeof visibleLists>[1]>) =>
 
 describe("upload pre-fill", () => {
   it("ticks only the current lists, and fills in the name", () => {
-    // Amazon's lists in an Amazon download (2 Oct 2026, not in the repo), as POST /api/uploads returns them
+    // Amazon's lists in data/demo/amazon.csv (an Amazon download, 2 Oct 2026), as POST /api/uploads returns them
     const amazon = {
       name: "Amazon.com, Inc.", rows: 3798, share: 1,
       lists: ["Amazon.com, Inc. (Amazon Facility List 2024)", "Amazon.com, Inc. (Amazon Facility List 2023)",

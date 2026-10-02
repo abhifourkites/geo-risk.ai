@@ -129,7 +129,7 @@ function JobStatus({ job, empty, busy, onStart }: { job: GleifJob | null; empty:
 }
 
 /** Company network: how Open Supply Hub sites and owners are matched to GLEIF companies (brief 3.1), and
- *  confirm or reject a match here instead of in a CSV (brief 3.3). Every verdict starts empty.
+ *  confirm or reject a match here instead of in a CSV (brief 3.3). Saved verdicts (the GLEIF files) show from the start.
  *  Shows the candidates of the company chosen in the top selector. */
 export default function Network({ company }: { company: Customer | undefined }) {
   const cid = company?.customer_id ?? "";

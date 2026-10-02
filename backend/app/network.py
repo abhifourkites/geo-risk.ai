@@ -4,7 +4,8 @@ from GLEIF's API (gleif_api.py; ids API_ID + n, one per owner name and LEI, shar
 has that owner name).
 
 A verdict is stored in gleif_verdict and applied at once (every company's candidates are re-linked), and
-again on every start (gleif.refresh_all). Every verdict starts empty. A site-LEI link with yes from one
+again on every start (gleif.refresh_all), over the verdicts saved in the slice file and in gleif_api_verdicts.csv.
+A site-LEI link with yes from one
 candidate and no from another is a conflict (gleif_match.person_verdict = 'conflict'): it is not confirmed,
 and both candidates are marked "conflicting verdicts - needs review".
 """
