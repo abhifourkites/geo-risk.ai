@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app import gleif, gleif_api, hazards, measures, network
+from app import gleif, gleif_api, hazards, measures, network, rating
 from app.main import app
 
 client = TestClient(app)
@@ -16,12 +16,13 @@ L, P, U = gleif_api.LIKELY, gleif_api.POSSIBLE, gleif_api.UNLIKELY
 REAL_CLIENT = httpx.AsyncClient
 
 
-def record(lei, name, country, status="ACTIVE", reg="ISSUED", category="GENERAL"):
+def record(lei, name, country, status="ACTIVE", reg="ISSUED", category="GENERAL", other_names=()):
     """A GLEIF lei-record, the fields gleif_api reads (shape as the live API returned it on 2 Oct 2026)."""
     return {"type": "lei-records", "id": lei, "attributes": {
         "lei": lei, "registration": {"status": reg},
         "entity": {"legalName": {"name": name, "language": "en"}, "legalAddress": {"country": country},
-                   "status": status, "category": category}}}
+                   "status": status, "category": category,
+                   "otherNames": [{"name": n, "language": "en", "type": "ALTERNATIVE_LANGUAGE_LEGAL_NAME"} for n in other_names]}}}
 
 
 class FakeGleif:
@@ -100,25 +101,74 @@ def test_the_core_name_has_no_commas_and_no_legal_form_words():
         gleif_api.search_url("YKK TAIWAN CO., LTD.")
 
 
-@pytest.mark.parametrize("ours,countries,theirs,country,status,expected", [
-    ("INTEL", {"US", "IE"}, "INTEL CORPORATION", "US", "ACTIVE", L),         # equal after R4, a site country, active
-    ("INTEL", {"US", "IE"}, "Intel Corporation", "NL", "ACTIVE", P),         # equal name, another country
-    ("INTEL", {"US", "IE"}, "INTEL CORPORATION", "US", "INACTIVE", P),       # equal, same country, not active
-    ("HITACHI", {"US"}, "HITACHI AMERICA, LTD.", "US", "ACTIVE", P),          # a subsidiary: starts with our name
-    ("AVERY DENNISON", {"BE"}, "Avery Dennison België", "BE", "ACTIVE", P),
-    ("INTEL", {"US", "IE"}, "INTEL INVEST", "CY", "ACTIVE", U),              # the live "Intel" search's first result
-    ("HITACHI", {"US"}, "HITACHI AMERICA, LTD.", "JP", "ACTIVE", U),          # starts with, but another country
-    ("INTEL", {"US"}, "INTELLIGENT SYSTEMS INC", "US", "ACTIVE", U),         # not as whole words
-    ("BRANDIX ASIA PTE", {"MX"}, "BRANDIX ASIA HOLDINGS PTE. LIMITED", "SG", "ACTIVE", P),   # HOLDINGS is an R4 word: equal, other country
+@pytest.mark.parametrize("ours,countries,names,country,status,category,reg,expected", [
+    ("INTEL", {"US", "IE"}, ["INTEL CORPORATION"], "US", "ACTIVE", "GENERAL", "ISSUED", L),   # equal after R4, site country, active
+    ("INTEL", {"US", "IE"}, ["Intel Corporation"], "NL", "ACTIVE", "GENERAL", "ISSUED", P),   # equal name, another country
+    ("INTEL", {"US", "IE"}, ["INTEL CORPORATION"], "US", "INACTIVE", "GENERAL", "ISSUED", P), # equal, same country, not active
+    ("HITACHI", {"US"}, ["HITACHI AMERICA, LTD."], "US", "ACTIVE", "GENERAL", "ISSUED", P),    # a subsidiary: starts with our name
+    ("AVERY DENNISON", {"BE"}, ["Avery Dennison België"], "BE", "ACTIVE", "GENERAL", "ISSUED", P),
+    ("INTEL", {"US", "IE"}, ["INTEL INVEST"], "CY", "ACTIVE", "GENERAL", "ISSUED", U),        # the live "Intel" search's first result
+    ("HITACHI", {"US"}, ["HITACHI AMERICA, LTD."], "JP", "ACTIVE", "GENERAL", "ISSUED", U),    # starts with, but another country
+    ("INTEL", {"US"}, ["INTELLIGENT SYSTEMS INC"], "US", "ACTIVE", "GENERAL", "ISSUED", U),   # not as whole words
+    ("BRANDIX ASIA PTE", {"MX"}, ["BRANDIX ASIA HOLDINGS PTE. LIMITED"], "SG", "ACTIVE", "GENERAL", "ISSUED", P),  # HOLDINGS: R4 word
+    # GLEIF other names: the best match decides (file row 5: the legal name is Vietnamese)
+    ("AVERY DENNISON RIS VIETNAM CO., LIMITED", {"VN"},
+     ["CÔNG TY TNHH AVERY DENNISON RIS VIỆT NAM", "AVERY DENNISON RIS VIETNAM CO.,LIMITED"], "VN", "ACTIVE", "GENERAL", "ISSUED", L),
+    ("AVERY DENNISON RIS VIETNAM CO., LIMITED", {"VN"},
+     ["CÔNG TY TNHH AVERY DENNISON RIS VIỆT NAM"], "VN", "ACTIVE", "GENERAL", "ISSUED", U),  # the legal name alone
+    # DE CV, SRL, S R L, PTE dropped for the comparison only (rows 3 and 13)
+    ("VERTICAL KNITS", {"MX"}, ["VERTICAL KNITS SA DE CV"], "MX", "ACTIVE", "GENERAL", "ISSUED", L),
+    ("L.I.M. SRL", {"IT"}, ["L.I.M. S.R.L."], "IT", "ACTIVE", "GENERAL", "ISSUED", L),
+    ("BRANDIX ASIA PTE", {"SG"}, ["BRANDIX ASIA PTE. LTD."], "SG", "ACTIVE", "GENERAL", "ISSUED", L),
+    # the cap: a sole proprietor, a fund or a lapsed registration is at most possible (rows 173, 223, 289)
+    ("ARYAN APPARELS", {"IN"}, ["ARYAN APPARELS"], "IN", "ACTIVE", "SOLE_PROPRIETOR", "LAPSED", P),
+    ("WINTEX EXPORTS", {"IN"}, ["WINTEX EXPORTS"], "IN", "ACTIVE", "SOLE_PROPRIETOR", "ISSUED", P),
+    ("X", {"IN"}, ["X"], "IN", "ACTIVE", "FUND", "ISSUED", P),
+    ("X", {"IN"}, ["X"], "IN", "ACTIVE", "GENERAL", "LAPSED", P),
+    ("X", {"IN"}, ["X"], "US", "ACTIVE", "FUND", "ISSUED", P),              # the cap never lowers possible or unlikely
 ])
-def test_rating_rules(ours, countries, theirs, country, status, expected):
-    assert gleif_api.rate(ours, countries, theirs, country, status) == expected
+def test_rating_rules(ours, countries, names, country, status, category, reg, expected):
+    assert rating.rate(ours, countries, names, country, status, category, reg) == expected
+
+
+def test_the_comparison_drops_words_r4_keeps_but_r4_is_unchanged():
+    from app import clean
+    assert rating.compare_name("VERTICAL KNITS SA DE CV") == "VERTICAL KNITS"
+    assert rating.compare_name("L.I.M. (LAVORAZONI INDUSTRIALI METALLICHE) S.R.L.") == "L I M LAVORAZONI INDUSTRIALI METALLICHE"
+    assert rating.compare_name("DE LA RUE") == "DE LA RUE"                    # DE alone stays
+    assert clean.clean_owner("VERTICAL KNITS SA DE CV") == "VERTICAL KNITS DE CV"   # R4 as before
 
 
 def test_flags():
-    assert gleif_api.flags("ACTIVE", "ISSUED", "GENERAL") == ""
-    assert gleif_api.flags("INACTIVE", "LAPSED", "FUND") == "not active; registration lapsed; fund"
-    assert gleif_api.flags("ACTIVE", "ISSUED", "SOLE_PROPRIETOR") == "sole proprietor"
+    assert rating.flags("ACTIVE", "ISSUED", "GENERAL") == ""
+    assert rating.flags("INACTIVE", "LAPSED", "FUND") == "not active; registration lapsed; fund"
+    assert rating.flags("ACTIVE", "ISSUED", "SOLE_PROPRIETOR") == "sole proprietor"
+
+
+def test_api_results_are_rated_on_other_names_too(conn, fake):
+    """entity.otherNames: an English other name matches although the legal name is in Chinese."""
+    fake.names = {"WISTRON": [record("TW00000000000WISTRN", "緯創資通股份有限公司", "CN", other_names=["Wistron Corporation"])]}
+    run(conn)
+    with conn.cursor() as cur:
+        cur.execute("SELECT review_level, match_type, matched_name, name_field FROM gleif_api_candidate "
+                    "WHERE customer_id = 'apple' AND owner_name = 'WISTRON'")
+        assert cur.fetchone() == {"review_level": L, "match_type": "exact", "matched_name": "Wistron Corporation",
+                                  "name_field": "OtherEntityNames"}
+
+
+def test_candidates_rated_with_older_rules_are_rated_again_from_the_cache(conn, fake):
+    fake.names = {"WISTRON": [record("TW00000000000WISTRN", "緯創資通股份有限公司", "CN", other_names=["Wistron Corporation"])]}
+    run(conn)
+    with conn.cursor() as cur:                                             # as the first rules left it: legal name only
+        cur.execute("UPDATE gleif_api_candidate SET review_level = %s WHERE owner_name = 'WISTRON'", (U,))
+        cur.execute("UPDATE gleif_api_name SET rules = 1")
+    conn.commit()
+    n = len(fake.requests)
+    assert gleif_api.rerate_all(conn) == 41 and len(fake.requests) == n      # every name, no request
+    with conn.cursor() as cur:
+        cur.execute("SELECT review_level FROM gleif_api_candidate WHERE owner_name = 'WISTRON'")
+        assert cur.fetchone()["review_level"] == L
+    assert gleif_api.rerate_all(conn) == 0                                 # nothing left to rate again
 
 
 def test_a_job_searches_each_owner_name_once_paced_rated_and_cached(conn, fake):

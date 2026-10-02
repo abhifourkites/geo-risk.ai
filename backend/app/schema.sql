@@ -139,3 +139,11 @@ CREATE TABLE IF NOT EXISTS gleif_api_parent (
     parent_name text,
     PRIMARY KEY (lei, type)
 );
+
+-- Added with the one set of rating rules (rating.py, DECISIONS #5), on start if missing (no reset):
+-- the slice file's own level, kept for reference (the app uses the rules' level)
+ALTER TABLE gleif_match ADD COLUMN IF NOT EXISTS file_review_level text;
+-- which GLEIF name matched (the legal name or an other name), and the rules version a name was rated with
+ALTER TABLE gleif_api_candidate ADD COLUMN IF NOT EXISTS matched_name text;
+ALTER TABLE gleif_api_candidate ADD COLUMN IF NOT EXISTS name_field text;
+ALTER TABLE gleif_api_name ADD COLUMN IF NOT EXISTS rules integer;

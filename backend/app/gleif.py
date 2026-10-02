@@ -72,12 +72,13 @@ def lock(cur: psycopg.Cursor) -> None:
 def api_rows(cur: psycopg.Cursor, customer_id: str | None = None) -> list[dict]:
     """GLEIF API candidates (gleif_api.py), shaped like rows of the slice file (kind owner)."""
     cur.execute("""SELECT id, customer_id, owner_name, lei, legal_name, legal_country, entity_status,
-                          registration_status, category, review_level, flags, match_type
+                          registration_status, category, review_level, flags, match_type, matched_name, name_field
                    FROM gleif_api_candidate WHERE %s::text IS NULL OR customer_id = %s
                    ORDER BY customer_id, owner_name, review_level, rank""", (customer_id, customer_id))
     return [{"api_id": r["id"], "customer_id": r["customer_id"], "kind": "owner", "our_names": r["owner_name"],
              "our_brands": None, "our_sites": "", "review_level": r["review_level"], "flags": r["flags"],
-             "match_type": r["match_type"], "gleif_name_field": "LegalName", "gleif_matched_name": r["legal_name"],
+             "match_type": r["match_type"], "gleif_name_field": r["name_field"] or "LegalName",
+             "gleif_matched_name": r["matched_name"] or r["legal_name"],
              "LEI": r["lei"], "gleif_legal_name": r["legal_name"], "legal_country": r["legal_country"] or "",
              "entity_status": r["entity_status"] or "", "registration_status": r["registration_status"] or "",
              "entity_category": r["category"] or "", VERDICT_COLUMN: ""} for r in cur.fetchall()]

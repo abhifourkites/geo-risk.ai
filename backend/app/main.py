@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI):
     with db.connect() as conn:
         db.init_schema(conn)
         loader.seed_demo(conn)      # first start only: the 4 demo companies
+        gleif_api.rerate_all(conn)  # GLEIF API candidates rated with older rules: again, from the cache
         gleif.refresh_all(conn)     # every start: re-read the GLEIF files, with the saved verdicts
     task = asyncio.create_task(_refresh_hazards())   # every start: one GDACS refresh in the background
     worker = asyncio.create_task(gleif_api.worker())  # GLEIF API searches and parent fetches, also after a restart

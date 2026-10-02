@@ -9,7 +9,8 @@ belongs to the legal entity you are searching for", so every candidate waits for
   so a comma is never sent.
 - At most 1 request per second; every response is cached in the database (gleif_api_cache), so a name or
   a parent is never fetched twice.
-- Each result is rated with written rules (`rate`). Nothing is confirmed automatically.
+- Each result is rated with the written rules (rating.py), on its legal name and its other names.
+  Nothing is confirmed automatically.
 - Parents are fetched only when a person confirms a candidate.
 """
 import asyncio
@@ -21,7 +22,7 @@ import time
 import httpx
 import psycopg
 
-from . import clean, db, gleif, hazards
+from . import clean, db, gleif, hazards, rating
 
 API = "https://api.gleif.org/api/v1"
 USER_AGENT = "geo-risk-ai/0.1 (FourKites take-home demo: GLEIF candidates for supplier owner names)"
@@ -31,46 +32,14 @@ MIN_INTERVAL = 1.0              # seconds between two requests: GLEIF allows 60 
 # R4's legal-form words, plus PTE: "BRANDIX ASIA" finds BRANDIX ASIA HOLDINGS PTE. LIMITED (SG); "BRANDIX ASIA PTE" finds nothing
 SEARCH_DROP = clean.LEGAL_WORDS | {"PTE"}
 
-LIKELY, POSSIBLE, UNLIKELY = "1 likely - confirm", "2 possible - check", "3 unlikely"
+LIKELY, POSSIBLE, UNLIKELY = rating.LIKELY, rating.POSSIBLE, rating.UNLIKELY
+flags = rating.flags
+RULES_VERSION = 2               # 1: legal name only, no cap. 2: other names, DE CV / SRL / S R L / PTE, the cap
 
 
 def core_name(owner: str) -> str:
     """The name searched: no commas (a comma means OR to GLEIF), and no legal-form words."""
     return " ".join(w for w in clean.basic(owner.replace(",", " ")).split() if w not in SEARCH_DROP)
-
-
-def rate(our_name: str, countries: set[str], legal_name: str, legal_country: str, entity_status: str) -> str:
-    """The written rules (DECISIONS #5). Names are compared after R4 cleaning (clean.clean_owner).
-    - likely: the GLEIF legal name equals our owner name, its country is one of the owner's site countries,
-      and the entity is ACTIVE;
-    - possible: an equal name in another country, or the GLEIF name starts with our name (as whole words)
-      in one of the owner's site countries ("HITACHI AMERICA", "AVERY DENNISON BELGIE");
-    - unlikely: everything else."""
-    ours, theirs = clean.clean_owner(our_name), clean.clean_owner(legal_name)
-    same_country = legal_country in countries
-    if ours and theirs == ours and same_country and entity_status == "ACTIVE":
-        return LIKELY
-    if ours and (theirs == ours or (same_country and theirs.startswith(ours + " "))):
-        return POSSIBLE
-    return UNLIKELY
-
-
-def flags(entity_status: str, registration_status: str, category: str) -> str:
-    out = []
-    if entity_status != "ACTIVE":
-        out.append("not active")
-    if registration_status == "LAPSED":
-        out.append("registration lapsed")
-    if category == "FUND":
-        out.append("fund")
-    if category == "SOLE_PROPRIETOR":
-        out.append("sole proprietor")
-    return "; ".join(out)
-
-
-def match_type(our_name: str, legal_name: str) -> str:
-    ours, theirs = clean.clean_owner(our_name), clean.clean_owner(legal_name)
-    return "exact" if theirs == ours else "starts_with" if theirs.startswith(ours + " ") else "contains"
 
 
 # ---- requests: paced, retried, cached ---------------------------------------------------------------------
@@ -127,7 +96,8 @@ def _record(rec: dict) -> dict:
     e = a["entity"]
     return {"lei": a["lei"], "legal_name": e["legalName"]["name"], "legal_country": e["legalAddress"].get("country"),
             "entity_status": e.get("status"), "registration_status": (a.get("registration") or {}).get("status"),
-            "category": e.get("category")}
+            "category": e.get("category"),
+            "other_names": [n["name"] for n in e.get("otherNames") or [] if isinstance(n, dict) and n.get("name")]}
 
 
 def rated(owner: str, countries: set[str], records: list[dict]) -> list[dict]:
@@ -135,19 +105,68 @@ def rated(owner: str, countries: set[str], records: list[dict]) -> list[dict]:
     out = []
     for rank, rec in enumerate(records):
         x = _record(rec)
-        out.append({**x, "rank": rank, "match_type": match_type(owner, x["legal_name"]),
-                    "review_level": rate(owner, countries, x["legal_name"], x["legal_country"] or "", x["entity_status"] or ""),
+        names = [x["legal_name"], *x.pop("other_names")]
+        match, matched = rating.best_match(owner, names)
+        out.append({**x, "rank": rank, "match_type": match, "matched_name": matched,
+                    "name_field": "LegalName" if matched == x["legal_name"] else "OtherEntityNames",
+                    "review_level": rating.rate(owner, countries, names, x["legal_country"] or "", x["entity_status"] or "",
+                                                x["category"] or "", x["registration_status"] or ""),
                     "flags": flags(x["entity_status"] or "", x["registration_status"] or "", x["category"] or "")})
     return sorted(out, key=lambda x: (x["review_level"], x["rank"]))[:KEEP]
+
+
+def _store(cur: psycopg.Cursor, customer_id: str, owner: str, keep: list[dict]) -> None:
+    """Replace the owner name's candidates with `keep` (ids stay for LEIs kept)."""
+    cur.execute("DELETE FROM gleif_api_candidate WHERE customer_id = %s AND owner_name = %s AND NOT (lei = ANY(%s))",
+                (customer_id, owner, [k["lei"] for k in keep]))
+    for k in keep:
+        cur.execute("""INSERT INTO gleif_api_candidate (customer_id, owner_name, lei, rank, legal_name, legal_country,
+                           entity_status, registration_status, category, review_level, flags, match_type, matched_name, name_field)
+                       VALUES (%(c)s, %(o)s, %(lei)s, %(rank)s, %(legal_name)s, %(legal_country)s, %(entity_status)s,
+                           %(registration_status)s, %(category)s, %(review_level)s, %(flags)s, %(match_type)s,
+                           %(matched_name)s, %(name_field)s)
+                       ON CONFLICT (customer_id, owner_name, lei) DO UPDATE SET rank = EXCLUDED.rank,
+                           legal_name = EXCLUDED.legal_name, legal_country = EXCLUDED.legal_country,
+                           entity_status = EXCLUDED.entity_status, registration_status = EXCLUDED.registration_status,
+                           category = EXCLUDED.category, review_level = EXCLUDED.review_level, flags = EXCLUDED.flags,
+                           match_type = EXCLUDED.match_type, matched_name = EXCLUDED.matched_name,
+                           name_field = EXCLUDED.name_field""", {**k, "c": customer_id, "o": owner})
+
+
+def _countries(cur: psycopg.Cursor, customer_id: str, owner: str) -> set[str]:
+    cur.execute("""SELECT DISTINCT s.country_code FROM site_owner o JOIN site s USING (customer_id, os_id)
+                   WHERE o.customer_id = %s AND o.owner_name = %s AND s.country_code IS NOT NULL""", (customer_id, owner))
+    return {r["country_code"] for r in cur.fetchall()}
+
+
+def rerate_all(conn: psycopg.Connection) -> int:
+    """Rate again, from the cache (no request), every owner name searched with older rules (RULES_VERSION),
+    and link those companies' candidates again. Runs on every start; does nothing once all are current."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT customer_id, owner_name, core_name FROM gleif_api_name WHERE done AND coalesce(rules, 1) <> %s",
+                    (RULES_VERSION,))
+        todo = cur.fetchall()
+    for n in todo:
+        with conn.transaction(), conn.cursor() as cur:
+            records = []
+            if n["core_name"]:
+                cur.execute("SELECT status, body FROM gleif_api_cache WHERE url = %s", (search_url(n["core_name"]),))
+                hit = cur.fetchone()
+                records = (hit["body"] or {}).get("data", []) if hit and hit["status"] == 200 else []
+            _store(cur, n["customer_id"], n["owner_name"],
+                   rated(n["owner_name"], _countries(cur, n["customer_id"], n["owner_name"]), records))
+            cur.execute("UPDATE gleif_api_name SET rules = %s WHERE customer_id = %s AND owner_name = %s",
+                        (RULES_VERSION, n["customer_id"], n["owner_name"]))
+    for c in sorted({n["customer_id"] for n in todo}):
+        _relink(conn, c)
+    return len(todo)
 
 
 async def search_name(conn: psycopg.Connection, http: httpx.AsyncClient, customer_id: str, owner: str) -> bool:
     """Search one owner name, rate and store its candidates. True when a request was sent to GLEIF."""
     core = core_name(owner)
     with conn.cursor() as cur:
-        cur.execute("""SELECT DISTINCT s.country_code FROM site_owner o JOIN site s USING (customer_id, os_id)
-                       WHERE o.customer_id = %s AND o.owner_name = %s AND s.country_code IS NOT NULL""", (customer_id, owner))
-        countries = {r["country_code"] for r in cur.fetchall()}
+        countries = _countries(cur, customer_id, owner)
     sent, error, records = False, None, []
     if core:
         try:
@@ -159,20 +178,9 @@ async def search_name(conn: psycopg.Connection, http: httpx.AsyncClient, custome
             error = hazards.describe(err)
     keep = rated(owner, countries, records)
     with conn.transaction(), conn.cursor() as cur:
-        cur.execute("DELETE FROM gleif_api_candidate WHERE customer_id = %s AND owner_name = %s AND NOT (lei = ANY(%s))",
-                    (customer_id, owner, [k["lei"] for k in keep]))
-        for k in keep:
-            cur.execute("""INSERT INTO gleif_api_candidate (customer_id, owner_name, lei, rank, legal_name, legal_country,
-                               entity_status, registration_status, category, review_level, flags, match_type)
-                           VALUES (%(c)s, %(o)s, %(lei)s, %(rank)s, %(legal_name)s, %(legal_country)s, %(entity_status)s,
-                               %(registration_status)s, %(category)s, %(review_level)s, %(flags)s, %(match_type)s)
-                           ON CONFLICT (customer_id, owner_name, lei) DO UPDATE SET rank = EXCLUDED.rank,
-                               legal_name = EXCLUDED.legal_name, legal_country = EXCLUDED.legal_country,
-                               entity_status = EXCLUDED.entity_status, registration_status = EXCLUDED.registration_status,
-                               category = EXCLUDED.category, review_level = EXCLUDED.review_level, flags = EXCLUDED.flags,
-                               match_type = EXCLUDED.match_type""", {**k, "c": customer_id, "o": owner})
-        cur.execute("UPDATE gleif_api_name SET done = true, results = %s, error = %s WHERE customer_id = %s AND owner_name = %s",
-                    (len(records), error, customer_id, owner))
+        _store(cur, customer_id, owner, keep)
+        cur.execute("UPDATE gleif_api_name SET done = true, results = %s, error = %s, rules = %s "
+                    "WHERE customer_id = %s AND owner_name = %s", (len(records), error, RULES_VERSION, customer_id, owner))
         cur.execute("UPDATE gleif_api_job SET names_done = names_done + 1, requests = requests + %s WHERE customer_id = %s",
                     (int(sent), customer_id))
     return sent
