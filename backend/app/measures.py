@@ -97,7 +97,8 @@ def hazard_areas(cur: psycopg.Cursor) -> list[dict]:
     Outer rings are made clockwise because d3-geo draws an anticlockwise ring as the whole globe minus the shape."""
     cur.execute("""SELECT e.event_id, e.event_type, e.name, e.alert_level,
                           coalesce(a.draw, ST_AsGeoJSON(ST_ForcePolygonCW(ST_SimplifyPreserveTopology(a.area, 0.02)), 3)) AS geometry
-                   FROM hazard_area a JOIN hazard_event e USING (event_id) WHERE e.is_current""")     # draw: worked out on insert
+                   FROM hazard_area a JOIN hazard_event e USING (event_id) WHERE e.is_current
+                   ORDER BY a.id""")     # draw: worked out once, on insert; the order is fixed (it was the table's)
     return [{"type": "Feature", "geometry": json.loads(r["geometry"]),
              "properties": {"event_id": r["event_id"], "event_type": r["event_type"], "name": r["name"],
                             "alert_level": r["alert_level"]}} for r in cur.fetchall()]
