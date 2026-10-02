@@ -7,6 +7,7 @@ import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
@@ -56,13 +57,20 @@ export default function App() {
   }, []);
   useEffect(() => { loadCustomers().catch((e) => setError(String(e.message))); }, [loadCustomers]);
 
+  // a company switch clears the old company's view and panel at once; an answer for a company (or thresholds)
+  // no longer chosen is dropped, so one company's numbers never show under another's name
+  const latest = useRef({ c, high, watch });
+  latest.current = { c, high, watch };
+  useEffect(() => { setView(null); setDetail(null); }, [c]);
   const loadView = useCallback(async () => {
     if (!c) return;
-    try { setView(await api.view(c, high, watch)); setError(null); }
-    catch (e) { setError(String((e as Error).message)); }
+    try {
+      const v = await api.view(c, high, watch);
+      if (latest.current.c === c && latest.current.high === high && latest.current.watch === watch) { setView(v); setError(null); }
+    } catch (e) { if (latest.current.c === c) setError(String((e as Error).message)); }
   }, [c, high, watch]);
   useEffect(() => { loadView(); }, [loadView]);
-  useEffect(() => { setDetail(null); }, [c]);   // the map fits itself to the new company's sites
+  const companyName = customers.find((x) => x.customer_id === c)?.name ?? "";
 
   // the selected company's GLEIF API search (after an upload, or started on the Company network page), polled while it runs
   const jobRunning = gleifJob?.customer_id === c && (gleifJob.state === "queued" || gleifJob.state === "running");
@@ -97,8 +105,24 @@ export default function App() {
 
   // scroll: true when the click came from the panel or a table (the default); false from the map itself.
   const show = async (p: Promise<Detail>, move: (d: Detail) => FocusSpec | null, scroll: boolean) => {
-    try { const d = await p; setDetail(d); moveTo(move(d), scroll); } catch (e) { setError(String((e as Error).message)); }
+    const asked = c;
+    try {
+      const d = await p;
+      if (latest.current.c !== asked) return;                // the company changed meanwhile
+      setDetail(d); moveTo(move(d), scroll);
+    } catch (e) { if (latest.current.c === asked) setError(String((e as Error).message)); }
   };
+  // a site panel whose parent's name is being fetched from GLEIF: asked again until it is known
+  useEffect(() => {
+    if (detail?.kind !== "site" || !detail.data.gleif.confirmed.some((m) => m.parents.some((p) => p.name_status === "fetching"))) return;
+    const os = detail.data.site.os_id, asked = c;
+    const t = setTimeout(() => {
+      api.site(asked, os).then((data) => {
+        if (latest.current.c === asked) setDetail((d) => (d?.kind === "site" && d.data.site.os_id === os ? { kind: "site", data } : d));
+      }).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [detail, c]);
   const go = {
     site: (os: string, scroll = true) => show(api.site(c, os).then((data) => ({ kind: "site", data })), () => {
       const [p] = pointsOf([os]);
@@ -209,7 +233,12 @@ export default function App() {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {page === "upload" && <Upload onDone={(id) => { loadCustomers(id).then(() => setPage("map")); }} />}
         {page === "network" && <Suspense fallback={<Typography color="text.secondary">Loading…</Typography>}><Network company={customers.find((x) => x.customer_id === c)} /></Suspense>}
-        {page === "map" && !view && !error && <Typography color="text.secondary">Loading…</Typography>}
+        {page === "map" && !view && !error && (
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 4 }} role="status" data-testid="view-loading">
+            <CircularProgress size={20} />
+            <Typography color="text.secondary">Loading {companyName || "the company"}…</Typography>
+          </Stack>
+        )}
 
         {page === "map" && view && (
           <Stack spacing={3} component="main">
