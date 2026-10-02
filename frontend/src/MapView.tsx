@@ -15,8 +15,9 @@ import { setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type St
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import Map, { Layer, NavigationControl, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
+import Map, { Layer, NavigationControl, Source, type ErrorEvent, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
 import type { View } from "./api";
+import { BASEMAPS, isServiceError, landOpacity, loadBasemap, PLAIN_STYLE, SERVICE, type Basemap } from "./basemap";
 import { countryName, shortEventName, threshold } from "./format";
 import { boundsOf, coordsOf, sphericalMean, WORLD, type Focus } from "./geo";
 import { RISK } from "./theme";
@@ -26,13 +27,6 @@ setWorkerUrl(workerUrl);
 // Natural Earth 1:50m; ISO_A2_EH is used because ISO_A2 is "-99" for some countries (France and Norway at 1:110m).
 type World = FeatureCollection<Geometry, { ISO_A2_EH: string; NAME: string }>;
 
-// A style built in code: water as the background; land comes from the committed Natural Earth file.
-// No tile or style URL, and no glyphs, so cluster counts are drawn as HTML labels.
-const BASE_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {},
-  layers: [{ id: "water", type: "background", paint: { "background-color": RISK.water } }],
-};
 const EMPTY: World = { type: "FeatureCollection", features: [] };
 const SMALL_AREA_DEG = 3;   // an area narrower than this (about 8 px at world zoom) also gets a ring marker
 const INTERACTIVE = ["selected-ring", "highlight", "site", "clusters", "disaster-ring", "disaster-fill", "land"];
@@ -74,6 +68,32 @@ export default function MapView(props: {
   const [loaded, setLoaded] = useState(false);   // the map's style is loaded: the site layers can be added
   const [ready, setReady] = useState(false);     // outlines and sites are drawn: the loading message goes
   const hovered = useRef<number | string | null>(null);
+  // The map style (basemap.ts): the one asked for, and the one on show (Plain until its tile service has answered).
+  // A service that does not answer, or fails later, gives Plain again with a one-line notice.
+  const [basemap, setBasemap] = useState<Basemap>("plain");
+  const [shown, setShown] = useState<{ mode: Basemap; style: StyleSpecification }>({ mode: "plain", style: PLAIN_STYLE });
+  const [notice, setNotice] = useState<string | null>(null);
+  const asked = useRef<Basemap>("plain");
+  const shownMode = useRef<Basemap>("plain");
+  shownMode.current = shown.mode;
+  const fallBack = useCallback((mode: Basemap) => {
+    if (mode === "plain") return;
+    asked.current = "plain";
+    setBasemap("plain");
+    setShown({ mode: "plain", style: PLAIN_STYLE });
+    setNotice(`${BASEMAPS.find((b) => b.value === mode)?.label}: ${SERVICE[mode].name} did not respond, so the plain map is shown.`);
+  }, []);
+  const chooseBasemap = (mode: Basemap) => {
+    asked.current = mode;
+    setBasemap(mode);
+    setNotice(null);
+    loadBasemap(mode).then((style) => { if (asked.current === mode) setShown({ mode, style }); })
+      .catch(() => { if (asked.current === mode) fallBack(mode); });
+  };
+  const onError = (e: ErrorEvent) => {
+    if (isServiceError(e, shownMode.current)) fallBack(shownMode.current);
+    else console.error(e.error);           // as react-map-gl does without onError
+  };
 
   useEffect(() => { fetch("/ne_50m_admin_0_countries.geojson").then((r) => r.json()).then(setWorld); }, []);
 
@@ -211,22 +231,27 @@ export default function MapView(props: {
 
   return (
     <Box>
-      <Box ref={box} sx={{ position: "relative", height: { xs: 380, md: 560 }, borderRadius: 2.5, overflow: "hidden", border: 1, borderColor: "divider", bgcolor: "#EEF1F2" }}>
-        <Map ref={map} mapStyle={BASE_STYLE} initialViewState={{ bounds: WORLD, fitBoundsOptions: { padding: 10 } }}
+      {/* the attributions (long for Satellite) wrap to the right of the legend, never over it */}
+      <Box ref={box} sx={{ position: "relative", height: { xs: 380, md: 560 }, borderRadius: 2.5, overflow: "hidden", border: 1, borderColor: "divider", bgcolor: "#EEF1F2",
+                           "& .maplibregl-ctrl-bottom-right": { maxWidth: { sm: "calc(100% - 220px)" } } }}>
+        <Map ref={map} mapStyle={shown.style} styleDiffing={false} initialViewState={{ bounds: WORLD, fitBoundsOptions: { padding: 10 } }}
              projection={projection} renderWorldCopies={false} maxPitch={60}
              interactiveLayerIds={INTERACTIVE} cursor={tip ? "pointer" : "grab"}
              onMouseMove={onMove} onMouseLeave={() => { setHover(null); setTip(null); }} onClick={onClick}
-             onLoad={onLoad} onIdle={onIdle}
-             style={{ width: "100%", height: "100%" }} attributionControl={{ compact: true }}>
+             onLoad={onLoad} onIdle={onIdle} onError={onError}
+             style={{ width: "100%", height: "100%" }}>
           {/* Mounted from the start (empty until the file arrives), so the land layers are always added first,
-              under the sites; mounted later, they were added on top and hid some clusters. */}
+              under the sites; mounted later, they were added on top and hid some clusters. After a change of map
+              style, react-map-gl adds these sources and layers again, in this order, on top of the new style. */}
           {(
             <Source id="countries" type="geojson" data={world ?? EMPTY} attribution="Natural Earth">
               <Layer id="land" type="fill" paint={{
                 "fill-color": ["case", inList(high), RISK.high, inList(watch), RISK.watchFill, RISK.land],
-                "fill-opacity": ["case", inList([...high, ...watch]), 0.55, 1],
+                "fill-opacity": landOpacity(shown.mode, inList([...high, ...watch])),
               }} />
-              <Layer id="borders" type="line" paint={{ "line-color": "#FFFFFF", "line-width": 0.8 }} />
+              {/* the Map style draws its own borders */}
+              <Layer id="borders" type="line" layout={{ visibility: shown.mode === "map" ? "none" : "visible" }}
+                     paint={{ "line-color": "#FFFFFF", "line-width": 0.8 }} />
               <Layer id="country-picked" type="line" filter={inList([...highlightCountries])}
                      paint={{ "line-color": RISK.selected, "line-width": 1.6 }} />
             </Source>
@@ -293,6 +318,10 @@ export default function MapView(props: {
             <ToggleButton value="flat" sx={{ py: 0.25, textTransform: "none" }}>Flat map</ToggleButton>
             <ToggleButton value="globe" sx={{ py: 0.25, textTransform: "none" }}>Globe view</ToggleButton>
           </ToggleButtonGroup>
+          <ToggleButtonGroup size="small" exclusive value={basemap} aria-label="Map style"
+                             onChange={(_, v: Basemap | null) => { if (v) chooseBasemap(v); }}>
+            {BASEMAPS.map((b) => <ToggleButton key={b.value} value={b.value} sx={{ py: 0.25, textTransform: "none" }}>{b.label}</ToggleButton>)}
+          </ToggleButtonGroup>
           <Button size="small" variant="outlined" onClick={() => resetView(globe)}>
             Reset view
           </Button>
@@ -309,6 +338,7 @@ export default function MapView(props: {
       </Box>
       <Legend high={props.high} watch={props.watch} sx={{ mt: 1, display: { xs: "block", sm: "none" } }} />
       <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
+        {notice && <Typography variant="caption" role="status" data-testid="basemap-notice" sx={{ color: RISK.watchText, fontWeight: 600 }}>{notice}</Typography>}
         <Typography variant="caption" color="text.secondary">Disaster data: GDACS, automatic alerts. Confirm before acting.</Typography>
         {noOutline.length > 0 && (
           <Typography variant="caption" color="text.secondary">
