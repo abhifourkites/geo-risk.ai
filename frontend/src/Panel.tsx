@@ -24,6 +24,9 @@ export type Detail =
 
 export interface Go { site: (os: string) => void; owner: (o: string) => void; disaster: (e: string) => void; country: (c: string) => void }
 const PARENT_TYPE: Record<string, string> = { direct: "Direct parent", top: "Top parent", branch: "Branch of" };
+/** Why a site inside an event's area is not counted (GDACS's affectedcountries list). */
+export const notListed = (code: string | null) =>
+  code ? `inside the area, but GDACS does not list ${countryName(code)} as affected` : "inside the area, but the site's country is not known";
 
 function Header({ type, name, children }: { type: string; name: string; children?: ReactNode }) {
   return (
@@ -75,11 +78,17 @@ function SitePanel({ d, go }: { d: SiteDetail; go: Go }) {
       </Section>
       <Section title="Disaster area">
         {d.hazard_status !== "ok" ? <Typography variant="body2">{d.hazard_status === "loading" ? "Checking for current disasters…" : "Disaster data unavailable."}</Typography>
-          : d.hazards.length === 0 ? <Typography variant="body2">Not inside a current disaster area.</Typography>
-          : <List dense disablePadding>{d.hazards.map((h) => (
-              <Pick key={h.event_id} onClick={() => go.disaster(h.event_id)} primary={h.event_name}
-                    secondary={h.level ? `${h.level} for your sites` : undefined} end={<AlertChip alert={h.alert_level} />} />
-            ))}</List>}
+          : d.hazards.length === 0 && d.hazards_unlisted.length === 0 ? <Typography variant="body2">Not inside a current disaster area.</Typography>
+          : <List dense disablePadding>
+              {d.hazards.map((h) => (
+                <Pick key={h.event_id} onClick={() => go.disaster(h.event_id)} primary={h.event_name}
+                      secondary={h.level ? `${h.level} for your sites` : undefined} end={<AlertChip alert={h.alert_level} />} />
+              ))}
+              {d.hazards_unlisted.map((h) => (
+                <Pick key={`unlisted:${h.event_id}`} onClick={() => go.disaster(h.event_id)} primary={h.event_name}
+                      secondary={`Not counted: ${notListed(h.country_code)}.`} />
+              ))}
+            </List>}
       </Section>
       <Section title="On your lists">
         <List dense disablePadding>{s.list_names.split(" | ").map((l) => <Plain key={l}>{l}</Plain>)}</List>
@@ -120,6 +129,9 @@ function DisasterPanel({ d, go }: { d: HazardDetail; go: Go }) {
   const e = d.event;
   const others = Object.entries(d.owners_other_sites);
   const owners = [...new Set(d.sites.flatMap((s) => s.owners))];
+  const byCountry = new Map<string, HazardDetail["unlisted"]>();
+  for (const s of d.unlisted) byCountry.set(s.country_code ?? "", [...(byCountry.get(s.country_code ?? "") ?? []), s]);
+  const unlisted = [...byCountry].sort(([a], [b]) => countryName(a || null).localeCompare(countryName(b || null)));
   return (
     <>
       <Header type="Disaster" name={e.name}>
@@ -129,7 +141,7 @@ function DisasterPanel({ d, go }: { d: HazardDetail; go: Go }) {
         </Stack>
       </Header>
       <Typography variant="caption" color="text.secondary">GDACS alerts are automatic, not reviewed by people. Confirm before acting.</Typography>
-      {d.sites.length === 0 ? <Typography variant="body2" sx={{ mt: 2 }}>None of your sites are inside this area.</Typography> : (
+      {d.sites.length === 0 ? <Typography variant="body2" sx={{ mt: 2 }}>{d.unlisted.length ? "None of your sites is counted inside this disaster." : "None of your sites are inside this area."}</Typography> : (
         <>
           <Section title={`Your sites inside (${d.sites.length})`}>
             <List dense disablePadding>{d.sites.map((s) => (
@@ -151,6 +163,14 @@ function DisasterPanel({ d, go }: { d: HazardDetail; go: Go }) {
           </Section>
         </>
       )}
+      {unlisted.map(([code, sites]) => (
+        <Section key={code} title={`${notListed(code || null)[0].toUpperCase()}${notListed(code || null).slice(1)} (${sites.length})`}>
+          <Typography variant="caption" color="text.secondary" component="p">
+            Not counted: GDACS lists {plural(e.affected_countries.length, "country", "countries")} as affected by this event.
+          </Typography>
+          <List dense disablePadding>{sites.map((s) => <Pick key={s.os_id} onClick={() => go.site(s.os_id)} primary={s.name} secondary={countryName(s.country_code)} />)}</List>
+        </Section>
+      ))}
     </>
   );
 }

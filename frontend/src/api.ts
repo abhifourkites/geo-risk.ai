@@ -39,6 +39,8 @@ export interface View {
 export interface SiteDetail {
   site: { os_id: string; name: string; country_code: string | null; workers_est: number | null; list_names: string; warnings: string[] };
   owners: string[]; hazards: HazardSite[]; hazard_status: HazardStatus["state"];
+  /** Events whose area holds the site, but which do not list its country as affected: not counted. */
+  hazards_unlisted: HazardSite[];
   gleif: { candidates: number; confirmed: { lei: string; parents: { type: string; parent_lei: string; parent_name: string | null }[] }[] };
 }
 export interface OwnerDetail { owner: string; sites: { os_id: string; name: string; country_code: string | null }[]; countries: string[]; all_in_one_country: boolean }
@@ -49,8 +51,10 @@ export interface UploadResult {
   contributors: Contributor[]; preselect: string | null; hidden: string[];
 }
 export interface HazardDetail {
-  event: { event_id: string; event_type: string; name: string; alert_level: string; level: Level };
+  event: { event_id: string; event_type: string; name: string; alert_level: string; level: Level; affected_countries: string[] };
   sites: (HazardSite & { owners: string[] })[];
+  /** Inside the area, but in a country GDACS does not list as affected: not counted. */
+  unlisted: HazardSite[];
   owners_other_sites: Record<string, { os_id: string; name: string; country_code: string | null }[]>;
 }
 
