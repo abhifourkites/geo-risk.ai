@@ -7,6 +7,7 @@ import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
+import LinearProgress from "@mui/material/LinearProgress";
 import ListItemButton from "@mui/material/ListItemButton";
 import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
@@ -15,8 +16,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controls, Handle, Position, ReactFlow, type Node, type NodeProps, type NodeTypes } from "@xyflow/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, type Customer, type NetworkCandidate, type NetworkGraph, type NetworkVerdict } from "./api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api, type Customer, type GleifJob, type NetworkCandidate, type NetworkGraph, type NetworkVerdict } from "./api";
 import { countryName, plural } from "./format";
 import { buildGraph, CONFLICT, NODE_W, ROW, type HeaderData, type InfoData, type Tone } from "./networkGraph";
 
@@ -86,8 +87,46 @@ function Graph({ g }: { g: NetworkGraph }) {
   );
 }
 
-export const NO_CANDIDATES = "No GLEIF candidates for this company yet. The GLEIF name list was built from adidas and Nike names only; "
-  + "building it for other companies is not built yet (see README).";
+/** The company's GLEIF API search: progress while it runs, why it stopped, or the button that starts it. */
+function JobStatus({ job, empty, busy, onStart }: { job: GleifJob | null; empty: boolean; busy: boolean; onStart: () => void }) {
+  if (!job?.eligible) return null;
+  if (job.state === "queued" || job.state === "running") {
+    const done = job.names_done ?? 0, total = job.names_total ?? 0;
+    return (
+      <Box data-testid="gleif-job" sx={{ maxWidth: 720 }}>
+        <Typography variant="body2" role="status">
+          Finding GLEIF candidates in the background: {done} of {plural(total, "owner name", "owner names")} searched.
+          GLEIF allows 60 requests a minute, so the app sends at most one a second; names searched before come from the cache.
+          You can keep using the app.
+        </Typography>
+        <LinearProgress variant="determinate" value={total ? (100 * done) / total : 0} sx={{ mt: 1 }} aria-label="GLEIF search progress" />
+      </Box>
+    );
+  }
+  if (job.state === "failed") return (
+    <Alert severity="error" data-testid="gleif-job" action={<Button color="inherit" size="small" onClick={onStart} disabled={busy}>Try again</Button>}>
+      The GLEIF search stopped after {job.names_done} of {job.names_total} owner names: {job.error}
+    </Alert>
+  );
+  if (empty && job.state === "done") return (
+    <Alert severity="info" data-testid="no-candidates">GLEIF returned no candidates for this company's {plural(job.names_total ?? 0, "owner name", "owner names")}.</Alert>
+  );
+  if (empty) return (
+    <Alert severity="info" data-testid="no-candidates" action={
+      <Button variant="contained" size="small" onClick={onStart} disabled={busy || job.names === 0} sx={{ whiteSpace: "nowrap" }}>
+        Find GLEIF candidates, {job.minutes ? `about ${plural(job.minutes, "minute", "minutes")}` : "under a minute"}
+      </Button>}>
+      No GLEIF candidates for this company yet. The search asks GLEIF's API about each of its {plural(job.names, "owner name", "owner names")},
+      at most one request a second. Every candidate then waits for a person's verdict.
+    </Alert>
+  );
+  if (job.state === "done") return (
+    <Typography variant="caption" color="text.secondary" component="p" data-testid="gleif-job">
+      Candidates found by a GLEIF API search of {plural(job.names_total ?? 0, "owner name", "owner names")} ({job.requests} requests sent; the rest from the cache).
+    </Typography>
+  );
+  return null;
+}
 
 /** Company network: how Open Supply Hub sites and owners are matched to GLEIF companies (brief 3.1), and
  *  confirm or reject a match here instead of in a CSV (brief 3.3). Every verdict starts empty.
@@ -101,24 +140,57 @@ export default function Network({ company }: { company: Customer | undefined }) 
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number | null>(null);
   const [graph, setGraph] = useState<NetworkGraph | null>(null);
+  const [graphTick, setGraphTick] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [job, setJob] = useState<GleifJob | null>(null);
+  const jobMark = useRef("");
 
+  const shownCid = useRef(cid);                 // answers for a company no longer selected are dropped
+  shownCid.current = cid;
   const loadAll = useCallback(() => api.networkCandidates(cid).then((list) => {
+    if (shownCid.current !== cid) return;
     setAll(list);
     setSelected((s) => (s != null && list.some((x) => x.id === s) ? s : list[0]?.id ?? null));   // keep it if it is on this list
   }), [cid]);
   useEffect(() => {
     if (!cid) return;
-    setAll(null); setGraph(null); setError(null);
+    setAll(null); setGraph(null); setError(null); setJob(null); jobMark.current = ""; setQuery(""); setLevel("");
     loadAll().catch((e) => setError(String((e as Error).message)));
   }, [cid, loadAll]);
+
+  // the GLEIF API search: polled while it runs; the list is reloaded as it goes on and when it ends
+  const loadJob = useCallback(() => api.networkJob(cid).then((j) => { if (shownCid.current === cid) setJob(j); }), [cid]);
+  useEffect(() => { if (cid) loadJob().catch(() => {}); }, [cid, loadJob]);
+  const running = job?.state === "queued" || job?.state === "running";
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => { loadJob().catch(() => {}); }, 3000);
+    return () => clearInterval(t);
+  }, [running, loadJob]);
+  useEffect(() => {
+    if (!job) return;
+    const mark = `${job.state}:${Math.floor((job.names_done ?? 0) / 10)}`;
+    if (jobMark.current && mark !== jobMark.current) loadAll().catch(() => {});
+    jobMark.current = mark;
+  }, [job, loadAll]);
+  async function startJob() {
+    setBusy(true); setError(null);
+    try { setJob(await api.startNetworkJob(cid)); }
+    catch (e) { setError(String((e as Error).message)); }
+    finally { setBusy(false); }
+  }
   const current = all?.find((c) => c.id === selected) ?? null;
   useEffect(() => {
     if (selected == null) return;
     let live = true;
     api.networkCandidate(selected).then((g) => { if (live) setGraph(g); }).catch((e) => setError(String((e as Error).message)));
     return () => { live = false; };
-  }, [selected, current?.verdict]);
+  }, [selected, current?.verdict, graphTick]);
+  useEffect(() => {                              // a confirmed GLEIF API candidate: its parents are being fetched
+    if (!graph?.parents_fetching) return;
+    const t = setTimeout(() => setGraphTick((x) => x + 1), 2000);
+    return () => clearTimeout(t);
+  }, [graph]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -151,7 +223,10 @@ export default function Network({ company }: { company: Customer | undefined }) 
   if (!all.length) return (
     <Stack spacing={2} component="main">
       <Box>{intro}</Box>
-      <Alert severity="info" data-testid="no-candidates">{NO_CANDIDATES}</Alert>
+      {error && <Alert severity="error">{error}</Alert>}
+      {job ? (job.eligible ? <JobStatus job={job} empty busy={busy} onStart={startJob} />
+        : <Alert severity="info" data-testid="no-candidates">No GLEIF candidates for this company.</Alert>)
+        : <Typography color="text.secondary">Loading…</Typography>}
     </Stack>
   );
 
@@ -161,13 +236,14 @@ export default function Network({ company }: { company: Customer | undefined }) 
         {intro}
         <Stack direction="row" spacing={2} sx={{ mt: 1, alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
           <Typography variant="body2" color="text.secondary" role="status">
-            {all.length} candidates for {company.name} from the GLEIF file: {count((c) => c.level === "1")} likely, {count((c) => c.level === "2")} possible,
+            {all.length} candidates for {company.name} {all.every((c) => c.source === "file") ? "from the GLEIF file" : "from GLEIF's API"}: {count((c) => c.level === "1")} likely, {count((c) => c.level === "2")} possible,
             {" "}{count((c) => c.level === "3")} unlikely. Confirmed {count((c) => c.verdict === "yes")}, rejected {count((c) => c.verdict === "no")},
             {" "}not decided {count((c) => !c.verdict)}.
             {count((c) => c.conflict_with.length > 0) > 0 && ` ${count((c) => c.conflict_with.length > 0)} with conflicting verdicts – needs review.`}
           </Typography>
           <Button size="small" variant="outlined" component="a" href="/api/network/verdicts.csv" download>Download verdicts (CSV)</Button>
         </Stack>
+        {job?.eligible && job.state && <Box sx={{ mt: 1 }}><JobStatus job={job} empty={false} busy={busy} onStart={startJob} /></Box>}
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
       <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 11fr) minmax(0, 10fr)", gap: 2, alignItems: "start" }}>
@@ -204,7 +280,8 @@ export default function Network({ company }: { company: Customer | undefined }) 
                   <Typography variant="body2">↔ {c.gleif_legal_name} <Typography component="span" variant="body2" color="text.secondary">({countryName(c.gleif_country || null)})</Typography></Typography>
                   <Typography variant="caption" color="text.secondary">
                     LEI {c.lei} · {MATCH(c)} · {LEVELS[c.level]}{c.flags ? ` · ${c.flags}` : ""}
-                    {c.companies.length > 1 && <> · <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }} data-testid="applies-to">applies to {c.companies.join(" and ")}</Box></>}
+                    {c.source === "api" && " · found by a GLEIF API search"}
+                    {c.applies_to.length > 1 && <> · <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }} data-testid="applies-to">applies to {c.applies_to.join(" and ")}</Box></>}
                   </Typography>
                 </ListItemButton>
                 <Stack spacing={0.75} sx={{ justifyContent: "center", alignItems: "flex-end", px: 1.5, py: 1, flexShrink: 0 }}>
@@ -247,6 +324,8 @@ export default function Network({ company }: { company: Customer | undefined }) 
                 </Stack>
                 {!current && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Not on {company.name}'s list: it applies to {graph.candidate.companies.join(" and ")}.</Typography>}
+                {graph.parents_fetching && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }} role="status">
+                  Confirmed: fetching its parent companies from GLEIF…</Typography>}
                 <Graph g={graph} />
               </>
             ) : <Typography color="text.secondary">{selected != null ? "Loading the graph…" : "Pick a candidate to see its graph."}</Typography>}

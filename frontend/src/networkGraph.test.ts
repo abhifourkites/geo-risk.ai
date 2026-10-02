@@ -4,7 +4,8 @@ import { buildGraph } from "./networkGraph";
 
 // GET /api/network/candidates/21 (PT. Paxar Indonesia), from the committed data on 2 Oct 2026
 const paxar: NetworkCandidate = {
-  id: 21, kind: "site", our_names: "PT. Paxar Indonesia", names: ["PT. Paxar Indonesia"], companies: ["Nike"], company_ids: ["nike"], sites: 1, file_sites: 1,
+  id: 21, source: "file", kind: "site", our_names: "PT. Paxar Indonesia", names: ["PT. Paxar Indonesia"], companies: ["Nike"], company_ids: ["nike"],
+  applies_to: ["Nike"], sites: 1, file_sites: 1,
   countries: ["ID"], review_level: "1 likely - confirm", level: "1", flags: "", match_type: "exact", gleif_name_field: "LegalName",
   gleif_matched_name: "PT PAXAR INDONESIA", lei: "549300YDGYNJ5OSNWF92", gleif_legal_name: "PT PAXAR INDONESIA", gleif_country: "ID",
   entity_status: "ACTIVE", registration_status: "ISSUED", verdict: null, verdict_from: null, decided_at: null,
@@ -15,7 +16,7 @@ const graph = (verdict: NetworkCandidate["verdict"]): NetworkGraph => ({
   candidate: { ...paxar, verdict, verdict_from: verdict ? "page" : null, confirmed_sites: verdict === "yes" ? 1 : 0 },
   companies: [{ customer_id: "nike", name: "Nike" }],
   sites: [{ os_id: "ID2021182JC36SX", name: "PT. Paxar Indonesia", country_code: "ID", companies: ["nike"], owners: [], conflict: false }],
-  more_sites: 0, owners: [],
+  more_sites: 0, owners: [], parents_fetching: false,
   parents: verdict === "yes" ? [{ type: "direct", ...AVERY }, { type: "top", ...AVERY }] : [],
 });
 const candidateEdges = (g: NetworkGraph) => buildGraph(g).edges.filter((e) => e.target === "gleif");
@@ -84,7 +85,7 @@ describe("company network graph", () => {
       candidate: { ...paxar, id: 31, kind: "owner", our_names: "AVERY DENNISON", names: ["AVERY DENNISON"], companies: ["adidas", "Nike"], sites: 17,
                    lei: "2138004WKONVOSRTU954", gleif_legal_name: "AVERY DENNISON SMARTRAC LATAM LTDA" },
       companies: [{ customer_id: "adidas", name: "adidas" }, { customer_id: "nike", name: "Nike" }],
-      sites: Array.from({ length: 15 }, (_, i) => site(i)), more_sites: 2, owners: ["AVERY DENNISON"], parents: [],
+      sites: Array.from({ length: 15 }, (_, i) => site(i)), more_sites: 2, owners: ["AVERY DENNISON"], parents: [], parents_fetching: false,
     };
     const { nodes, edges } = buildGraph(g);
     expect(nodes.filter((n) => n.id.startsWith("site:"))).toHaveLength(15);

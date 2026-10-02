@@ -21,7 +21,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
-import type { Customer, View } from "./api";
+import type { Customer, GleifJob, View } from "./api";
 import AnswerCards, { type CardKind } from "./Cards";
 import { EVENT_TYPE, plural, threshold, updatedAt } from "./format";
 import { boundsOf, coordsOf, type Focus } from "./geo";
@@ -47,6 +47,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const focusKey = useRef(0);
+  const [gleifJob, setGleifJob] = useState<GleifJob | null>(null);
 
   const loadCustomers = useCallback(async (select?: string) => {
     const list = await api.customers();
@@ -62,6 +63,17 @@ export default function App() {
   }, [c, high, watch]);
   useEffect(() => { loadView(); }, [loadView]);
   useEffect(() => { setDetail(null); }, [c]);   // the map fits itself to the new company's sites
+
+  // the selected company's GLEIF API search (after an upload, or started on the Company network page), polled while it runs
+  const jobRunning = gleifJob?.customer_id === c && (gleifJob.state === "queued" || gleifJob.state === "running");
+  useEffect(() => {
+    if (!c) return;
+    let live = true;
+    const poll = () => api.networkJob(c).then((j) => { if (live) setGleifJob(j); }).catch(() => {});
+    poll();
+    const t = setInterval(poll, jobRunning || page === "network" ? 3000 : 30000);
+    return () => { live = false; clearInterval(t); };
+  }, [c, jobRunning, page, customers]);
 
   // While the first GDACS check after a backend start is still running, look again every 5 seconds.
   useEffect(() => {
@@ -175,6 +187,8 @@ export default function App() {
               {customers.map((x) => <MenuItem key={x.customer_id} value={x.customer_id}>{x.name}</MenuItem>)}
             </Select>
           </FormControl>
+          {jobRunning && <Chip label={`Finding GLEIF candidates: ${gleifJob.names_done ?? 0} of ${gleifJob.names_total} names`} variant="outlined"
+                                 onClick={() => setPage("network")} data-testid="gleif-job-chip" />}
           <Chip label={updated} variant="outlined" role="status" id="disaster-status"
                 sx={hz?.state === "unavailable" ? { borderColor: "error.main", color: "error.main" } : undefined} />
           <Box sx={{ flex: 1 }} />

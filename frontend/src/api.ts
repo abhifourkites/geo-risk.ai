@@ -61,7 +61,10 @@ export interface HazardDetail {
 /** Company network page (backend/app/network.py): one row of the GLEIF slice file. */
 export type NetworkVerdict = "yes" | "no" | null;
 export interface NetworkCandidate {
-  id: number; kind: "owner" | "site"; our_names: string; names: string[]; companies: string[]; company_ids: string[];
+  id: number; source: "file" | "api"; kind: "owner" | "site"; our_names: string; names: string[];
+  companies: string[]; company_ids: string[];
+  /** Every company a verdict on this candidate applies to (one verdict per name and LEI). */
+  applies_to: string[];
   sites: number; file_sites: number; countries: string[];
   review_level: string; level: "1" | "2" | "3"; flags: string; match_type: string; gleif_name_field: string; gleif_matched_name: string;
   lei: string; gleif_legal_name: string; gleif_country: string; entity_status: string; registration_status: string;
@@ -75,6 +78,15 @@ export interface NetworkGraph {
   companies: { customer_id: string; name: string }[];
   sites: NetworkSite[]; more_sites: number; owners: string[];
   parents: { type: string; parent_lei: string; parent_name: string | null }[];
+  /** A confirmed GLEIF API candidate whose parents are still being fetched (in the background). */
+  parents_fetching: boolean;
+}
+/** A company's GLEIF API search (backend/app/gleif_api.py): one request a second, cached answers not sent again. */
+export interface GleifJob {
+  customer_id: string; eligible: boolean; state: "queued" | "running" | "done" | "failed" | null;
+  names_total: number | null; names_done: number | null; requests: number | null; error: string | null;
+  started_at: string | null; finished_at: string | null;
+  names: number; to_search: number; minutes: number;
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -100,6 +112,8 @@ export const api = {
   },
   networkCandidates: (company: string) => call<NetworkCandidate[]>(`/api/network/candidates?company=${enc(company)}`),
   networkCandidate: (i: number) => call<NetworkGraph>(`/api/network/candidates/${i}`),
+  networkJob: (c: string) => call<GleifJob>(`/api/network/jobs/${enc(c)}`),
+  startNetworkJob: (c: string) => call<GleifJob>(`/api/network/jobs/${enc(c)}`, { method: "POST" }),
   setVerdict: (i: number, verdict: "yes" | "no" | null) => call<NetworkCandidate>(`/api/network/candidates/${i}/verdict`, verdict
     ? { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ verdict }) }
     : { method: "DELETE" }),
