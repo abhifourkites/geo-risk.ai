@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS gleif_match (
     os_id          text NOT NULL,
     lei            text NOT NULL,            -- GLEIF company ID
     review_level   text NOT NULL,            -- 1 likely, 2 possible, 3 unlikely
-    person_verdict text,                     -- yes, no or empty
+    person_verdict text,                     -- yes, no, conflict (yes and no from two candidates) or empty
     PRIMARY KEY (customer_id, os_id, lei),
     FOREIGN KEY (customer_id, os_id) REFERENCES site ON DELETE CASCADE
 );

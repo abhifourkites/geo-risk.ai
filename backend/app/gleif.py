@@ -7,7 +7,9 @@
 - A parent is shown only when a person has said yes: on the Company network page (table gleif_verdict),
   or in the slice file's `person_verdict` column. A verdict given on the page is used over the file's.
 - One site can be linked to the same LEI by more than one candidate (for example its owner name and its site
-  name). The link is confirmed when any of them is yes; otherwise rejected when any is no.
+  name). The verdicts given decide the link: yes (and no other) confirms it, no (and no other) rejects it,
+  yes from one and no from another is a conflict: not confirmed, no parent shown, and the Company network
+  page marks it for review. Candidates without a verdict do not count.
 """
 import csv
 import os
@@ -93,7 +95,7 @@ def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
                 best[key] = r["review_level"]
             if verdict:
                 said[key].add(verdict)
-    combined = {k: "yes" if "yes" in v else "no" for k, v in said.items()}
+    combined = {k: "conflict" if len(v) > 1 else next(iter(v)) for k, v in said.items()}   # {yes, no}: a conflict
     keys = list(best)
     cur.execute("INSERT INTO gleif_match (customer_id, os_id, lei, review_level, person_verdict) "
                 "SELECT %s, * FROM unnest(%s::text[], %s::text[], %s::text[], %s::text[])",      # one statement

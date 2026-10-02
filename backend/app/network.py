@@ -2,7 +2,9 @@
 the verdicts people give, and the graph for one candidate.
 
 A verdict is stored in gleif_verdict and applied at once (every company's candidates are re-linked), and
-again on every start (gleif.refresh_all). Every verdict starts empty.
+again on every start (gleif.refresh_all). Every verdict starts empty. A site-LEI link with yes from one
+candidate and no from another is a conflict (gleif_match.person_verdict = 'conflict'): it is not confirmed,
+and both candidates are marked "conflicting verdicts - needs review".
 """
 import csv
 import io
@@ -62,9 +64,36 @@ def _saved(cur: psycopg.Cursor) -> dict[tuple[str, str, str], dict]:
     return {(r["kind"], r["our_names"], r["lei"]): r for r in cur.fetchall()}
 
 
-def _item(i: int, r: dict, sites: _Sites, saved: dict) -> dict:
+def _linked(cur: psycopg.Cursor) -> dict[tuple[str, str, str], str]:
+    """(customer_id, os_id, lei) -> the link's verdict as stored in gleif_match: yes, no or conflict."""
+    cur.execute("SELECT customer_id, os_id, lei, person_verdict FROM gleif_match WHERE person_verdict IS NOT NULL")
+    return {(r["customer_id"], r["os_id"], r["lei"]): r["person_verdict"] for r in cur.fetchall()}
+
+
+def _conflicts(rows: list[dict], sites: _Sites, saved: dict, linked: dict) -> dict[int, list[int]]:
+    """Candidate id -> the other candidates that give the opposite verdict on one of its site-LEI links."""
+    verdicts = {k: v["verdict"] for k, v in saved.items()}
+    given: dict[tuple[str, str, str], list[tuple[int, str]]] = defaultdict(list)
+    for i, r in enumerate(rows, 1):
+        v = gleif.verdict_of(r, verdicts)
+        if v:
+            for c, s, _ in sites.links(r):
+                if linked.get((c, s, r["LEI"])) == "conflict":
+                    given[(c, s, r["LEI"])].append((i, v))
+    out: dict[int, set[int]] = defaultdict(set)
+    for on_link in given.values():
+        for i, v in on_link:
+            out[i] |= {j for j, w in on_link if w != v}
+    return {i: sorted(js) for i, js in out.items()}
+
+
+def _item(i: int, r: dict, sites: _Sites, saved: dict, linked: dict, conflicts: dict) -> dict:
     links = sites.links(r)
     os_ids = sorted({s for _, s, _ in links})
+
+    def state(v: str) -> set[str]:      # this candidate's sites whose link to its LEI is stored as v
+        return {s for c, s, _ in links if linked.get((c, s, r["LEI"])) == v}
+
     s = saved.get((r["kind"], r["our_names"], r["LEI"]))
     file_verdict = (r.get(gleif.VERDICT_COLUMN) or "").strip().lower()
     return {
@@ -79,6 +108,9 @@ def _item(i: int, r: dict, sites: _Sites, saved: dict) -> dict:
         "verdict": gleif.verdict_of(r, {k: v["verdict"] for k, v in saved.items()}),
         "verdict_from": "page" if s else ("file" if file_verdict in ("yes", "no") else None),
         "decided_at": s["decided_at"].isoformat() if s else None,
+        "confirmed_sites": len(state("yes")),           # sites whose link to this LEI is confirmed
+        "conflict_sites": len(state("conflict")),       # ... has yes and no from two candidates
+        "conflict_with": conflicts.get(i, []),          # the candidates (ids) that give the opposite verdict
     }
 
 
@@ -86,28 +118,31 @@ def candidates(conn: psycopg.Connection) -> list[dict]:
     """Every row of the slice file (440), in the file's order; `id` is the row number."""
     rows = gleif._read(gleif.SLICE)
     with conn.cursor() as cur:
-        sites, saved = _Sites(cur), _saved(cur)
-    return [_item(i, r, sites, saved) for i, r in enumerate(rows, 1)]
+        sites, saved, linked = _Sites(cur), _saved(cur), _linked(cur)
+    conflicts = _conflicts(rows, sites, saved, linked)
+    return [_item(i, r, sites, saved, linked, conflicts) for i, r in enumerate(rows, 1)]
 
 
 def candidate(conn: psycopg.Connection, i: int) -> dict | None:
-    """One candidate and its graph: companies -> sites (-> owner) -> GLEIF company; its parents only if confirmed."""
+    """One candidate and its graph: companies -> sites (-> owner) -> GLEIF company; its parents only if confirmed
+    (yes, and at least one of its site links confirmed: not every link in conflict)."""
     rows = gleif._read(gleif.SLICE)
     if not 1 <= i <= len(rows):
         return None
     r = rows[i - 1]
     with conn.cursor() as cur:
-        sites, saved = _Sites(cur), _saved(cur)
-        item = _item(i, r, sites, saved)
+        sites, saved, linked = _Sites(cur), _saved(cur), _linked(cur)
+        item = _item(i, r, sites, saved, linked, _conflicts(rows, sites, saved, linked))
         parents = []
-        if item["verdict"] == "yes":
+        if item["verdict"] == "yes" and item["confirmed_sites"]:
             cur.execute("SELECT type, parent_lei, parent_name FROM gleif_parent WHERE lei = %s ORDER BY type", (r["LEI"],))
             parents = cur.fetchall()
     by_site: dict[str, dict] = {}
     for c, os_id, owner in sites.links(r):
         s = sites.site[(c, os_id)]
         node = by_site.setdefault(os_id, {"os_id": os_id, "name": s["name"], "country_code": s["country_code"],
-                                          "companies": [], "owners": []})
+                                          "companies": [], "owners": [], "conflict": False})
+        node["conflict"] |= linked.get((c, os_id, r["LEI"])) == "conflict"
         if c not in node["companies"]:
             node["companies"].append(c)
         if owner and owner not in node["owners"]:

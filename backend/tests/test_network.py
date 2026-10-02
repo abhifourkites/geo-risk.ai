@@ -157,16 +157,66 @@ def test_the_two_rows_of_one_question_share_a_verdict():
     assert [c["verdict"] for c in candidates() if c["lei"] == "4469000001E9305R6057"] == ["yes", "yes"]
 
 
-def test_a_site_link_reached_by_two_candidates_is_confirmed_by_either(conn):
-    """Site VN2019318A8P7HW (adidas and Nike) is linked to LEI 254900CDLU5OS06M6K24 by two owner names."""
-    lei = "254900CDLU5OS06M6K24"
-    a, b = find(lei, "owner", "FAR EASTERN"), find(lei, "owner", "FAR EASTERN NEW CENTURY")
+# Site VN2019318A8P7HW (adidas and Nike) is linked to LEI 25490051NUU24RRHW523, which has a GLEIF parent,
+# by two candidates: its owner names FAR EASTERN and FAR EASTERN NEW CENTURY.
+FAR_EASTERN_LEI, SHARED_SITE = "25490051NUU24RRHW523", "VN2019318A8P7HW"
+
+
+def _two_candidates() -> tuple[dict, dict]:
+    return find(FAR_EASTERN_LEI, "owner", "FAR EASTERN"), find(FAR_EASTERN_LEI, "owner", "FAR EASTERN NEW CENTURY")
+
+
+def _link(conn) -> list[tuple[str, str | None]]:
+    with conn.cursor() as cur:
+        cur.execute("SELECT customer_id, person_verdict FROM gleif_match WHERE os_id = %s AND lei = %s ORDER BY 1",
+                    (SHARED_SITE, FAR_EASTERN_LEI))
+        return [(r["customer_id"], r["person_verdict"]) for r in cur.fetchall()]
+
+
+def _panel_leis(customer: str, os_id: str) -> set[str]:
+    return {m["lei"] for m in site_panel_parents(customer, os_id)}
+
+
+def test_a_verdict_from_one_of_two_candidates_decides_the_link(conn):
+    a, b = _two_candidates()
+    verdict(a["id"], "yes")                                   # yes, and nothing from the other: confirmed
+    assert _link(conn) == [("adidas", "yes"), ("nike", "yes")]
+    assert FAR_EASTERN_LEI in _panel_leis("adidas", SHARED_SITE)
+    verdict(a["id"], None)
+    verdict(b["id"], "no")                                    # no, and nothing from the other: rejected
+    assert _link(conn) == [("adidas", "no"), ("nike", "no")]
+    assert FAR_EASTERN_LEI not in _panel_leis("adidas", SHARED_SITE)
+    assert {c["id"]: c["conflict_with"] for c in candidates() if c["id"] in (a["id"], b["id"])} == {a["id"]: [], b["id"]: []}
+
+
+def test_yes_and_no_on_one_link_is_a_conflict(conn):
+    a, b = _two_candidates()
+    assert (a["sites"], b["sites"]) == (9, 4)                 # FAR EASTERN NEW CENTURY's 4 sites are all FAR EASTERN's too
+    verdict(a["id"], "yes")
+    verdict(b["id"], "no")
+    assert _link(conn) == [("adidas", "conflict"), ("nike", "conflict")]
+    # not confirmed: no parent for this LEI in the site panel of a shared site; still shown on FAR EASTERN's other sites
+    assert FAR_EASTERN_LEI not in _panel_leis("adidas", SHARED_SITE)
+    assert FAR_EASTERN_LEI in _panel_leis("adidas", "CN2019093WZSXE8")
+    # the list marks both candidates, each naming the other
+    after = {c["id"]: c for c in candidates()}
+    assert [(after[x]["conflict_with"], after[x]["conflict_sites"], after[x]["confirmed_sites"]) for x in (a["id"], b["id"])] == \
+        [([b["id"]], 4, 5), ([a["id"]], 4, 0)]
+    assert sum(bool(c["conflict_with"]) for c in after.values()) == 2
+    g = client.get(f"/api/network/candidates/{a['id']}").json()
+    assert g["parents"] and sorted(s["os_id"] for s in g["sites"] if s["conflict"]) == \
+        ["CN2019083CS0EQJ", "TW2019085FK2HTK", "VN2019318A8P7HW", "VN2023063ZEX4WY"]
+
+    # the other way round, every link of FAR EASTERN NEW CENTURY is in conflict: its yes confirms nothing
     verdict(a["id"], "no")
     verdict(b["id"], "yes")
-    with conn.cursor() as cur:
-        cur.execute("SELECT customer_id, person_verdict FROM gleif_match WHERE os_id = 'VN2019318A8P7HW' AND lei = %s "
-                    "ORDER BY 1", (lei,))
-        assert [(r["customer_id"], r["person_verdict"]) for r in cur.fetchall()] == [("adidas", "yes"), ("nike", "yes")]
+    g = client.get(f"/api/network/candidates/{b['id']}").json()
+    assert (g["candidate"]["verdict"], g["candidate"]["confirmed_sites"], g["parents"]) == ("yes", 0, [])
+    assert FAR_EASTERN_LEI not in _panel_leis("nike", SHARED_SITE)
+
+    verdict(a["id"], None)                                    # undo one side: no conflict, the other verdict decides
+    assert _link(conn) == [("adidas", "yes"), ("nike", "yes")]
+    assert [c["conflict_with"] for c in candidates() if c["id"] in (a["id"], b["id"])] == [[], []]
 
 
 def test_the_graph_shows_at_most_15_sites():
