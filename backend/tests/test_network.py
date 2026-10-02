@@ -70,13 +70,17 @@ def test_every_candidate_is_listed_with_only_the_saved_verdicts():
 
 
 def test_the_list_follows_the_selected_company(conn):
-    """The page shows the candidates of the company chosen in the top selector (their `company_ids` include it)."""
-    ids = {c: {x["id"] for x in client.get("/api/network/candidates", params={"company": c}).json()}
-           for c in ("adidas", "nike", "apple", "samsung")}
+    """The page shows the candidates of the company chosen in the top selector (their `company_ids` include it).
+    A row on both lists has one verdict, but each company's row names only that company."""
+    lists = {c: client.get("/api/network/candidates", params={"company": c}).json() for c in ("adidas", "nike", "apple", "samsung")}
+    ids = {c: {x["id"] for x in v} for c, v in lists.items()}
     assert {c: len(v) for c, v in ids.items()} == {"adidas": 221, "nike": 345, "apple": 0, "samsung": 0}
     both = ids["adidas"] & ids["nike"]
     assert len(both) == 126 and len(ids["adidas"] | ids["nike"]) == 440
-    assert {tuple(c["companies"]) for c in candidates() if c["id"] in both} == {("adidas", "Nike")}
+    assert {tuple(c["companies"]) for c in candidates() if c["id"] in both} == {("adidas", "Nike")}     # every company's
+    assert {(tuple(x["companies"]), x["shared"]) for x in lists["adidas"] if x["id"] in both} == {(("adidas",), True)}
+    assert {(tuple(x["companies"]), x["shared"]) for x in lists["nike"] if x["id"] in both} == {(("Nike",), True)}
+    assert not any(x["shared"] for c in ("adidas", "nike") for x in lists[c] if x["id"] not in both)
     # an uploaded company has none: the slice file has adidas and Nike names only
     raw = (loader.DEMO_DIR / "samsung.csv").read_bytes()
     up = client.post("/api/uploads", files={"file": ("samsung.csv", raw, "text/csv")}).json()
@@ -244,6 +248,10 @@ def test_yes_and_no_on_one_link_is_a_conflict(conn):
     assert sum(bool(c["conflict_with"]) for c in after.values()) == 2
     assert (after[a["id"]]["conflict_with_names"], after[b["id"]]["conflict_with_names"]) == \
         (["FAR EASTERN NEW CENTURY (owner)"], ["FAR EASTERN (owner)"])
+    # each company's page counts the conflict on its own sites only (FAR EASTERN NEW CENTURY: adidas 3, Nike 4)
+    mine = {co: {c["id"]: c for c in client.get("/api/network/candidates", params={"company": co}).json()} for co in ("adidas", "nike")}
+    assert [(mine[co][a["id"]]["conflict_with"], mine[co][a["id"]]["conflict_sites"], mine[co][a["id"]]["confirmed_sites"])
+            for co in ("adidas", "nike")] == [([b["id"]], 3, 1), ([b["id"]], 4, 5)]
     g = client.get(f"/api/network/candidates/{a['id']}").json()
     assert g["parents"] and sorted(s["os_id"] for s in g["sites"] if s["conflict"]) == \
         ["CN2019083CS0EQJ", "TW2019085FK2HTK", "VN2019318A8P7HW", "VN2023063ZEX4WY"]
@@ -260,11 +268,41 @@ def test_yes_and_no_on_one_link_is_a_conflict(conn):
     assert [c["conflict_with"] for c in candidates() if c["id"] in (a["id"], b["id"])] == [[], []]
 
 
+def test_a_shared_row_shows_each_company_only_its_own_sites(conn):
+    """FAR EASTERN (owner, LEI 25490051NUU24RRHW523) is on adidas's and Nike's lists, with 9 sites in all: each
+    company's row and graph have only its own sites and its own company node; the verdict is one for both."""
+    i = find(FAR_EASTERN_LEI, "owner", "FAR EASTERN")["id"]
+    with conn.cursor() as cur:
+        cur.execute("SELECT customer_id, os_id, country_code FROM site_owner JOIN site USING (customer_id, os_id) "
+                    "WHERE owner_name = 'FAR EASTERN'")
+        owned = cur.fetchall()
+    seen, graphs = {}, {}
+    for co in ("adidas", "nike"):
+        [seen[co]] = [x for x in client.get("/api/network/candidates", params={"company": co}).json() if x["id"] == i]
+        graphs[co] = client.get(f"/api/network/candidates/{i}", params={"company": co}).json()
+    assert {co: seen[co]["sites"] for co in seen} == {"adidas": 4, "nike": 9}
+    name = {"adidas": "adidas", "nike": "Nike"}
+    for co, c in seen.items():
+        mine = [r for r in owned if r["customer_id"] == co]
+        assert (c["companies"], c["company_ids"], c["shared"]) == ([name[co]], [co], True)
+        assert c["countries"] == sorted({r["country_code"] for r in mine})
+        g = graphs[co]
+        assert g["companies"] == [{"customer_id": co, "name": name[co]}]
+        assert sorted(s["os_id"] for s in g["sites"]) == sorted(r["os_id"] for r in mine)
+        assert {tuple(s["companies"]) for s in g["sites"]} == {(co,)}
+    assert graphs["adidas"]["more_sites"] == graphs["nike"]["more_sites"] == 0
+    out = client.put(f"/api/network/candidates/{i}/verdict", params={"company": "adidas"}, json={"verdict": "yes"}).json()
+    assert (out["verdict"], out["sites"], out["companies"]) == ("yes", 4, ["adidas"])
+    assert [x["verdict"] for x in client.get("/api/network/candidates", params={"company": "nike"}).json() if x["id"] == i] == ["yes"]
+
+
 def test_the_graph_shows_at_most_15_sites():
-    big = max(candidates(), key=lambda c: c["sites"])
-    assert big["sites"] > 15
-    g = client.get(f"/api/network/candidates/{big['id']}").json()
-    assert (len(g["sites"]), g["more_sites"]) == (15, big["sites"] - 15)
+    """On a company's page: its largest candidate (today MAS on Nike's list, 16 Nike sites) shows 15 and "+N more"."""
+    big, co = max(((c, co) for co in ("adidas", "nike")
+                   for c in client.get("/api/network/candidates", params={"company": co}).json()), key=lambda x: x[0]["sites"])
+    assert (big["our_names"], co, big["sites"]) == ("MAS", "nike", 16)
+    g = client.get(f"/api/network/candidates/{big['id']}", params={"company": co}).json()
+    assert (len(g["sites"]), g["more_sites"]) == (15, 1)
 
 
 def test_download_verdicts_csv():
@@ -277,6 +315,10 @@ def test_download_verdicts_csv():
     assert list(rows[0]) == network.VERDICT_FIELDS
     assert [(row["our_names"], row[gleif.VERDICT_COLUMN], row["given_on"]) for row in rows] == \
         [(n, "yes", "page" if n == "PT. Paxar Indonesia" else "file") for n in SAVED.values()]
+    # from a company's page: only that company's candidates
+    mine = {co: [row["our_names"] for row in csv.DictReader(io.StringIO(
+        client.get("/api/network/verdicts.csv", params={"company": co}).text))] for co in ("adidas", "nike")}
+    assert mine == {"adidas": [SAVED[i] for i in (22, 23, 59, 60)], "nike": [SAVED[21]]}
 
 
 def test_verdicts_do_not_change_the_numbers(conn):
@@ -292,3 +334,9 @@ def test_bad_requests():
     assert client.get("/api/network/candidates/0").status_code == 404
     assert client.get("/api/network/candidates/441").status_code == 404
     assert client.put("/api/network/candidates/1/verdict", json={"verdict": "maybe"}).status_code == 400
+    # PT. Paxar Indonesia is on Nike's list only: not shown, and not decided, from adidas's page
+    paxar = find(PAXAR)["id"]
+    assert client.get(f"/api/network/candidates/{paxar}", params={"company": "adidas"}).status_code == 404
+    assert client.put(f"/api/network/candidates/{paxar}/verdict", params={"company": "adidas"}, json={"verdict": "no"}).status_code == 404
+    assert client.delete(f"/api/network/candidates/{paxar}/verdict", params={"company": "adidas"}).status_code == 404
+    assert (find(PAXAR)["verdict"], find(PAXAR)["verdict_from"]) == ("yes", "file")

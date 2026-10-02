@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app import gleif, gleif_api, hazards, measures, network, rating
+from app import gleif, gleif_api, hazards, loader, measures, network, rating
 from app.main import app
 
 client = TestClient(app)
@@ -339,7 +339,7 @@ def test_a_shared_candidate_has_one_verdict_and_each_companys_own_rating(conn, f
     seen = {c: [x for x in client.get("/api/network/candidates", params={"company": c}).json() if x["our_names"] == "INTEL"]
             for c in ("apple", "samsung")}
     [a], [s] = seen["apple"], seen["samsung"]
-    assert a["id"] == s["id"] and a["applies_to"] == s["applies_to"] == ["Apple", "Samsung"]
+    assert a["id"] == s["id"] and (a["companies"], s["companies"], a["shared"], s["shared"]) == (["Apple"], ["Samsung"], True, True)
     assert (a["level"], s["level"]) == tuple("1" if has_ie[c] else "2" for c in ("apple", "samsung"))
     client.put(f"/api/network/candidates/{a['id']}/verdict", json={"verdict": "yes"})
     assert [x["verdict"] for x in client.get("/api/network/candidates", params={"company": "samsung"}).json()
@@ -360,6 +360,62 @@ def test_saved_verdicts_of_api_candidates_apply_after_a_search(conn, fake):
                     "WHERE customer_id = 'apple' AND lei = %s", (henkel,))
         assert cur.fetchone() == {"n": 4, "yes": 4}                            # HENKEL's 4 Apple sites
     assert f"/api/v1/lei-records/{henkel}/ultimate-parent" in fake.parent_requests()   # its parents are fetched, as after a confirm
+
+
+HENKEL, AMAZON_2026 = "549300VZCL1HTH4O4Y49", "Amazon.com, Inc. (Amazon Facility List 2026)"
+# from the files: the owner HENKEL AG AND KGAA has 4 of Apple's sites (data/demo/apple-osh.csv) and 2 of Amazon's
+# (data/demo/amazon.csv, its 2026 list)
+HENKEL_SITES = {"apple": ["CN202229760YWY7", "DE20222979W1ZAG", "US20222979BFJ7W", "US2023347AKDGD4"],
+                "amazon-com-inc": ["US2022297DHF3XD", "US2022297J5WS0C"]}
+
+
+@pytest.fixture
+def henkel(conn, fake):
+    """Amazon loaded as the upload page pre-fills it (its 2026 list), and Apple's and Amazon's searches run with a
+    GLEIF that knows only HENKEL AG AND KGAA: one candidate for both (the same owner name and LEI)."""
+    raw = (loader.DEMO_DIR / "amazon.csv").read_bytes()
+    loader.load_customer(conn, "amazon-com-inc", "Amazon.com, Inc.", raw, [AMAZON_2026], [AMAZON_2026])
+    conn.commit()
+    fake.names = {"HENKEL AG AND KGAA": [record(HENKEL, "Henkel AG & Co. KGaA", "DE")]}
+    run(conn, "apple")
+    run(conn, "amazon-com-inc")
+    yield
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM customer WHERE customer_id = 'amazon-com-inc'")
+    conn.commit()
+
+
+def _henkel(company: str) -> tuple[dict, dict]:
+    [c] = [x for x in client.get("/api/network/candidates", params={"company": company}).json() if x["lei"] == HENKEL]
+    return c, client.get(f"/api/network/candidates/{c['id']}", params={"company": company}).json()
+
+
+def test_apples_henkel_row_and_graph_have_only_apples_sites(henkel):
+    """Apple's page: HENKEL AG AND KGAA has Apple's 4 sites, and the graph has only Apple under "Your company"
+    (it drew Amazon.com, Inc. too, and the row said 6 sites); Amazon is not named in the row or the graph."""
+    c, g = _henkel("apple")
+    assert (c["our_names"], c["sites"], c["countries"], c["companies"], c["company_ids"], c["shared"]) == \
+        ("HENKEL AG AND KGAA", 4, ["CN", "DE", "US"], ["Apple"], ["apple"], True)
+    assert g["companies"] == [{"customer_id": "apple", "name": "Apple"}]
+    assert sorted(s["os_id"] for s in g["sites"]) == HENKEL_SITES["apple"] and {tuple(s["companies"]) for s in g["sites"]} == {("apple",)}
+    assert "amazon" not in json.dumps([c, g]).lower()
+    lines = client.get("/api/network/verdicts.csv", params={"company": "apple"}).text.splitlines()    # its download
+    assert len(lines) == 2 and lines[1].startswith("owner,HENKEL AG AND KGAA,549300VZCL1HTH4O4Y49,")
+
+
+def test_amazons_henkel_row_has_only_amazons_sites_and_one_verdict_with_apple(henkel):
+    a, _ = _henkel("apple")
+    z, g = _henkel("amazon-com-inc")
+    assert (z["sites"], z["countries"], z["companies"], z["company_ids"], z["shared"]) == \
+        (2, ["US"], ["Amazon.com, Inc."], ["amazon-com-inc"], True)
+    assert g["companies"] == [{"customer_id": "amazon-com-inc", "name": "Amazon.com, Inc."}]
+    assert sorted(s["os_id"] for s in g["sites"]) == HENKEL_SITES["amazon-com-inc"]
+    assert "apple" not in json.dumps([z, g]).lower()
+    # one verdict for the GLEIF company: saved for both today; rejected on Apple's page, it is rejected on Amazon's
+    assert (a["id"], a["verdict"]) == (z["id"], z["verdict"]) and z["verdict"] == "yes"
+    r = client.put(f"/api/network/candidates/{a['id']}/verdict", params={"company": "apple"}, json={"verdict": "no"})
+    assert r.status_code == 200 and (r.json()["verdict"], r.json()["sites"], r.json()["companies"]) == ("no", 4, ["Apple"])
+    assert (_henkel("amazon-com-inc")[0]["verdict"], _henkel("amazon-com-inc")[0]["verdict_from"]) == ("no", "page")
 
 
 def test_adidas_and_nike_keep_their_file_candidates(conn, fake):

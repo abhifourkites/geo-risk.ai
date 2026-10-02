@@ -60,14 +60,14 @@ export interface HazardDetail {
   owners_other_sites: Record<string, { os_id: string; name: string; country_code: string | null }[]>;
 }
 
-/** Company network page (backend/app/network.py): one row of the GLEIF slice file. */
+/** Company network page (backend/app/network.py): one GLEIF candidate, as the selected company sees it (its own sites only). */
 export type NetworkVerdict = "yes" | "no" | null;
 export interface NetworkCandidate {
   id: number; source: "file" | "api"; kind: "owner" | "site"; our_names: string; names: string[];
   companies: string[]; company_ids: string[];
-  /** Every company a verdict on this candidate applies to (one verdict per name and LEI). */
-  applies_to: string[];
-  sites: number; file_sites: number; countries: string[];
+  /** One verdict per name and LEI: true when it also applies to other companies' lists (they are not named). */
+  shared: boolean;
+  sites: number; countries: string[];
   review_level: string; level: "1" | "2" | "3"; flags: string; match_type: string; gleif_name_field: string; gleif_matched_name: string;
   /** The slice file's own level (adidas and Nike), kept for reference; the app uses the written rules' level. */
   file_review_level: string | null;
@@ -115,10 +115,10 @@ export const api = {
     return call<UploadResult>("/api/uploads", { method: "POST", body: f });
   },
   networkCandidates: (company: string) => call<NetworkCandidate[]>(`/api/network/candidates?company=${enc(company)}`),
-  networkCandidate: (i: number) => call<NetworkGraph>(`/api/network/candidates/${i}`),
+  networkCandidate: (i: number, company: string) => call<NetworkGraph>(`/api/network/candidates/${i}?company=${enc(company)}`),
   networkJob: (c: string) => call<GleifJob>(`/api/network/jobs/${enc(c)}`),
   startNetworkJob: (c: string) => call<GleifJob>(`/api/network/jobs/${enc(c)}`, { method: "POST" }),
-  setVerdict: (i: number, verdict: "yes" | "no" | null) => call<NetworkCandidate>(`/api/network/candidates/${i}/verdict`, verdict
+  setVerdict: (i: number, verdict: "yes" | "no" | null, company: string) => call<NetworkCandidate>(`/api/network/candidates/${i}/verdict?company=${enc(company)}`, verdict
     ? { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ verdict }) }
     : { method: "DELETE" }),
   confirm: (id: string, body: { name: string; lists: string[]; current_lists: string[] }) =>

@@ -133,7 +133,8 @@ function JobStatus({ job, empty, busy, onStart }: { job: GleifJob | null; empty:
  *  Shows the candidates of the company chosen in the top selector. */
 export default function Network({ company }: { company: Customer | undefined }) {
   const cid = company?.customer_id ?? "";
-  const [all, setAll] = useState<NetworkCandidate[] | null>(null);
+  const [loaded, setLoaded] = useState<{ cid: string; list: NetworkCandidate[] } | null>(null);
+  const all = loaded?.cid === cid ? loaded.list : null;   // only the selected company's list, never the previous one's
   const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState("");
   const [query, setQuery] = useState("");
@@ -149,12 +150,12 @@ export default function Network({ company }: { company: Customer | undefined }) 
   shownCid.current = cid;
   const loadAll = useCallback(() => api.networkCandidates(cid).then((list) => {
     if (shownCid.current !== cid) return;
-    setAll(list);
+    setLoaded({ cid, list });
     setSelected((s) => (s != null && list.some((x) => x.id === s) ? s : list[0]?.id ?? null));   // keep it if it is on this list
   }), [cid]);
   useEffect(() => {
     if (!cid) return;
-    setAll(null); setGraph(null); setError(null); setJob(null); jobMark.current = ""; setQuery(""); setLevel("");
+    setLoaded(null); setGraph(null); setError(null); setJob(null); jobMark.current = ""; setQuery(""); setLevel("");
     loadAll().catch((e) => setError(String((e as Error).message)));
   }, [cid, loadAll]);
 
@@ -180,12 +181,13 @@ export default function Network({ company }: { company: Customer | undefined }) 
     finally { setBusy(false); }
   }
   const current = all?.find((c) => c.id === selected) ?? null;
+  const onList = current != null;               // a graph only for a candidate on this company's list
   useEffect(() => {
-    if (selected == null) return;
+    if (selected == null || !onList) return;
     let live = true;
-    api.networkCandidate(selected).then((g) => { if (live) setGraph(g); }).catch((e) => setError(String((e as Error).message)));
+    api.networkCandidate(selected, cid).then((g) => { if (live) setGraph(g); }).catch((e) => setError(String((e as Error).message)));
     return () => { live = false; };
-  }, [selected, current?.verdict, graphTick]);
+  }, [selected, cid, onList, current?.verdict, graphTick]);
   useEffect(() => {                              // a confirmed GLEIF API candidate: its parents are being fetched
     if (!graph?.parents_fetching) return;
     const t = setTimeout(() => setGraphTick((x) => x + 1), 2000);
@@ -203,7 +205,7 @@ export default function Network({ company }: { company: Customer | undefined }) 
 
   async function decide(c: NetworkCandidate, v: "yes" | "no" | null) {
     setBusy(true); setError(null);
-    try { await api.setVerdict(c.id, v); setSelected(c.id); await loadAll(); }
+    try { await api.setVerdict(c.id, v, cid); setSelected(c.id); await loadAll(); }
     catch (e) { setError(String((e as Error).message)); }
     finally { setBusy(false); }
   }
@@ -241,7 +243,7 @@ export default function Network({ company }: { company: Customer | undefined }) 
             {" "}not decided {count((c) => !c.verdict)}.
             {count((c) => c.conflict_with.length > 0) > 0 && ` ${count((c) => c.conflict_with.length > 0)} with conflicting verdicts – needs review.`}
           </Typography>
-          <Button size="small" variant="outlined" component="a" href="/api/network/verdicts.csv" download>Download verdicts (CSV)</Button>
+          <Button size="small" variant="outlined" component="a" href={`/api/network/verdicts.csv?company=${encodeURIComponent(cid)}`} download>Download verdicts (CSV)</Button>
         </Stack>
         {job?.eligible && job.state && <Box sx={{ mt: 1 }}><JobStatus job={job} empty={false} busy={busy} onStart={startJob} /></Box>}
       </Box>
@@ -283,7 +285,7 @@ export default function Network({ company }: { company: Customer | undefined }) 
                     {c.file_review_level && c.file_review_level[0] !== c.level && ` (file: ${LEVELS[c.file_review_level[0]]})`}
                     {c.flags ? ` · ${c.flags}` : ""}
                     {c.source === "api" && " · found by a GLEIF API search"}
-                    {c.applies_to.length > 1 && <> · <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }} data-testid="applies-to">applies to {c.applies_to.join(" and ")}</Box></>}
+                    {c.shared && <> · <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }} data-testid="shared">One verdict for this GLEIF company; it also applies to other lists with the same {c.kind} name</Box></>}
                   </Typography>
                 </ListItemButton>
                 <Stack spacing={0.75} sx={{ justifyContent: "center", alignItems: "flex-end", px: 1.5, py: 1, flexShrink: 0 }}>
@@ -304,7 +306,7 @@ export default function Network({ company }: { company: Customer | undefined }) 
                     <Typography variant="body2" color="text.secondary">
                       On {plural(c.conflict_sites, "site", "sites")}, the same LEI is {c.verdict === "yes" ? "rejected" : "confirmed"} by:
                     </Typography>
-                    {c.conflict_with.map((j, k) => (     // the other candidate can be on another company's list; its graph still opens
+                    {c.conflict_with.map((j, k) => (     // on this company's list too: the conflict is on one of its sites
                       <Button key={j} size="small" sx={{ py: 0, minWidth: 0 }} onClick={() => setSelected(j)}>{c.conflict_with_names[k]}</Button>
                     ))}
                     <Typography variant="body2" color="text.secondary">Those sites show no parent until one verdict is changed.</Typography>
@@ -324,8 +326,6 @@ export default function Network({ company }: { company: Customer | undefined }) 
                   <Typography variant="subtitle2" sx={{ flex: 1 }}>{graph.candidate.names.join(" / ")} ↔ {graph.candidate.gleif_legal_name}</Typography>
                   <VerdictChip v={graph.candidate.verdict} />
                 </Stack>
-                {!current && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Not on {company.name}'s list: it applies to {graph.candidate.companies.join(" and ")}.</Typography>}
                 {graph.parents_fetching && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }} role="status">
                   Confirmed: fetching its parent companies from GLEIF…</Typography>}
                 <Graph g={graph} />

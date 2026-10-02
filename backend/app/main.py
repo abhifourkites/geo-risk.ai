@@ -144,18 +144,23 @@ def confirm(upload_id: str, body: Confirm) -> dict:
 
 @app.get("/api/network/candidates")
 def network_candidates(company: str | None = Query(None)) -> list[dict]:
-    """Company network page: the GLEIF candidates of the slice file, with their sites and verdicts; with
-    `company` (a customer_id), only that company's (none for a company the file has no names for)."""
+    """Company network page: the GLEIF candidates, with their sites and verdicts; with `company` (a
+    customer_id), only that company's candidates, each with that company's sites only."""
     with db.connect() as conn:
         return network.candidates(conn, company)
 
 
+def _unknown(company: str | None) -> HTTPException:
+    return HTTPException(404, "Not a candidate of this company." if company else "Unknown candidate.")
+
+
 @app.get("/api/network/candidates/{i}")
-def network_candidate(i: int) -> dict:
+def network_candidate(i: int, company: str | None = Query(None)) -> dict:
+    """One candidate's graph; with `company`, that company and its own sites only."""
     with db.connect() as conn:
-        out = network.candidate(conn, i)
+        out = network.candidate(conn, i, company)
     if out is None:
-        raise HTTPException(404, "Unknown candidate.")
+        raise _unknown(company)
     return out
 
 
@@ -164,22 +169,22 @@ class Verdict(BaseModel):
 
 
 @app.put("/api/network/candidates/{i}/verdict")
-def network_verdict(i: int, body: Verdict) -> dict:
+def network_verdict(i: int, body: Verdict, company: str | None = Query(None)) -> dict:
     if body.verdict not in ("yes", "no"):
         raise HTTPException(400, "The verdict is yes or no.")
     with db.connect() as conn:
-        out = network.set_verdict(conn, i, body.verdict)
+        out = network.set_verdict(conn, i, body.verdict, company)
     if out is None:
-        raise HTTPException(404, "Unknown candidate.")
+        raise _unknown(company)
     return out
 
 
 @app.delete("/api/network/candidates/{i}/verdict")
-def network_undo(i: int) -> dict:
+def network_undo(i: int, company: str | None = Query(None)) -> dict:
     with db.connect() as conn:
-        out = network.set_verdict(conn, i, None)
+        out = network.set_verdict(conn, i, None, company)
     if out is None:
-        raise HTTPException(404, "Unknown candidate.")
+        raise _unknown(company)
     return out
 
 
@@ -205,8 +210,9 @@ def network_job_start(c: str) -> dict:
 
 
 @app.get("/api/network/verdicts.csv")
-def network_verdicts_csv() -> Response:
+def network_verdicts_csv(company: str | None = Query(None)) -> Response:
+    """The verdicts in effect; with `company`, only that company's candidates."""
     with db.connect() as conn:
-        body = network.verdicts_csv(conn)
+        body = network.verdicts_csv(conn, company)
     return Response(body, media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": 'attachment; filename="gleif_verdicts.csv"'})

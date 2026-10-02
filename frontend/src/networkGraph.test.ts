@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { NetworkCandidate, NetworkGraph, NetworkSite } from "./api";
 import { buildGraph } from "./networkGraph";
 
-// GET /api/network/candidates/21 (PT. Paxar Indonesia), from the committed data on 2 Oct 2026
+// GET /api/network/candidates/21?company=nike (PT. Paxar Indonesia), from the committed data on 2 Oct 2026
 const paxar: NetworkCandidate = {
   id: 21, source: "file", kind: "site", our_names: "PT. Paxar Indonesia", names: ["PT. Paxar Indonesia"], companies: ["Nike"], company_ids: ["nike"],
-  applies_to: ["Nike"], sites: 1, file_sites: 1,
+  shared: false, sites: 1,
   countries: ["ID"], review_level: "1 likely - confirm", level: "1", flags: "", match_type: "exact", gleif_name_field: "LegalName",
   gleif_matched_name: "PT PAXAR INDONESIA", lei: "549300YDGYNJ5OSNWF92", gleif_legal_name: "PT PAXAR INDONESIA", gleif_country: "ID",
   entity_status: "ACTIVE", registration_status: "ISSUED", verdict: null, verdict_from: null, decided_at: null,
