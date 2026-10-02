@@ -4,7 +4,9 @@
 --   gleif_parent is keyed on (lei, type) (a company can have a direct and a top parent);
 --   site has warnings (rule R3);
 --   hazard_event has event_type, episode_id, name and date_modified, because the GDACS
---   area request needs the type and episode, and the refresh compares datemodified.
+--   area request needs the type and episode, and the refresh compares datemodified;
+--   gleif_verdict (an 8th table) holds the verdicts given on the Company network page.
+-- Every table is created only if it does not exist, so a start never resets data.
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TABLE IF NOT EXISTS customer (
@@ -41,6 +43,18 @@ CREATE TABLE IF NOT EXISTS gleif_match (
     person_verdict text,                     -- yes, no or empty
     PRIMARY KEY (customer_id, os_id, lei),
     FOREIGN KEY (customer_id, os_id) REFERENCES site ON DELETE CASCADE
+);
+
+-- A person's verdict on one GLEIF candidate of the slice file: is this name the same company as this LEI?
+-- Keyed like the file's candidates; it applies to every company the candidate links to, over the file's
+-- verdict column. No row = no verdict.
+CREATE TABLE IF NOT EXISTS gleif_verdict (
+    kind       text NOT NULL,                -- owner or site, as in the slice file
+    our_names  text NOT NULL,                -- as in the slice file, " | " between names
+    lei        text NOT NULL,
+    verdict    text NOT NULL CHECK (verdict IN ('yes', 'no')),
+    decided_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (kind, our_names, lei)
 );
 
 CREATE TABLE IF NOT EXISTS gleif_parent (

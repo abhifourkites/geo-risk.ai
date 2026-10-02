@@ -4,10 +4,14 @@
   only for the companies named in `our_brands` (adidas; Nike; both = adidas and Nike).
 - Parents come from data/reference/rr_for_our_leis.csv (our LEI as the start node, company link types only),
   with names from data/reference/gleif_parents_checked.csv where known.
-- A parent is shown only when a person has set `person_verdict` to yes in the slice file.
+- A parent is shown only when a person has said yes: on the Company network page (table gleif_verdict),
+  or in the slice file's `person_verdict` column. A verdict given on the page is used over the file's.
+- One site can be linked to the same LEI by more than one candidate (for example its owner name and its site
+  name). The link is confirmed when any of them is yes; otherwise rejected when any is no.
 """
 import csv
 import os
+from collections import defaultdict
 from pathlib import Path
 
 import psycopg
@@ -47,6 +51,18 @@ def load_parents(conn: psycopg.Connection) -> int:
     return len(rows)
 
 
+def saved_verdicts(cur: psycopg.Cursor) -> dict[tuple[str, str, str], str]:
+    """(kind, our_names, LEI) -> yes / no, as given on the Company network page."""
+    cur.execute("SELECT kind, our_names, lei, verdict FROM gleif_verdict")
+    return {(r["kind"], r["our_names"], r["lei"]): r["verdict"] for r in cur.fetchall()}
+
+
+def verdict_of(r: dict, saved: dict[tuple[str, str, str], str]) -> str | None:
+    """One candidate's verdict: the page's, else the file's (yes / no), else none."""
+    v = saved.get((r["kind"], r["our_names"], r["LEI"])) or (r.get(VERDICT_COLUMN) or "").strip().lower()
+    return v if v in ("yes", "no") else None
+
+
 def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
     """Replace this company's GLEIF candidates, re-linked to its open sites by name (R7)."""
     cur.execute("DELETE FROM gleif_match WHERE customer_id = %s", (customer_id,))
@@ -59,7 +75,9 @@ def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
     for r in cur.fetchall():
         by_owner.setdefault(r["owner_name"], []).append(r["os_id"])
 
-    best: dict[tuple[str, str], tuple[str, str]] = {}      # (os_id, lei) -> (review_level, verdict)
+    saved = saved_verdicts(cur)
+    best: dict[tuple[str, str], str] = {}                  # (os_id, lei) -> the most likely review level
+    said: dict[tuple[str, str], set[str]] = defaultdict(set)   # (os_id, lei) -> the verdicts of its candidates
     for r in _read(SLICE):
         if customer_id not in BRANDS.get(r["our_brands"], []):
             continue
@@ -68,22 +86,31 @@ def link_customer(cur: psycopg.Cursor, customer_id: str) -> int:
             sites = {s for n in names for s in by_owner.get(clean.clean_owner(n), [])}
         else:
             sites = {s for n in names for s in by_site_name.get(clean.basic(n), [])}
-        verdict = (r.get(VERDICT_COLUMN) or "").strip().lower()
+        verdict = verdict_of(r, saved)
         for os_id in sites:
             key = (os_id, r["LEI"])
-            if key not in best or r["review_level"] < best[key][0]:   # keep the most likely review level
-                best[key] = (r["review_level"], verdict)
-    cur.executemany("INSERT INTO gleif_match (customer_id, os_id, lei, review_level, person_verdict) "
-                    "VALUES (%s, %s, %s, %s, %s)",
-                    [(customer_id, os_id, lei, lvl, v or None) for (os_id, lei), (lvl, v) in best.items()])
+            if key not in best or r["review_level"] < best[key]:   # keep the most likely review level
+                best[key] = r["review_level"]
+            if verdict:
+                said[key].add(verdict)
+    combined = {k: "yes" if "yes" in v else "no" for k, v in said.items()}
+    keys = list(best)
+    cur.execute("INSERT INTO gleif_match (customer_id, os_id, lei, review_level, person_verdict) "
+                "SELECT %s, * FROM unnest(%s::text[], %s::text[], %s::text[], %s::text[])",      # one statement
+                (customer_id, [k[0] for k in keys], [k[1] for k in keys], [best[k] for k in keys], [combined.get(k) for k in keys]))
     return len(best)
 
 
+def relink_all(cur: psycopg.Cursor) -> None:
+    """Re-link every company's candidates, with the current verdicts."""
+    cur.execute("SELECT customer_id FROM customer")
+    for c in [r["customer_id"] for r in cur.fetchall()]:
+        link_customer(cur, c)
+
+
 def refresh_all(conn: psycopg.Connection) -> None:
-    """Re-read the GLEIF files for every company. Runs on each start, so a verdict edited in the CSV
-    takes effect after a restart (the MVP has no review screen)."""
+    """Re-read the GLEIF files for every company, with the saved verdicts. Runs on each start, so a verdict
+    edited in the CSV takes effect after a restart; a verdict given on the page takes effect at once."""
     load_parents(conn)
     with conn.transaction(), conn.cursor() as cur:
-        cur.execute("SELECT customer_id FROM customer")
-        for c in [r["customer_id"] for r in cur.fetchall()]:
-            link_customer(cur, c)
+        relink_all(cur)
