@@ -63,6 +63,28 @@ def test_every_candidate_is_listed_and_every_verdict_starts_empty():
     assert {c["verdict"] for c in cs} == {None} and {c["verdict_from"] for c in cs} == {None}
 
 
+def test_the_list_follows_the_selected_company(conn):
+    """The page shows the candidates of the company chosen in the top selector (their `company_ids` include it)."""
+    ids = {c: {x["id"] for x in client.get("/api/network/candidates", params={"company": c}).json()}
+           for c in ("adidas", "nike", "apple", "samsung")}
+    assert {c: len(v) for c, v in ids.items()} == {"adidas": 221, "nike": 345, "apple": 0, "samsung": 0}
+    both = ids["adidas"] & ids["nike"]
+    assert len(both) == 126 and len(ids["adidas"] | ids["nike"]) == 440
+    assert {tuple(c["companies"]) for c in candidates() if c["id"] in both} == {("adidas", "Nike")}
+    # an uploaded company has none: the slice file has adidas and Nike names only
+    raw = (loader.DEMO_DIR / "samsung.csv").read_bytes()
+    up = client.post("/api/uploads", files={"file": ("samsung.csv", raw, "text/csv")}).json()
+    lst = "Samsung [Public List] (Samsung 2021 Facility List)"
+    assert client.post(f"/api/uploads/{up['upload_id']}/confirm",
+                       json={"name": "No Names Co", "lists": [lst], "current_lists": [lst]}).status_code == 200
+    try:
+        assert client.get("/api/network/candidates", params={"company": "no-names-co"}).json() == []
+    finally:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM customer WHERE customer_id = 'no-names-co'")
+        conn.commit()
+
+
 def test_the_page_links_the_same_sites_as_the_stored_candidates(conn):
     """network._Sites finds sites by name as gleif.link_customer does: the same (company, site, LEI) links."""
     rows = gleif._read(gleif.SLICE)
@@ -203,6 +225,8 @@ def test_yes_and_no_on_one_link_is_a_conflict(conn):
     assert [(after[x]["conflict_with"], after[x]["conflict_sites"], after[x]["confirmed_sites"]) for x in (a["id"], b["id"])] == \
         [([b["id"]], 4, 5), ([a["id"]], 4, 0)]
     assert sum(bool(c["conflict_with"]) for c in after.values()) == 2
+    assert (after[a["id"]]["conflict_with_names"], after[b["id"]]["conflict_with_names"]) == \
+        (["FAR EASTERN NEW CENTURY (owner)"], ["FAR EASTERN (owner)"])
     g = client.get(f"/api/network/candidates/{a['id']}").json()
     assert g["parents"] and sorted(s["os_id"] for s in g["sites"] if s["conflict"]) == \
         ["CN2019083CS0EQJ", "TW2019085FK2HTK", "VN2019318A8P7HW", "VN2023063ZEX4WY"]

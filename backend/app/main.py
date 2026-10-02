@@ -137,10 +137,11 @@ def confirm(upload_id: str, body: Confirm) -> dict:
 
 
 @app.get("/api/network/candidates")
-def network_candidates() -> list[dict]:
-    """Company network page: every GLEIF candidate of the slice file, with its sites and verdict."""
+def network_candidates(company: str | None = Query(None)) -> list[dict]:
+    """Company network page: the GLEIF candidates of the slice file, with their sites and verdicts; with
+    `company` (a customer_id), only that company's (none for a company the file has no names for)."""
     with db.connect() as conn:
-        return network.candidates(conn)
+        return network.candidates(conn, company)
 
 
 @app.get("/api/network/candidates/{i}")

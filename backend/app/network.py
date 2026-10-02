@@ -87,7 +87,7 @@ def _conflicts(rows: list[dict], sites: _Sites, saved: dict, linked: dict) -> di
     return {i: sorted(js) for i, js in out.items()}
 
 
-def _item(i: int, r: dict, sites: _Sites, saved: dict, linked: dict, conflicts: dict) -> dict:
+def _item(i: int, r: dict, rows: list[dict], sites: _Sites, saved: dict, linked: dict, conflicts: dict) -> dict:
     links = sites.links(r)
     os_ids = sorted({s for _, s, _ in links})
 
@@ -98,7 +98,7 @@ def _item(i: int, r: dict, sites: _Sites, saved: dict, linked: dict, conflicts: 
     file_verdict = (r.get(gleif.VERDICT_COLUMN) or "").strip().lower()
     return {
         "id": i, "kind": r["kind"], "our_names": r["our_names"], "names": _names(r),
-        "companies": [sites.company[c] for c in sites.companies(r)],
+        "companies": [sites.company[c] for c in sites.companies(r)], "company_ids": sites.companies(r),
         "sites": len(os_ids), "file_sites": int(r["our_sites"] or 0),
         "countries": sorted({sites.site[(c, o)]["country_code"] or "" for c, o, _ in links} - {""}),
         "review_level": r["review_level"], "level": r["review_level"][:1], "flags": r["flags"],
@@ -111,16 +111,19 @@ def _item(i: int, r: dict, sites: _Sites, saved: dict, linked: dict, conflicts: 
         "confirmed_sites": len(state("yes")),           # sites whose link to this LEI is confirmed
         "conflict_sites": len(state("conflict")),       # ... has yes and no from two candidates
         "conflict_with": conflicts.get(i, []),          # the candidates (ids) that give the opposite verdict
+        "conflict_with_names": [f'{" / ".join(_names(rows[j - 1]))} ({rows[j - 1]["kind"]})' for j in conflicts.get(i, [])],
     }
 
 
-def candidates(conn: psycopg.Connection) -> list[dict]:
-    """Every row of the slice file (440), in the file's order; `id` is the row number."""
+def candidates(conn: psycopg.Connection, company: str | None = None) -> list[dict]:
+    """Every row of the slice file (440), in the file's order; `id` is the row number. With `company` (a
+    customer_id): only the candidates whose companies include it (adidas 221, Nike 345; 126 are both's)."""
     rows = gleif._read(gleif.SLICE)
     with conn.cursor() as cur:
         sites, saved, linked = _Sites(cur), _saved(cur), _linked(cur)
     conflicts = _conflicts(rows, sites, saved, linked)
-    return [_item(i, r, sites, saved, linked, conflicts) for i, r in enumerate(rows, 1)]
+    items = [_item(i, r, rows, sites, saved, linked, conflicts) for i, r in enumerate(rows, 1)]
+    return [c for c in items if company is None or company in c["company_ids"]]
 
 
 def candidate(conn: psycopg.Connection, i: int) -> dict | None:
@@ -132,7 +135,7 @@ def candidate(conn: psycopg.Connection, i: int) -> dict | None:
     r = rows[i - 1]
     with conn.cursor() as cur:
         sites, saved, linked = _Sites(cur), _saved(cur), _linked(cur)
-        item = _item(i, r, sites, saved, linked, _conflicts(rows, sites, saved, linked))
+        item = _item(i, r, rows, sites, saved, linked, _conflicts(rows, sites, saved, linked))
         parents = []
         if item["verdict"] == "yes" and item["confirmed_sites"]:
             cur.execute("SELECT type, parent_lei, parent_name FROM gleif_parent WHERE lei = %s ORDER BY type", (r["LEI"],))
