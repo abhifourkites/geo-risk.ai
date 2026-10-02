@@ -25,6 +25,15 @@ def test_owners_self_name_and_placeholders():
     assert clean.owners("X", "Pou Chen|Pouchen") == ["POU CHEN", "POUCHEN"]
 
 
+def test_null_is_a_placeholder_not_an_owner():
+    """data/demo/facilities.csv has "null" as an owner value 6 times; it is no owner, in any case."""
+    for value in ("null", "NULL", "Null"):
+        assert clean.owners("Some Site", value) == []
+    assert clean.owners("Masaoka Towel Co Ltd", "Masaoka Towel Co Ltd|null") == ["MASAOKA TOWEL"]
+    assert clean.owners("X", "PARAMOUNT|null") == ["PARAMOUNT"]
+    assert clean.owners("X", "Nullabor Mills") == ["NULLABOR MILLS"]   # only the whole value
+
+
 def test_claim_columns_are_dropped_when_read():
     raw = "os_id,name,claim_contact_person,claim_email,contributor (list)\nA1,Site,Jane,j@x.test,L1\n".encode()
     rows = loader.read_rows(raw)

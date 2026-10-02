@@ -80,3 +80,17 @@ def test_adidas_list_counts(conn):
     assert [first[name[k]] for k in kinds] == [438, 194, 134]
     assert [per_list[name[k]] for k in kinds] == [438, 195, 136]
     assert on_two == 3
+
+
+
+def test_no_owner_is_named_null(conn):
+    """The 6 "null" owner values in data/demo/facilities.csv made a fake owner "NULL" (4 adidas sites, 2 Nike)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) AS n FROM site_owner WHERE upper(owner_name) = 'NULL'")
+        assert cur.fetchone()["n"] == 0
+    adidas, nike = measures.view(conn, "adidas"), measures.view(conn, "nike")
+    assert adidas["coverage"]["owner_known"] == {"known": 551, "of": 766}
+    assert adidas["owners"]["all_in_one_country"] == {"count": 56, "of_owners_with_2_plus_sites": 156}
+    assert nike["owners"]["all_in_one_country"] == {"count": 49, "of_owners_with_2_plus_sites": 155}
+    conflicts = {c: sum("owner_conflict" in s["warnings"] for s in measures.view(conn, c)["sites"]) for c in ("adidas", "nike")}
+    assert conflicts == {"adidas": 187, "nike": 231}

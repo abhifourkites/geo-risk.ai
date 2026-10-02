@@ -8,7 +8,7 @@ import statistics
 
 LEGAL_WORDS = {"CO", "COMPANY", "CORP", "CORPORATION", "GMBH", "GROUP", "HOLDING", "HOLDINGS", "INC", "JSC",
                "LIMITED", "LLC", "LTD", "PLC", "PRIVATE", "PT", "PVT", "SA"}
-PLACEHOLDER = re.compile(r"^(NO GROUP( \w+)?|N A|NA)$")   # 'NO GROUP (AP)', 'N/A', 'NA'
+PLACEHOLDER = re.compile(r"^(NO GROUP( \w+)?|N A|NA|NULL)$")   # 'NO GROUP (AP)', 'N/A', 'NA', 'null' (any case)
 
 
 def split_pipe(s: str | None) -> list[str]:
