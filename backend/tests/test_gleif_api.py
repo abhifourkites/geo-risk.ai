@@ -29,8 +29,8 @@ class FakeGleif:
     """Answers lei-records searches from `names` (core name -> records) and parent requests from `parents`
     (LEI -> {"direct-parent": record, ...}; missing: 404). `fail` = status codes to answer first."""
 
-    def __init__(self, names=None, parents=None, fail=()):
-        self.names, self.parents, self.fail = names or {}, parents or {}, list(fail)
+    def __init__(self, names=None, parents=None, fail=(), entities=None):
+        self.names, self.parents, self.fail, self.entities = names or {}, parents or {}, list(fail), entities or {}
         self.requests: list[tuple[float, httpx.Request]] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
@@ -40,7 +40,11 @@ class FakeGleif:
         path = request.url.path.removeprefix("/api/v1/lei-records")
         if not path:
             return httpx.Response(200, json={"data": self.names.get(request.url.params["filter[entity.legalName]"], [])})
-        lei, kind = path.strip("/").split("/")
+        parts = path.strip("/").split("/")
+        if len(parts) == 1:                                                    # one LEI's record
+            rec = self.entities.get(parts[0])
+            return httpx.Response(200, json={"data": rec}) if rec else httpx.Response(404, json={"errors": [{"status": "404"}]})
+        lei, kind = parts
         parent = self.parents.get(lei, {}).get(kind)
         return httpx.Response(200, json={"data": parent}) if parent else httpx.Response(404, json={"errors": [{"status": "404"}]})
 
@@ -87,6 +91,57 @@ def run(conn, customer="apple"):
             await gleif_api.run_until_idle(http)
     asyncio.run(go())
     return gleif_api.job(conn, customer)
+
+
+def work(conn):
+    """The worker's pending steps (parent names, parents, jobs), with the fake GLEIF."""
+    async def go():
+        async with gleif_api.client() as http:
+            await gleif_api.run_until_idle(http)
+    asyncio.run(go())
+
+
+ACE_TURTLE, ACE_PARENT = "3358006WJQ5NKCOILG39", "9845008E3DZ3B8366596"   # its direct parent: no name in our GLEIF files
+
+
+def _confirm_ace_turtle(conn):
+    [c] = [x for x in network.candidates(conn) if x["lei"] == ACE_TURTLE]
+    assert client.put(f"/api/network/candidates/{c['id']}/verdict", json={"verdict": "yes"}).status_code == 200
+    with conn.cursor() as cur:
+        cur.execute("SELECT customer_id, os_id FROM gleif_match WHERE lei = %s AND person_verdict = 'yes' LIMIT 1", (ACE_TURTLE,))
+        site = cur.fetchone()
+    return c["id"], site
+
+
+def test_a_confirmed_parent_without_a_name_gets_it_from_gleif_once(conn, fake):
+    fake.entities = {ACE_PARENT: record(ACE_PARENT, "AUGUST PURPLE SERVICES PRIVATE LIMITED", "IN")}   # as GLEIF named it live
+    i, site = _confirm_ace_turtle(conn)
+    g = client.get(f"/api/network/candidates/{i}").json()
+    assert ([(p["parent_lei"], p["parent_name"], p["name_status"]) for p in g["parents"]], g["parents_fetching"]) == \
+        ([(ACE_PARENT, None, "fetching")], True)
+    work(conn)
+    assert [r.url.path for _, r in fake.requests] == [f"/api/v1/lei-records/{ACE_PARENT}"]
+    g = client.get(f"/api/network/candidates/{i}").json()
+    assert ([(p["type"], p["parent_name"], p["name_status"]) for p in g["parents"]], g["parents_fetching"]) == \
+        ([("direct", "AUGUST PURPLE SERVICES PRIVATE LIMITED", "known")], False)
+    [m] = client.get(f"/api/customers/{site['customer_id']}/sites/{site['os_id']}").json()["gleif"]["confirmed"]
+    assert [p["parent_name"] for p in m["parents"]] == ["AUGUST PURPLE SERVICES PRIVATE LIMITED"]   # the map's site panel
+    work(conn)
+    assert len(fake.requests) == 1                                             # cached: fetched once
+
+
+def test_a_parent_name_that_cannot_be_fetched_says_so(conn, fake):
+    fake.fail = [503, 503, 503]                                                # 3 tries, then given up
+    i, _ = _confirm_ace_turtle(conn)
+    work(conn)
+    g = client.get(f"/api/network/candidates/{i}").json()
+    assert ([(p["parent_name"], p["name_status"]) for p in g["parents"]], g["parents_fetching"]) == ([(None, "not_available")], False)
+    work(conn)
+    assert len(fake.requests) == 3                                             # not tried again until the next start
+    fake.entities = {ACE_PARENT: record(ACE_PARENT, "AUGUST PURPLE SERVICES PRIVATE LIMITED", "IN")}
+    gleif_api.forget_failures(conn)                                            # what a start does
+    work(conn)
+    assert [p["parent_name"] for p in client.get(f"/api/network/candidates/{i}").json()["parents"]] == ["AUGUST PURPLE SERVICES PRIVATE LIMITED"]
 
 
 def test_the_core_name_has_no_commas_and_no_legal_form_words():

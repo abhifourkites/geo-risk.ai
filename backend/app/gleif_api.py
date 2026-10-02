@@ -259,14 +259,48 @@ def parents_pending(cur: psycopg.Cursor) -> list[str]:
     return [r["lei"] for r in cur.fetchall()]
 
 
+def names_pending(cur: psycopg.Cursor) -> list[str]:
+    """Parents of confirmed matches whose name is not in our GLEIF files, and not fetched (or tried) yet."""
+    cur.execute("""SELECT DISTINCT p.parent_lei FROM gleif_match m JOIN gleif_parent p USING (lei)
+                   WHERE m.person_verdict = 'yes' AND p.parent_name IS NULL
+                     AND NOT EXISTS (SELECT 1 FROM gleif_api_cache c WHERE c.url = %s || p.parent_lei)
+                   ORDER BY 1""", (gleif.ENTITY_URL.format(lei=""),))
+    return [r["parent_lei"] for r in cur.fetchall()]
+
+
+async def fetch_name(conn: psycopg.Connection, http: httpx.AsyncClient, lei: str) -> None:
+    """One parent's GLEIF record (paced, cached). If GLEIF cannot be reached, it is marked failed (status 0):
+    shown as "name not available", and tried again after the next start (forget_failures)."""
+    url = gleif.ENTITY_URL.format(lei=lei)
+    try:
+        await fetch(conn, http, url)
+    except (httpx.HTTPError, ValueError) as err:
+        conn.rollback()
+        log.warning("GLEIF record of %s not fetched: %s", lei, hazards.describe(err))
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO gleif_api_cache (url, status, body) VALUES (%s, 0, NULL) ON CONFLICT (url) DO NOTHING", (url,))
+        conn.commit()
+
+
+def forget_failures(conn: psycopg.Connection) -> None:
+    """On start: requests that failed (status 0) are tried again."""
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM gleif_api_cache WHERE status = 0")
+    conn.commit()
+
+
 async def step(conn: psycopg.Connection, http: httpx.AsyncClient) -> bool:
-    """One unit of work: the parents of one confirmed candidate, else one owner name of the oldest job.
-    False when there is nothing to do."""
+    """One unit of work: the parents of one confirmed API candidate, else the name of one confirmed match's parent,
+    else one owner name of the oldest job. False when there is nothing to do."""
     with conn.cursor() as cur:
         pending = parents_pending(cur)
+        names = [] if pending else names_pending(cur)
     conn.commit()
     if pending:
         await fetch_parents(conn, http, pending[0])
+        return True
+    if names:
+        await fetch_name(conn, http, names[0])
         return True
     with conn.cursor() as cur:
         cur.execute("""SELECT j.customer_id, n.owner_name FROM gleif_api_job j

@@ -190,6 +190,7 @@ def candidate(conn: psycopg.Connection, i: int) -> dict | None:
             if r["source"] == "api" and not parents:     # fetched in the background after the confirm
                 cur.execute("SELECT 1 FROM gleif_api_parent WHERE lei = %s AND type = 'top'", (r["LEI"],))
                 fetching = cur.fetchone() is None
+            fetching = fetching or any(p["name_status"] == "fetching" for p in parents)   # a parent's name, too
     by_site: dict[str, dict] = {}
     for c, os_id, owner in sites.links(r):
         s = sites.site[(c, os_id)]

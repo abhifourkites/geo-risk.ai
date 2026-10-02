@@ -90,15 +90,32 @@ def api_rows(cur: psycopg.Cursor, customer_id: str | None = None) -> list[dict]:
              "entity_category": r["category"] or "", VERDICT_COLUMN: ""} for r in cur.fetchall()]
 
 
+ENTITY_URL = "https://api.gleif.org/api/v1/lei-records/{lei}"   # one LEI's GLEIF record (gleif_api.py): a parent's name
+
+
 def parents_of(cur: psycopg.Cursor, lei: str) -> list[dict]:
-    """A matched company's parents: from the GLEIF files, else (a GLEIF API candidate) as fetched after its confirm."""
+    """A confirmed match's parents: from the GLEIF files, else (a GLEIF API candidate) as fetched after its confirm.
+    A parent whose name is not in our GLEIF files gets it from GLEIF's API, fetched once in the background
+    (gleif_api.step). name_status: known, fetching, or not_available (GLEIF has no record, or the fetch failed)."""
     cur.execute("SELECT type, parent_lei, parent_name FROM gleif_parent WHERE lei = %s ORDER BY type", (lei,))
-    known = cur.fetchall()
-    if known:
-        return known
-    cur.execute("SELECT type, parent_lei, parent_name FROM gleif_api_parent WHERE lei = %s AND parent_lei IS NOT NULL "
-                "ORDER BY type", (lei,))
-    return cur.fetchall()
+    rows = cur.fetchall()
+    if not rows:
+        cur.execute("SELECT type, parent_lei, parent_name FROM gleif_api_parent WHERE lei = %s AND parent_lei IS NOT NULL "
+                    "ORDER BY type", (lei,))
+        rows = cur.fetchall()
+    out = []
+    for p in rows:
+        p = dict(p, name_status="known")
+        if p["parent_name"] is None:
+            cur.execute("SELECT status, body #>> '{data,attributes,entity,legalName,name}' AS name FROM gleif_api_cache "
+                        "WHERE url = %s", (ENTITY_URL.format(lei=p["parent_lei"]),))
+            hit = cur.fetchone()
+            if hit and hit["status"] == 200 and hit["name"]:
+                p["parent_name"] = hit["name"]
+            else:
+                p["name_status"] = "not_available" if hit else "fetching"
+        out.append(p)
+    return out
 
 
 def verdict_of(r: dict, saved: dict[tuple[str, str, str], str]) -> str | None:
