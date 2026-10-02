@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel
 
-from . import contributors, db, gleif, hazards, loader, measures, network
+from . import contributors, db, gleif, gleif_api, hazards, loader, measures, network
 
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "uploads"   # an uploaded file waits here until it is confirmed
 
@@ -20,8 +20,10 @@ async def lifespan(app: FastAPI):
         loader.seed_demo(conn)      # first start only: the 4 demo companies
         gleif.refresh_all(conn)     # every start: re-read the GLEIF files, with the saved verdicts
     task = asyncio.create_task(_refresh_hazards())   # every start: one GDACS refresh in the background
+    worker = asyncio.create_task(gleif_api.worker())  # GLEIF API searches and parent fetches, also after a restart
     yield
     task.cancel()
+    worker.cancel()
 
 
 app = FastAPI(title="Geographic Supplier Risk Intelligence", lifespan=lifespan)
@@ -132,6 +134,8 @@ def confirm(upload_id: str, body: Confirm) -> dict:
         with conn.cursor() as cur:
             network.lock(cur)       # not at the same time as a verdict: both re-link GLEIF candidates
         out = loader.load_customer(conn, customer_id, body.name.strip(), path.read_bytes(), body.lists, body.current_lists)
+        conn.commit()
+        out["gleif_job"] = gleif_api.enqueue(conn, customer_id)   # GLEIF candidates, in the background (None: adidas, Nike)
     path.unlink(missing_ok=True)
     return out
 
@@ -175,6 +179,27 @@ def network_undo(i: int) -> dict:
     if out is None:
         raise HTTPException(404, "Unknown candidate.")
     return out
+
+
+@app.get("/api/network/jobs/{c}")
+def network_job(c: str) -> dict:
+    """The company's GLEIF API search: state, progress, and how many minutes a search would take."""
+    with db.connect() as conn:
+        return gleif_api.job(conn, c)
+
+
+@app.post("/api/network/jobs/{c}")
+def network_job_start(c: str) -> dict:
+    """Search GLEIF's API for every owner name of the company, in the background (1 request a second)."""
+    with db.connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM customer WHERE customer_id = %s", (c,))
+            if not cur.fetchone():
+                raise HTTPException(404, "Unknown company.")
+        conn.commit()
+        if not gleif_api.eligible(c):
+            raise HTTPException(400, "This company's GLEIF candidates come from the GLEIF file.")
+        return gleif_api.enqueue(conn, c)
 
 
 @app.get("/api/network/verdicts.csv")

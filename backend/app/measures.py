@@ -4,7 +4,7 @@ import json
 import psycopg
 from babel import Locale
 
-from . import hazards
+from . import gleif, hazards
 
 BASIS_THRESHOLD = 0.90          # workers are the basis when known for >= 90% of open sites
 HAZARD_LEVEL = {"Red": "High", "Orange": "High", "Green": "Watch"}
@@ -200,8 +200,7 @@ def site_detail(conn: psycopg.Connection, c: str, os_id: str) -> dict | None:
         confirmed = [m for m in matches if m["person_verdict"] == "yes"]
         parents = []
         for m in confirmed:
-            cur.execute("SELECT type, parent_lei, parent_name FROM gleif_parent WHERE lei = %s ORDER BY type", (m["lei"],))
-            parents.append({"lei": m["lei"], "parents": cur.fetchall()})
+            parents.append({"lei": m["lei"], "parents": gleif.parents_of(cur, m["lei"])})
         return {"site": dict(site, workers_est=float(site["workers_est"]) if site["workers_est"] is not None else None),
                 "owners": owners, "hazards": hz, "hazards_unlisted": unlisted, "hazard_status": hazards.STATUS["state"],
                 "gleif": {"candidates": len(matches), "confirmed": parents}}

@@ -1,5 +1,7 @@
-"""Company network page: the GLEIF candidates of the slice file (gleif.SLICE), the sites each links to,
-the verdicts people give, and the graph for one candidate.
+"""Company network page: the GLEIF candidates, the sites each links to, the verdicts people give, and the
+graph for one candidate. Candidates come from the slice file (gleif.SLICE; ids 1-440, its row numbers) and
+from GLEIF's API (gleif_api.py; ids API_ID + n, one per owner name and LEI, shared by every company that
+has that owner name).
 
 A verdict is stored in gleif_verdict and applied at once (every company's candidates are re-linked), and
 again on every start (gleif.refresh_all). Every verdict starts empty. A site-LEI link with yes from one
@@ -15,12 +17,8 @@ import psycopg
 from . import clean, gleif
 
 MAX_SITES = 15                  # site nodes in a graph; the rest are "+N more"
-LINK_LOCK = 724170              # advisory lock: one re-link of gleif_match at a time
-
-
-def lock(cur: psycopg.Cursor) -> None:
-    """Hold until the transaction ends, so two verdicts (or a verdict and an upload) do not re-link at once."""
-    cur.execute("SELECT pg_advisory_xact_lock(%s)", (LINK_LOCK,))
+API_ID = 100000                 # ids of GLEIF API candidates start above the slice file's rows
+lock = gleif.lock               # one re-link of gleif_match at a time (verdicts, uploads, GLEIF API jobs)
 
 
 def _names(r: dict) -> list[str]:
@@ -44,7 +42,8 @@ class _Sites:
             self.by_owner[(r["customer_id"], r["owner_name"])].append(r["os_id"])
 
     def companies(self, r: dict) -> list[str]:
-        return [c for c in gleif.BRANDS.get(r["our_brands"], []) if c in self.company]
+        ids = r["customer_ids"] if r.get("customer_ids") is not None else gleif.BRANDS.get(r["our_brands"], [])
+        return [c for c in ids if c in self.company]
 
     def links(self, r: dict) -> list[tuple[str, str, str | None]]:
         """(customer_id, os_id, owner name or None) for every site this candidate links to."""
@@ -59,6 +58,24 @@ class _Sites:
         return sorted(out)
 
 
+def _rows(cur: psycopg.Cursor) -> dict[int, dict]:
+    """Every candidate by id: the slice file's rows, then the GLEIF API candidates (one per owner name and
+    LEI: its companies are every company with that owner name searched; its level the most likely one)."""
+    rows = {i: dict(r, source="file") for i, r in enumerate(gleif._read(gleif.SLICE), 1)}
+    grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for r in gleif.api_rows(cur):
+        grouped[(r["our_names"], r["LEI"])].append(r)
+    for same in sorted(grouped.values(), key=lambda g: min(r["api_id"] for r in g)):
+        first = min(same, key=lambda r: (r["review_level"], r["api_id"]))
+        rows[API_ID + min(r["api_id"] for r in same)] = dict(
+            first, source="api", customer_ids=sorted({r["customer_id"] for r in same}))
+    return rows
+
+
+def _key(r: dict) -> tuple[str, str, str]:
+    return r["kind"], r["our_names"], r["LEI"]
+
+
 def _saved(cur: psycopg.Cursor) -> dict[tuple[str, str, str], dict]:
     cur.execute("SELECT kind, our_names, lei, verdict, decided_at FROM gleif_verdict")
     return {(r["kind"], r["our_names"], r["lei"]): r for r in cur.fetchall()}
@@ -70,11 +87,11 @@ def _linked(cur: psycopg.Cursor) -> dict[tuple[str, str, str], str]:
     return {(r["customer_id"], r["os_id"], r["lei"]): r["person_verdict"] for r in cur.fetchall()}
 
 
-def _conflicts(rows: list[dict], sites: _Sites, saved: dict, linked: dict) -> dict[int, list[int]]:
+def _conflicts(rows: dict[int, dict], sites: _Sites, saved: dict, linked: dict) -> dict[int, list[int]]:
     """Candidate id -> the other candidates that give the opposite verdict on one of its site-LEI links."""
     verdicts = {k: v["verdict"] for k, v in saved.items()}
     given: dict[tuple[str, str, str], list[tuple[int, str]]] = defaultdict(list)
-    for i, r in enumerate(rows, 1):
+    for i, r in rows.items():
         v = gleif.verdict_of(r, verdicts)
         if v:
             for c, s, _ in sites.links(r):
@@ -87,7 +104,18 @@ def _conflicts(rows: list[dict], sites: _Sites, saved: dict, linked: dict) -> di
     return {i: sorted(js) for i, js in out.items()}
 
 
-def _item(i: int, r: dict, rows: list[dict], sites: _Sites, saved: dict, linked: dict, conflicts: dict) -> dict:
+def _applies_to(rows: dict[int, dict], sites: _Sites) -> dict[tuple[str, str, str], list[str]]:
+    """Question (kind, names, LEI) -> every company its verdict applies to (one verdict per question)."""
+    out: dict[tuple[str, str, str], list[str]] = defaultdict(list)
+    for r in rows.values():
+        for c in sites.companies(r):
+            if c not in out[_key(r)]:
+                out[_key(r)].append(c)
+    return out
+
+
+def _item(i: int, r: dict, rows: dict[int, dict], sites: _Sites, saved: dict, linked: dict, conflicts: dict,
+          applies: dict) -> dict:
     links = sites.links(r)
     os_ids = sorted({s for _, s, _ in links})
 
@@ -97,8 +125,9 @@ def _item(i: int, r: dict, rows: list[dict], sites: _Sites, saved: dict, linked:
     s = saved.get((r["kind"], r["our_names"], r["LEI"]))
     file_verdict = (r.get(gleif.VERDICT_COLUMN) or "").strip().lower()
     return {
-        "id": i, "kind": r["kind"], "our_names": r["our_names"], "names": _names(r),
+        "id": i, "source": r["source"], "kind": r["kind"], "our_names": r["our_names"], "names": _names(r),
         "companies": [sites.company[c] for c in sites.companies(r)], "company_ids": sites.companies(r),
+        "applies_to": [sites.company[c] for c in applies.get(_key(r), [])],     # a verdict covers all of them
         "sites": len(os_ids), "file_sites": int(r["our_sites"] or 0),
         "countries": sorted({sites.site[(c, o)]["country_code"] or "" for c, o, _ in links} - {""}),
         "review_level": r["review_level"], "level": r["review_level"][:1], "flags": r["flags"],
@@ -111,35 +140,45 @@ def _item(i: int, r: dict, rows: list[dict], sites: _Sites, saved: dict, linked:
         "confirmed_sites": len(state("yes")),           # sites whose link to this LEI is confirmed
         "conflict_sites": len(state("conflict")),       # ... has yes and no from two candidates
         "conflict_with": conflicts.get(i, []),          # the candidates (ids) that give the opposite verdict
-        "conflict_with_names": [f'{" / ".join(_names(rows[j - 1]))} ({rows[j - 1]["kind"]})' for j in conflicts.get(i, [])],
+        "conflict_with_names": [f'{" / ".join(_names(rows[j]))} ({rows[j]["kind"]})' for j in conflicts.get(i, [])],
     }
 
 
+def _context(cur: psycopg.Cursor) -> tuple:
+    rows = _rows(cur)
+    sites, saved, linked = _Sites(cur), _saved(cur), _linked(cur)
+    return rows, sites, saved, linked, _conflicts(rows, sites, saved, linked), _applies_to(rows, sites)
+
+
 def candidates(conn: psycopg.Connection, company: str | None = None) -> list[dict]:
-    """Every row of the slice file (440), in the file's order; `id` is the row number. With `company` (a
-    customer_id): only the candidates whose companies include it (adidas 221, Nike 345; 126 are both's)."""
-    rows = gleif._read(gleif.SLICE)
+    """Every candidate: the slice file's 440 rows in its order (`id` is the row number), then the GLEIF API
+    candidates. With `company` (a customer_id): only the candidates whose companies include it (from the
+    file: adidas 221, Nike 345; 126 are both's)."""
     with conn.cursor() as cur:
-        sites, saved, linked = _Sites(cur), _saved(cur), _linked(cur)
-    conflicts = _conflicts(rows, sites, saved, linked)
-    items = [_item(i, r, rows, sites, saved, linked, conflicts) for i, r in enumerate(rows, 1)]
-    return [c for c in items if company is None or company in c["company_ids"]]
+        rows, sites, saved, linked, conflicts, applies = _context(cur)
+    items = [_item(i, r, rows, sites, saved, linked, conflicts, applies) for i, r in rows.items()
+             if company is None or company in sites.companies(r)]
+    return items
+
+
+
 
 
 def candidate(conn: psycopg.Connection, i: int) -> dict | None:
     """One candidate and its graph: companies -> sites (-> owner) -> GLEIF company; its parents only if confirmed
     (yes, and at least one of its site links confirmed: not every link in conflict)."""
-    rows = gleif._read(gleif.SLICE)
-    if not 1 <= i <= len(rows):
-        return None
-    r = rows[i - 1]
     with conn.cursor() as cur:
-        sites, saved, linked = _Sites(cur), _saved(cur), _linked(cur)
-        item = _item(i, r, rows, sites, saved, linked, _conflicts(rows, sites, saved, linked))
-        parents = []
+        rows, sites, saved, linked, conflicts, applies = _context(cur)
+        if i not in rows:
+            return None
+        r = rows[i]
+        item = _item(i, r, rows, sites, saved, linked, conflicts, applies)
+        parents, fetching = [], False
         if item["verdict"] == "yes" and item["confirmed_sites"]:
-            cur.execute("SELECT type, parent_lei, parent_name FROM gleif_parent WHERE lei = %s ORDER BY type", (r["LEI"],))
-            parents = cur.fetchall()
+            parents = gleif.parents_of(cur, r["LEI"])
+            if r["source"] == "api" and not parents:     # fetched in the background after the confirm
+                cur.execute("SELECT 1 FROM gleif_api_parent WHERE lei = %s AND type = 'top'", (r["LEI"],))
+                fetching = cur.fetchone() is None
     by_site: dict[str, dict] = {}
     for c, os_id, owner in sites.links(r):
         s = sites.site[(c, os_id)]
@@ -157,15 +196,19 @@ def candidate(conn: psycopg.Connection, i: int) -> dict | None:
         "sites": listed[:MAX_SITES], "more_sites": max(0, len(listed) - MAX_SITES),
         "owners": sorted({o for s in listed for o in s["owners"]}),
         "parents": parents,
+        "parents_fetching": fetching,
     }
 
 
 def set_verdict(conn: psycopg.Connection, i: int, verdict: str | None) -> dict | None:
-    """yes / no, or None to undo (back to the file's verdict, empty for every row today). Applied at once."""
-    rows = gleif._read(gleif.SLICE)
-    if not 1 <= i <= len(rows):
+    """yes / no, or None to undo (back to the file's verdict, empty for every row today). Applied at once.
+    A yes on a GLEIF API candidate also queues the fetch of its parents (gleif_api.step)."""
+    with conn.cursor() as cur:
+        rows = _rows(cur)
+    conn.commit()
+    if i not in rows:
         return None
-    r = rows[i - 1]
+    r = rows[i]
     with conn.transaction(), conn.cursor() as cur:
         lock(cur)
         if verdict:
