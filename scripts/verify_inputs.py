@@ -246,7 +246,7 @@ out("OPEN", "the as-of date for certificate warnings is not documented")
 #   ONLY when the site has another owner name (if it is the site's only owner, keep it).
 LEGAL_WORDS = {"CO", "COMPANY", "CORP", "CORPORATION", "GMBH", "GROUP", "HOLDING", "HOLDINGS", "INC", "JSC",
                "LIMITED", "LLC", "LTD", "PLC", "PRIVATE", "PT", "PVT", "SA"}
-PLACEHOLDER = re.compile(r"^(NO GROUP( \w+)?|N A|NA)$")
+PLACEHOLDER = re.compile(r"^(NO GROUP( \w+)?|N A|NA|NULL)$")   # NULL: "null" is an owner value 6 times in the raw facilities file
 def basic(s):   # upper case, & -> AND, punctuation -> space, collapse spaces (str.split: any Unicode space)
     return " ".join(re.sub(r"[^\w\s]", " ", (s or "").upper().replace("&", " AND ")).split())
 def clean_owner(s): return " ".join(w for w in basic(s).split() if w not in LEGAL_WORDS)
@@ -271,9 +271,9 @@ fold = lambda s: " ".join(unicodedata.normalize("NFD", s).encode("ascii", "ignor
 diff_sites = [(k, OWN["facilities"][k], split_pipe(ref_by[k]["parent_groups"])) for k in fac_by
               if set(OWN["facilities"][k]) != set(split_pipe(ref_by[k]["parent_groups"]))]
 _r4_ok = len(fac_by) - len(diff_sites)
-out("MATCH" if not diff_sites else ("EXPECTED" if _r4_ok == 1443 else "DIFF"),
+out("MATCH" if not diff_sites else ("EXPECTED" if _r4_ok == 1437 else "DIFF"),
     f"R4 owner names (written rule) vs reference `parent_groups`: same set on {_r4_ok}/{len(fac_by)} sites"
-    + (" (known difference: expected 1443)" if diff_sites and _r4_ok == 1443 else ""))
+    + (" (known difference: expected 1437)" if diff_sites and _r4_ok == 1437 else ""))
 reasons = Counter()
 for k, ours, theirs in diff_sites:
     why = []
@@ -283,6 +283,7 @@ for k, ours, theirs in diff_sites:
         why.append("same-as-site test no longer matches: site and owner differ only by accents")
     if any(not n.isascii() for n in ours): why.append("keeps non-ASCII characters (reference drops them)")
     if "\xa0" in fac_by[k]["parent_company"].strip(): why.append("treats a no-break space as a space (reference deletes it)")
+    if "NULL" in theirs and "NULL" not in ours: why.append('drops "null" as a placeholder (reference keeps it as an owner)')
     reasons.update(why or ["other"])
     if len(why) != 1 or not why[0].startswith("keeps a self-named"):
         print(f"      os_id {k}: ours {ours} | reference {theirs} | {'; '.join(why) or 'other'}")
@@ -291,7 +292,7 @@ nonascii_owner_rows = {k: sum(1 for r in rows_of[k] for n in OWN[k][r["os_id"]] 
 out("INFO", f"owner names kept that contain non-ASCII characters, per file: {nonascii_owner_rows}")
 comb = {k: sum(1 for r in rows_of[k] for ch in r["parent_company"] + r["name"] if unicodedata.category(ch) == "Mn") for k in RAW}
 out("INFO", f"combining marks in owner/site names (would be split by the punctuation step): {comb}")
-agree("R5 owner conflict (2+ owner names after R4)", lambda r: str(len(OWN["facilities"][r["os_id"]]) > 1), "parent_conflict", 6, known=1532)
+agree("R5 owner conflict (2+ owner names after R4)", lambda r: str(len(OWN["facilities"][r["os_id"]]) > 1), "parent_conflict", 6, known=1529)
 agree("product_type kept as reported", lambda r: r["product_type"], "product_words_as_reported_any_contributor", 2)
 out("INFO", f"no raw column names a state/province/region; reference region_key == state_code_boundary outside Vietnam: "
             f"{sum(1 for r in ref if r['country_code'] != 'VN' and r['region_key'] == r['state_code_boundary'])}"
@@ -300,12 +301,12 @@ out("INFO", f"no raw column names a state/province/region; reference region_key 
 # ---------------------------------------------------------------------------------------------
 section("5. Coverage per demo customer (open sites)")
 PROMPT_COV = {  # from the task prompt's table
-    "adidas":  dict(open=766, owner="72.1%", workers="719 (93.9%)", ftype=432),
+    "adidas":  dict(open=766, owner="71.9%", workers="719 (93.9%)", ftype=432),
     "Nike":    dict(open=625, owner="100.0%", workers="625 (100.0%)", ftype=494),
     "Apple":   dict(open=749, owner="8.8% (66)", workers="65 (8.7%)", ftype=0, cert="0 / 0 / 1"),
     "Samsung": dict(open=187, owner="100.0%", workers="4 (2.1%)", ftype=0, cert="0 / 0 / 0"),
 }
-EXPECT_OWN = {"adidas": "552 (72.1%)", "Nike": "625 (100.0%)", "Apple": "66 (8.8%)", "Samsung": "187 (100.0%)"}  # prompt 3
+EXPECT_OWN = {"adidas": "551 (71.9%)", "Nike": "625 (100.0%)", "Apple": "66 (8.8%)", "Samsung": "187 (100.0%)"}  # prompt 3
 COV = {}
 for cust, rows in OPEN.items():
     k = DEMO[cust]["file"]; n = len(rows)
@@ -424,8 +425,8 @@ def owner_summary(cust, own):
     conf = sum(1 for r in OPEN[cust] if len(own[k][r["os_id"]]) > 1)
     return dict(counts=f"{len(st)} / {len(two)} / {one_c}", region=one_r, watch=watch, high=high, conf=conf)
 EXPECT_O = {  # prompt 3: owners / 2+ sites / all in one country; one region; conflicts; Watch owners
-    "adidas":  ("509 / 157 / 56", 27, 189, "POU CHEN 7.4%, THE LOOK MACAO COMMERCIAL OFFSHORE 5.9%"),
-    "Nike":    ("530 / 156 / 50", 19, 232, "FENG TAY 9.3%, TAEKWANG 6.6%, POU CHEN 6.1%, CHANGSHIN 5.9%"),
+    "adidas":  ("509 / 156 / 56", 27, 187, "POU CHEN 7.4%, THE LOOK MACAO COMMERCIAL OFFSHORE 5.9%"),
+    "Nike":    ("530 / 155 / 49", 19, 231, "FENG TAY 9.3%, TAEKWANG 6.6%, POU CHEN 6.1%, CHANGSHIN 5.9%"),
     "Apple":   ("41 / 12 / 2", "-", 3, "none"),
     "Samsung": ("102 / 42 / 4", "-", 0, "none"),
 }
