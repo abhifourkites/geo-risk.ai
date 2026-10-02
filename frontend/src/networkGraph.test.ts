@@ -8,12 +8,13 @@ const paxar: NetworkCandidate = {
   countries: ["ID"], review_level: "1 likely - confirm", level: "1", flags: "", match_type: "exact", gleif_name_field: "LegalName",
   gleif_matched_name: "PT PAXAR INDONESIA", lei: "549300YDGYNJ5OSNWF92", gleif_legal_name: "PT PAXAR INDONESIA", gleif_country: "ID",
   entity_status: "ACTIVE", registration_status: "ISSUED", verdict: null, verdict_from: null, decided_at: null,
+  confirmed_sites: 0, conflict_sites: 0, conflict_with: [],
 };
 const AVERY = { parent_lei: "549300PW7VPFCYKLIV37", parent_name: "AVERY DENNISON CORPORATION" };
 const graph = (verdict: NetworkCandidate["verdict"]): NetworkGraph => ({
-  candidate: { ...paxar, verdict, verdict_from: verdict ? "page" : null },
+  candidate: { ...paxar, verdict, verdict_from: verdict ? "page" : null, confirmed_sites: verdict === "yes" ? 1 : 0 },
   companies: [{ customer_id: "nike", name: "Nike" }],
-  sites: [{ os_id: "ID2021182JC36SX", name: "PT. Paxar Indonesia", country_code: "ID", companies: ["nike"], owners: [] }],
+  sites: [{ os_id: "ID2021182JC36SX", name: "PT. Paxar Indonesia", country_code: "ID", companies: ["nike"], owners: [], conflict: false }],
   more_sites: 0, owners: [],
   parents: verdict === "yes" ? [{ type: "direct", ...AVERY }, { type: "top", ...AVERY }] : [],
 });
@@ -59,9 +60,26 @@ describe("company network graph", () => {
     expect(nodes.some((n) => n.id.startsWith("parent:"))).toBe(false);
   });
 
+  it("yes and no from two candidates: the site is marked, and with every link in conflict nothing is confirmed", () => {
+    const conflicted = (confirmed_sites: number): NetworkGraph => {
+      const g = graph("yes");
+      return { ...g, candidate: { ...g.candidate, confirmed_sites, conflict_sites: 1, conflict_with: [7] },
+               sites: [{ ...g.sites[0], conflict: true }], parents: confirmed_sites ? g.parents : [] };
+    };
+    let g = conflicted(0);
+    const { nodes } = buildGraph(g);
+    expect(nodes.find((n) => n.id === "site:ID2021182JC36SX")!.data).toMatchObject({ tone: "conflict", detail: "Indonesia · in conflict" });
+    let [e] = candidateEdges(g);
+    expect([e.label, e.style?.strokeDasharray]).toEqual(["conflicting verdicts – needs review", "6 5"]);
+    expect(nodes.some((n) => n.id.startsWith("parent:"))).toBe(false);
+    g = { ...conflicted(1), candidate: { ...conflicted(1).candidate, sites: 2 } };    // one of two sites in conflict
+    [e] = candidateEdges(g);
+    expect([e.label, e.style?.strokeDasharray]).toEqual(["confirmed; 1 site in conflict", undefined]);
+  });
+
   it("an owner: sites -> owner -> GLEIF company; at most 15 site nodes, then +N more", () => {
     // AVERY DENNISON (owner, adidas and Nike): 17 sites, as GET /api/network/candidates/31 returns them (2 more not sent)
-    const site = (i: number): NetworkSite => ({ os_id: `S${i}`, name: `Site ${i}`, country_code: "BD", companies: ["adidas"], owners: ["AVERY DENNISON"] });
+    const site = (i: number): NetworkSite => ({ os_id: `S${i}`, name: `Site ${i}`, country_code: "BD", companies: ["adidas"], owners: ["AVERY DENNISON"], conflict: false });
     const g: NetworkGraph = {
       candidate: { ...paxar, id: 31, kind: "owner", our_names: "AVERY DENNISON", names: ["AVERY DENNISON"], companies: ["adidas", "Nike"], sites: 17,
                    lei: "2138004WKONVOSRTU954", gleif_legal_name: "AVERY DENNISON SMARTRAC LATAM LTDA" },

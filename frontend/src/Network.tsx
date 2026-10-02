@@ -18,7 +18,7 @@ import { Controls, Handle, Position, ReactFlow, type Node, type NodeProps, type 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type NetworkCandidate, type NetworkGraph, type NetworkVerdict } from "./api";
 import { countryName, plural } from "./format";
-import { buildGraph, NODE_W, ROW, type HeaderData, type InfoData, type Tone } from "./networkGraph";
+import { buildGraph, CONFLICT, NODE_W, ROW, type HeaderData, type InfoData, type Tone } from "./networkGraph";
 
 const PAGE = 20;
 const LEVELS: Record<string, string> = { "1": "1 likely", "2": "2 possible", "3": "3 unlikely" };
@@ -31,6 +31,7 @@ const TONE: Record<Tone, { bg: string; border: string; dashed?: boolean; fade?: 
   gleif: { bg: "#FFFFFF", border: "#1F2A2E" },
   parent: { bg: "#F6F7F5", border: "#1F2A2E" },
   rejected: { bg: "#FFFFFF", border: "#B8C2C5", dashed: true, fade: true },
+  conflict: { bg: "#FFFFFF", border: "#1F2A2E", dashed: true },
 };
 const HIDDEN = { opacity: 0, width: 1, height: 1, minWidth: 0, minHeight: 0, border: 0 };
 
@@ -77,7 +78,8 @@ function Graph({ g }: { g: NetworkGraph }) {
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
         Dashed line: a candidate, not confirmed. Solid line: confirmed by a person; then the GLEIF company's direct and top parents are shown,
-        here and in the map's site panel. A rejected candidate has no line.
+        here and in the map's site panel. A rejected candidate has no line. A site with yes and no from two candidates
+        (for example its two owner names) is "in conflict": "{CONFLICT}", and not confirmed.
         {g.more_sites > 0 && ` The first 15 of ${c.sites} sites are drawn.`}
       </Typography>
     </>
@@ -144,6 +146,7 @@ export default function Network() {
             {all.length} candidates from the GLEIF file: {count((c) => c.level === "1")} likely, {count((c) => c.level === "2")} possible,
             {" "}{count((c) => c.level === "3")} unlikely. Confirmed {count((c) => c.verdict === "yes")}, rejected {count((c) => c.verdict === "no")},
             {" "}not decided {count((c) => !c.verdict)}.
+            {count((c) => c.conflict_with.length > 0) > 0 && ` ${count((c) => c.conflict_with.length > 0)} with conflicting verdicts – needs review.`}
           </Typography>
           <Button size="small" variant="outlined" component="a" href="/api/network/verdicts.csv" download>Download verdicts (CSV)</Button>
         </Stack>
@@ -175,8 +178,9 @@ export default function Network() {
           </CardContent>
           <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0, borderTop: 1, borderColor: "divider" }}>
             {rows.map((c) => (
-              <Box component="li" key={c.id} sx={{ display: "flex", borderBottom: 1, borderColor: "divider", bgcolor: c.id === selected ? "action.selected" : undefined }}
+              <Box component="li" key={c.id} sx={{ borderBottom: 1, borderColor: "divider", bgcolor: c.id === selected ? "action.selected" : undefined }}
                    data-testid={`candidate-${c.id}`}>
+                <Box sx={{ display: "flex" }}>
                 <ListItemButton selected={c.id === selected} onClick={() => setSelected(c.id)} aria-current={c.id === selected ? "true" : undefined}
                                 sx={{ flexDirection: "column", alignItems: "flex-start", py: 1, minWidth: 0, "&.Mui-selected, &.Mui-selected:hover": { bgcolor: "transparent" } }}
                                 aria-label={`Show the graph: ${c.names.join(" / ")} and ${c.gleif_legal_name}`}>
@@ -202,6 +206,20 @@ export default function Network() {
                             aria-label={`Undo the verdict on ${c.names.join(" / ")} and ${c.gleif_legal_name}`}>Undo</Button>
                   </Stack>
                 </Stack>
+                </Box>
+                {c.conflict_with.length > 0 && (
+                  <Box sx={{ px: 2, pb: 1, display: "flex", gap: 1, alignItems: "baseline", flexWrap: "wrap" }} data-testid={`conflict-${c.id}`}>
+                    <Chip size="small" variant="outlined" label={CONFLICT[0].toUpperCase() + CONFLICT.slice(1)} sx={{ borderStyle: "dashed", borderColor: "text.primary" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      On {plural(c.conflict_sites, "site", "sites")}, the same LEI is {c.verdict === "yes" ? "rejected" : "confirmed"} by:
+                    </Typography>
+                    {c.conflict_with.map((j) => {
+                      const o = all.find((x) => x.id === j);
+                      return o && <Button key={j} size="small" sx={{ py: 0, minWidth: 0 }} onClick={() => setSelected(j)}>{o.names.join(" / ")} ({o.kind})</Button>;
+                    })}
+                    <Typography variant="body2" color="text.secondary">Those sites show no parent until one verdict is changed.</Typography>
+                  </Box>
+                )}
               </Box>
             ))}
             {!rows.length && <Box component="li" sx={{ p: 2 }}><Typography variant="body2" color="text.secondary">No candidate matches these filters.</Typography></Box>}

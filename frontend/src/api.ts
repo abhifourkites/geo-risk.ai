@@ -62,8 +62,10 @@ export interface NetworkCandidate {
   review_level: string; level: "1" | "2" | "3"; flags: string; match_type: string; gleif_name_field: string; gleif_matched_name: string;
   lei: string; gleif_legal_name: string; gleif_country: string; entity_status: string; registration_status: string;
   verdict: NetworkVerdict; verdict_from: "page" | "file" | null; decided_at: string | null;
+  /** Sites whose link to this LEI is confirmed / has yes and no from two candidates; the candidates giving the opposite verdict. */
+  confirmed_sites: number; conflict_sites: number; conflict_with: number[];
 }
-export interface NetworkSite { os_id: string; name: string; country_code: string | null; companies: string[]; owners: string[] }
+export interface NetworkSite { os_id: string; name: string; country_code: string | null; companies: string[]; owners: string[]; conflict: boolean }
 export interface NetworkGraph {
   candidate: NetworkCandidate;
   companies: { customer_id: string; name: string }[];

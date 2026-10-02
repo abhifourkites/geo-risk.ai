@@ -1,12 +1,14 @@
 /** Nodes and edges of the Company network graph for one candidate (React Flow, @xyflow/react).
  *  Company -> its sites (-> their owner) -> the GLEIF company: a dashed "candidate (not confirmed)" line,
- *  solid once confirmed, none once rejected. The GLEIF company's parents only when confirmed.
+ *  solid once confirmed, none once rejected. The GLEIF company's parents only when confirmed. A site whose link
+ *  has yes and no from two candidates is marked "conflicting verdicts - needs review" and is not confirmed.
  *  Three columns: companies, sites, then (owner,) GLEIF company and parents one below the other. */
 import { MarkerType, type Edge, type Node } from "@xyflow/react";
 import type { NetworkGraph } from "./api";
 import { countryName, plural } from "./format";
 
-export type Tone = "company" | "osh" | "gleif" | "parent" | "rejected" | "more";
+export type Tone = "company" | "osh" | "gleif" | "parent" | "rejected" | "more" | "conflict";
+export const CONFLICT = "conflicting verdicts – needs review";
 export type InfoData = { caption?: string; title: string; detail?: string; tone: Tone; oneLine?: boolean };
 export type HeaderData = { title: string };
 export type GraphNode = Node<InfoData, "info"> | Node<HeaderData, "header">;
@@ -38,7 +40,9 @@ export function buildGraph(g: NetworkGraph): { nodes: GraphNode[]; edges: Edge[]
   g.companies.forEach((co, i) =>
     info(`company:${co.customer_id}`, x.company, centred(g.companies.length, i, mid, GROUP), { caption: "Company", title: co.name, tone: "company" }));
   g.sites.forEach((s, i) => {
-    info(`site:${s.os_id}`, x.sites, i * ROW, { title: s.name, detail: countryName(s.country_code), tone: "osh", oneLine: true });
+    info(`site:${s.os_id}`, x.sites, i * ROW, s.conflict
+      ? { title: s.name, detail: `${countryName(s.country_code)} · in conflict`, tone: "conflict", oneLine: true }
+      : { title: s.name, detail: countryName(s.country_code), tone: "osh", oneLine: true });
     s.companies.forEach((cid) => line(`has:${cid}:${s.os_id}`, `company:${cid}`, `site:${s.os_id}`));
   });
   if (g.more_sites) info("more", x.sites, g.sites.length * ROW, { title: `+${g.more_sites} more ${g.more_sites === 1 ? "site" : "sites"}`, tone: "more", oneLine: true });
@@ -53,7 +57,7 @@ export function buildGraph(g: NetworkGraph): { nodes: GraphNode[]; edges: Edge[]
     y += (g.owners.length - 1) * GROUP + BELOW;
   }
 
-  const rejected = c.verdict === "no", confirmed = c.verdict === "yes";
+  const rejected = c.verdict === "no", confirmed = c.verdict === "yes" && c.confirmed_sites > 0;   // yes, and not every link in conflict
   info("gleif", x.right, y, {
     caption: rejected ? "GLEIF · rejected" : "GLEIF", title: c.gleif_legal_name,
     detail: `LEI ${c.lei} · ${countryName(c.gleif_country || null)}`, tone: rejected ? "rejected" : "gleif",
@@ -62,7 +66,9 @@ export function buildGraph(g: NetworkGraph): { nodes: GraphNode[]; edges: Edge[]
     const from = owner ? g.owners.map((o) => `owner:${o}`) : g.sites.map((s) => `site:${s.os_id}`);
     from.forEach((source, i) => line(`candidate:${source}`, source, "gleif", {
       ...(owner ? { sourceHandle: "b", targetHandle: "t" } : {}),
-      label: i === 0 ? (confirmed ? "confirmed" : "candidate (not confirmed)") : undefined,
+      label: i > 0 ? undefined : c.conflict_sites && c.verdict === "yes"
+        ? (confirmed ? `confirmed; ${plural(c.conflict_sites, "site", "sites")} in conflict` : CONFLICT)
+        : confirmed ? "confirmed" : "candidate (not confirmed)",
       style: confirmed ? { stroke: CONFIRMED, strokeWidth: 2.25 } : { stroke: LINE, strokeWidth: 1.5, strokeDasharray: "6 5" },
       markerEnd: arrow(confirmed ? CONFIRMED : LINE),
     }));
