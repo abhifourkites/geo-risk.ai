@@ -86,6 +86,7 @@ Raw-material tracing needs the company's own supplier data: supplier, location, 
 - **Every country in the demo data has an outline at 1:50m.** A country with no outline (none today) would be named under the map, and its sites would still show.
 - **Parent names show as written in GLEIF's file**, in upper case (for example COATS GROUP PLC).
 - **A new GLEIF API search needs the internet**, and takes about a second per owner name not searched before (Amazon: about 5 minutes). Cached answers do not need the internet.
+- **Generic one-word owner names (for example DELTA, FLEX, MAS) inflate the "possible" list.**
 - **The GLEIF API search matches legal names only** ("contains"). Groups whose GLEIF legal name is in another script are not found by their English name (on 2 Oct 2026: LG DISPLAY, MURATA MANUFACTURING, TOKYO ELECTRON), and a subsidiary can come first (WISTRON: Wistron Hong Kong). Every candidate waits for a person's verdict.
 
 ## 7. How to run from a clean clone

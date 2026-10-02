@@ -179,6 +179,13 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - *Taking only the most likely candidate's verdict for a site and LEI (as the CSV-only build did):* a confirm on one candidate could be hidden by an undecided candidate for the same site, so a confirmed match would not show its parent.
   - *Letting yes win over no on one link:* two people who disagree would see a parent that neither has settled.
   - *Trusting GLEIF name matches:* "FAR EASTERN" matched a Taiwanese bank and a securities firm, and "XING YE" matched a Hong Kong bank branch (`興業銀行股份有限公司香港分行`).
+  - *A "generic name" rule* (demote candidates when one owner name has N or more equal-name matches in countries outside its site countries). Tested read-only on 2 Oct 2026:
+    - with N = 5, MAS is not caught (it has only 3: MAS (BE), MAS (FR), Momentum Advisory Services (BE));
+    - AVERY DENNISON at Amazon also has exactly 3, including AVERY DENNISON CORPORATION (US), which GLEIF records as the parent of PT Paxar Indonesia;
+    - so N = 3 catches both, and N = 4 catches neither.
+    - A "one-word name" variant would also demote every equal-name candidate of FLEX and DELTA, which are owner names on the lists; whether the right company is among those candidates was not checked.
+
+    We kept the rules as they are: "possible" is broad on purpose, because a group can be registered in another country from its sites, and a person reviews "likely" first.
 - **Gave up:**
   - One company can be split. Nike's 3 "SHAHI" sites are not linked to adidas's 4 "SHAHI EXPORTS" sites.
   - Names that differ only by accents also stay apart.
