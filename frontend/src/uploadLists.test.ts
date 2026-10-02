@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { visibleLists } from "./uploadLists";
+import { prefill, visibleLists } from "./uploadLists";
 
 // List strings as in data/demo/facilities.csv (site counts from that file)
 const lists = [
@@ -12,6 +12,27 @@ const lists = [
 const hidden = new Set(["A Brand / Retailer", "Pou Chen Group (Claimed)"]);
 const names = (o: Partial<Parameters<typeof visibleLists>[1]>) =>
   visibleLists(lists, { query: "", showAll: false, hidden, picked: new Set(), first: [], ...o }).map((l) => l.list);
+
+describe("upload pre-fill", () => {
+  it("ticks only the current lists, and fills in the name", () => {
+    // Amazon's lists in an Amazon download (2 Oct 2026, not in the repo), as POST /api/uploads returns them
+    const amazon = {
+      name: "Amazon.com, Inc.", rows: 3798, share: 1,
+      lists: ["Amazon.com, Inc. (Amazon Facility List 2024)", "Amazon.com, Inc. (Amazon Facility List 2023)",
+              "Amazon.com, Inc. (Amazon Facility List 2022)", "Amazon.com, Inc. (Amazon Facility List 2026)", "Amazon.com, Inc."],
+      current_lists: ["Amazon.com, Inc. (Amazon Facility List 2026)"],
+    };
+    const p = prefill(amazon);
+    expect([...p.picked]).toEqual(["Amazon.com, Inc. (Amazon Facility List 2026)"]);
+    expect([...p.current]).toEqual(["Amazon.com, Inc. (Amazon Facility List 2026)"]);
+    expect(p.name).toBe("Amazon.com, Inc.");
+  });
+
+  it("fills in nothing when no company is picked", () => {
+    const p = prefill(null);
+    expect([p.picked.size, p.current.size, p.name]).toEqual([0, 0, ""]);
+  });
+});
 
 describe("upload list table", () => {
   it("hides anonymous types and (Claimed) entries unless Show all lists is ticked", () => {

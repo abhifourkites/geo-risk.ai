@@ -1,5 +1,6 @@
-"""Upload page pre-fill (contributors.py). On each demo file the pre-filled picks equal the seed file's
-(data/demo/demo_companies.json), and loading with them gives the same numbers as the seed."""
+"""Upload page pre-fill (contributors.py). The page ticks a company's current lists only, and marks them current.
+On each demo file these equal the seed file's picks (data/demo/demo_companies.json), and loading with them gives
+the same numbers as the seed."""
 import json
 
 import pytest
@@ -67,10 +68,10 @@ def test_adidas_and_nike_file_shows_suggestions():
         ("Social & Labor Convergence Program (SLCP)", 691), ("Partnership for Sustainable Textiles (PST)", 644)]
     assert "A Brand / Retailer" in s["hidden"] and "Pou Chen Group (Claimed)" in s["hidden"]
     adidas, nike = picked(s, "adidas"), picked(s, "Nike")
-    assert (adidas["lists"], adidas["current_lists"]) == (DEMO["adidas"]["lists"], DEMO["adidas"]["current_lists"])
-    assert nike["current_lists"] == DEMO["nike"]["current_lists"]       # only February 2024
-    # all 4 Nike lists are ticked; the seed ticks only the current one (the older 3 are not current)
-    assert set(nike["lists"]) - set(DEMO["nike"]["lists"]) == {
+    assert adidas["current_lists"] == DEMO["adidas"]["lists"] == DEMO["adidas"]["current_lists"]   # its 3 Jan/Apr 2026 lists
+    assert nike["current_lists"] == DEMO["nike"]["lists"] == DEMO["nike"]["current_lists"]         # only February 2024
+    # Nike's 3 older lists are not current, so not ticked; they are returned so the page can show them first
+    assert set(nike["lists"]) - set(nike["current_lists"]) == {
         "Nike [Public List] (Nike Inc. Brand(s) August 2023 Facility List)",
         "Nike [Public List] (Nike Inc. February 2022 Facility List)",
         "Nike [Public List] (Nike Facility List November 2020)"}
@@ -82,7 +83,7 @@ def test_a_one_company_file_preselects_it(cid):
     s = suggest(d["file"])
     assert s["preselect"] == d["name"]
     c = picked(s, d["name"])
-    assert (c["share"], c["lists"], c["current_lists"]) == (1.0, d["lists"], d["current_lists"])
+    assert c["share"] == 1.0 and c["current_lists"] == d["lists"] == d["current_lists"]
 
 
 def _same_order(v: dict) -> dict:
@@ -97,21 +98,14 @@ def test_loading_with_the_pre_filled_picks_gives_the_seed_numbers(conn):
         raw = (loader.DEMO_DIR / d["file"]).read_bytes()
         c = picked(contributors.suggest(loader.read_rows(raw)), d["name"])
         test_id = f"prefill-{cid}"
-        loader.load_customer(conn, test_id, d["name"], raw, c["lists"], c["current_lists"])
+        loader.load_customer(conn, test_id, d["name"], raw, c["current_lists"], c["current_lists"])   # as the page sends them
         try:
             seed, new = measures.view(conn, cid), measures.view(conn, test_id)
             for v in (seed, new):
                 v.pop("customer")
             seed_lists, new_lists = seed.pop("lists"), new.pop("lists")
             assert _same_order(new) == _same_order(seed), cid
-            if cid == "nike":     # all 4 Nike lists ticked: "Your lists" also names the 3 older ones its sites are on
-                assert (seed_lists, new_lists) == (DEMO["nike"]["lists"], [
-                    "Nike [Public List] (Nike Inc. Brand(s) February 2024 Facility List)",
-                    "Nike [Public List] (Nike Inc. Brand(s) August 2023 Facility List)",
-                    "Nike [Public List] (Nike Inc. February 2022 Facility List)",
-                    "Nike [Public List] (Nike Facility List November 2020)"])
-            else:
-                assert new_lists == seed_lists, cid
+            assert new_lists == seed_lists == d["current_lists"], cid
         finally:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM customer WHERE customer_id = %s", (test_id,))

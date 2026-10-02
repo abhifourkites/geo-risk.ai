@@ -17,7 +17,7 @@ import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
 import { api, type Contributor, type UploadResult } from "./api";
 import { pct } from "./format";
-import { visibleLists } from "./uploadLists";
+import { prefill, visibleLists } from "./uploadLists";
 
 /** Upload page: file in; the company is found (or picked from suggestions), its lists ticked and the current ones
  *  marked; the person checks the choices and loads. Nothing loads without "Load this company". */
@@ -43,12 +43,10 @@ export default function Upload(props: { onDone: (customer_id: string) => void })
     setter(next);
   };
 
-  /** Tick all the company's lists, mark the current ones, and fill in its name (all can still be changed). */
+  /** Tick and mark the company's current lists, and fill in its name (all can still be changed). */
   function choose(c: Contributor | null) {
-    setChosen(c);
-    setPicked(new Set(c?.lists ?? []));
-    setCurrent(new Set(c?.current_lists ?? []));
-    setName(c?.name ?? "");
+    const p = prefill(c);
+    setChosen(c); setPicked(p.picked); setCurrent(p.current); setName(p.name);
   }
 
   async function onFile(file: File | undefined) {
@@ -82,7 +80,7 @@ export default function Upload(props: { onDone: (customer_id: string) => void })
         <Box component="ol" sx={{ pl: 3, my: 1.5 }}>
           <li><Typography variant="body2">Choose an Open Supply Hub download (CSV). Personal contact columns (<code>claim_*</code>) are dropped.</Typography></li>
           <li><Typography variant="body2">The company is filled in: the one company on every row of the file, or the one you pick from the suggestions.
-            All its lists are ticked, and the lists with the latest year in their name are marked current.</Typography></li>
+            Its lists with the latest year in their name are ticked and marked current; tick its other lists by hand if needed.</Typography></li>
           <li><Typography variant="body2">Check the lists and the name, change them if needed, and load. Only sites on a current list that are not closed are loaded.
             A new upload replaces only this company's data.</Typography></li>
         </Box>

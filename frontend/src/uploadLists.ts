@@ -1,5 +1,13 @@
-/** Which rows the upload page's list table shows, and in what order. */
+/** Which rows the upload page's list table shows, and in what order; and what picking a company fills in. */
+import type { Contributor } from "./api";
+
 export interface ListRow { list: string; sites: number }
+
+/** Picking a company ticks only its current lists, marks them current, and fills in its name. Its other lists
+ *  stay unticked (they are shown first, so they can be ticked by hand). */
+export function prefill(c: Contributor | null): { picked: Set<string>; current: Set<string>; name: string } {
+  return { picked: new Set(c?.current_lists ?? []), current: new Set(c?.current_lists ?? []), name: c?.name ?? "" };
+}
 
 /** The chosen company's lists first, then the rest as the file has them (most sites first). Anonymous types and
  *  "(Claimed)" entries (`hidden`) are left out unless `showAll` is ticked or the list is ticked; `query` matches
