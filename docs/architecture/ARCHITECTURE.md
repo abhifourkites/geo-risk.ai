@@ -83,8 +83,9 @@ erDiagram
     text customer_id PK
     text os_id PK
     text lei PK "GLEIF company ID"
-    text review_level "likely, possible, unlikely"
+    text review_level "likely, possible, unlikely (the written rules)"
     text person_verdict "yes, no, conflict or empty"
+    text file_review_level "the GLEIF file's own level, for reference"
   }
   gleif_verdict {
     text kind PK "owner or site"

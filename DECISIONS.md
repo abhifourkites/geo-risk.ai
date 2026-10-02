@@ -99,7 +99,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   | Samsung | 102 | 90 (12 cached) | 103 s | 57 | 8 / 49 / 235 |
   | Amazon | 273 | 266 (7 cached) | 308 s | 124 | 50 / 91 / 279 |
 
-  No request failed or was answered 429. Each company's 10 largest owners, by their first candidate (our reading of the names and countries, not a check of company records):
+  These levels are from the first rules (legal name only, no cap). The current rules rate stored results again on start, from the cache, without a request. No request failed or was answered 429. Each company's 10 largest owners, by their first candidate (our reading of the names and countries, not a check of company records):
   - Apple: the group found for 5 (INTEL, MICRON TECHNOLOGY, HENKEL, CATCHER TECHNOLOGY, INFINEON); a subsidiary first for 2 (WISTRON: Wistron Hong Kong; PEGATRON: PEGATRON Czech); a same-name company in another country first for 1 (FLEX: "Flex", BE); not found for 2 (LG DISPLAY, QUALCOMM TECHNOLOGIES). We had expected about 5 right, 2 subsidiary-first and 3 not found.
   - Samsung: the group found for 2 (THE DOW CHEMICAL, ENTEGRIS); a subsidiary first for 4 (HITACHI: HITACHI AMERICA; SAMSUNG ELECTRO MECHANICS: an Indian software unit; ELENTEC: ELENTEC INDIA; TDK: TDK HOLDING, FR); not found for 4 (TAIYO YUDEN, MURATA MANUFACTURING, TAIYO NIPPON SANSO, TOKYO ELECTRON).
   - Amazon: the group found for 3 (AVERY DENNISON, BRANDIX ASIA, CONSERVE ITALIA); a subsidiary first for 1 (LDH LA DORIA: LDH (LA DORIA) LIMITED, GB); another company first for 2 (GS MARKETING: GS PACIFIC MARKETING, AU; OMEGA PHARMA: OMEGA PHARMA, IN); not found for 4 (GREAT GIANT FIBRE GARMENT, YKK TAIWAN, EPIC GARMENTS DWC, INTERLOOP).
@@ -151,13 +151,23 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - **A self-named owner is kept when it is the site's only owner.**
   - **"NULL" (any case) is a placeholder, like NO GROUP (..), N/A and NA:** data/demo/facilities.csv has "null" as an owner value 6 times, and counting it made a fake owner "NULL" (4 adidas sites, 2 Nike sites).
   - **GLEIF name matches are candidates** until a person confirms them, on the Company network page (Confirm / Reject / Undo), not only by editing the CSV: "an interface that only its author can operate has failed" (brief 3.3).
-  - **GLEIF API candidates are rated with written rules** (`gleif_api.rate`; names compared after R4 cleaning; the country is GLEIF's legal-address country):
-    - likely: the GLEIF legal name equals our owner name, its country is one of the owner's site countries, and the entity is ACTIVE;
-    - possible: an equal name in another country, or the GLEIF name starts with our name, as whole words, in one of the owner's site countries (subsidiaries such as "HITACHI AMERICA" or "Avery Dennison België");
-    - unlikely: everything else.
-    - Flags: not active, registration lapsed, fund (FUND), sole proprietor (SOLE_PROPRIETOR).
-    - Each company sees a shared candidate (the same owner name and LEI, one verdict) rated with its own site countries.
-  - **The same rules, applied read-only to the slice file's 440 candidates, agree on 270** (the file's levels are not changed): of the file's 30 likely, 21 are likely by the rules (2 possible, 7 unlikely); of its 48 possible, 20 (16 likely, 12 unlikely); of its 362 unlikely, 229 (3 likely, 130 possible). The main differences: 130 generic names with an equal name in another country (for example MAS in BE and FR) are unlikely in the file but possible by the rules; 16 names become equal once R4 removes words such as PRIVATE LIMITED (SHAHI EXPORTS); 7 site names that the file matched on GLEIF's other or transliterated names are unlikely by the legal name alone.
+  - **One set of written rules rates every GLEIF candidate** (`rating.py`), for every company: the slice file's 440 (adidas, Nike) and GLEIF API results (any other company). The file's own level is kept for reference (`file_review_level`; on the Company network page as "file: …" where it differs).
+    - Names are compared after R4 cleaning, and, for this comparison only, without DE CV, SRL, S R L and PTE; R4 itself is unchanged. Evidence: row 3 "VERTICAL KNITS SA DE CV" (MX) and row 13 "L.I.M. (LAVORAZONI INDUSTRIALI METALLICHE) S.R.L." (IT).
+    - Our name is compared with the GLEIF legal name and with each GLEIF other name (the file's matched name when it matched an other name; the API's `entity.otherNames`); the best match decides. Evidence: rows 5, 10, 22, 23, 24 and 26 matched on GLEIF other names in the file, but their legal names are Vietnamese, Chinese or French. Transliterated other names are not used: 26 file rows matched one, and using them would change 12 (11 unlikely → possible, 1 unlikely → likely).
+    - likely: an equal name, the GLEIF country (legal address) is one of the owner's site countries, and the entity is ACTIVE; **capped at possible** when the GLEIF category is SOLE_PROPRIETOR or FUND or the registration is LAPSED. Evidence: rows 173, 223 and 289 are sole proprietors; without the cap ARYAN APPARELS would have two likely LEIs.
+    - possible: an equal name in another country, or a GLEIF name that starts with our name, as whole words, in one of the owner's site countries (subsidiaries such as "HITACHI AMERICA" or "Avery Dennison België").
+    - unlikely: everything else. Flags: not active, registration lapsed, fund, sole proprietor.
+    - Each company sees a candidate it shares with another company (the same owner name and LEI, one verdict) rated with its own site countries.
+  - **Agreement with the slice file's own levels: 241 of 440** (with the first rules, legal name only and no cap: 270):
+
+    | File level | Rules: likely | Rules: possible | Rules: unlikely |
+    |---|---|---|---|
+    | 30 likely | 17 | 13 | 0 |
+    | 48 possible | 16 | 25 | 7 |
+    | 362 unlikely | 0 | 163 | 199 |
+
+    The other names moved 37 (2 possible → likely, 11 unlikely → likely, 24 unlikely → possible), the dropped words 8 (1 possible → likely, 7 unlikely → possible), and the cap 21 (likely → possible: 17 lapsed, 3 lapsed sole proprietors, 1 sole proprietor). Of the 163 the file calls unlikely and the rules possible, 156 are an equal name in another country, and 125 are names the file marked "generic name / fund / sole proprietor".
+  - **Under the rules:** adidas 25 likely, 107 possible, 89 unlikely (the file: 23 / 40 / 158); Nike 10 / 151 / 184 (the file: 9 / 28 / 308); all 440: 33 / 201 / 206 (the file: 30 / 48 / 362). PT. Paxar Indonesia, PT. COATS REJO INDONESIA and Racing Force S.p.A. stay likely. 32 distinct LEIs are likely, 5 of them with a GLEIF parent record (the file: 30 and 3); the 2 more are MAS Active (Private) Limited (LK) and ACE TURTLE OMNI PRIVATE LIMITED (IN), whose parents' names are not in our GLEIF files.
   - **A site linked to one LEI by two candidates:** yes from one and nothing from the other confirms the link; no from one and nothing from the other rejects it; **yes from one and no from the other is a conflict**: the link is not confirmed (no parent shown), and the Company network list marks both candidates "conflicting verdicts – needs review", each naming the other. 47 links of adidas and Nike sites are reached by two candidates, for example one site's two owner names FAR EASTERN and FAR EASTERN NEW CENTURY (LEI 25490051NUU24RRHW523, which has a GLEIF parent). The slice file also has one question twice: VERTICAL KNITS with LEI 4469000001E9305R6057 (an exact match on another name, and a starts-with match on the legal name); both rows share one verdict.
   - **13 rows of the slice file reach one more site than its `our_sites` column says** (FAR EASTERN 8 → 9 on 10 rows, POU CHEN 13 → 14, UNIVERSAL APPAREL 1 → 2 on 2 rows): the file's counts used the older owner rule that dropped every self-named owner; the current rule keeps a sole self-named owner, so each name reaches one more site (CN2019093WZSXE8 "FAR EASTERN", TW202206598XFKC "Pou Chen Corporation", TH2019098FKBF6V "Universal Apparel Co.,Ltd"). The page shows the sites the app links.
 - **Against:**
@@ -165,6 +175,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - *Dropping non-Latin letters:* owners written only in Chinese would disappear, for example `三芳化學工業股份有限公司`.
   - *Always dropping a self-named owner:* it deleted real owner groups, such as INTEL (9 Apple sites) and HITACHI (9 Samsung sites). Owner known fell to 21 of 749 Apple sites and 8 of 187 Samsung sites.
   - *Never dropping it:* a site that lists itself next to its real parent would show a false conflict. Conflicts would rise from 187 to 204 for adidas, and from 231 to 256 for Nike.
+  - *Keeping the file's levels for adidas and Nike:* two rule sets for one question, and the file's were not written down.
   - *Taking only the most likely candidate's verdict for a site and LEI (as the CSV-only build did):* a confirm on one candidate could be hidden by an undecided candidate for the same site, so a confirmed match would not show its parent.
   - *Letting yes win over no on one link:* two people who disagree would see a parent that neither has settled.
   - *Trusting GLEIF name matches:* "FAR EASTERN" matched a Taiwanese bank and a securities firm, and "XING YE" matched a Hong Kong bank branch (`興業銀行股份有限公司香港分行`).
@@ -173,6 +184,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - Names that differ only by accents also stay apart.
   - A company can count as its own owner.
   - No GLEIF parent is shown until a person confirms the match; 0 are confirmed today.
+  - The rules know no "generic name": an equal name in another country is possible however common the name, so many more file candidates are possible than the file said (201 against 48).
 - **Would change our mind:** A reliable company identifier across sources (for example a confirmed LEI), or a reviewed list of name variants.
 
 ## 6. Location level: country only in the MVP
