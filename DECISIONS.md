@@ -267,3 +267,27 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - The company's own tier definitions.
   - Supplier performance data.
   - A daily supplier feed.
+
+## 9. Map styles: Plain by default; Map and Satellite from free services
+
+- **Chose:** a map-style switch on the Risk map: Plain, Map and Satellite (`frontend/src/basemap.ts`). The app's own layers (High / Watch country fills, disaster areas, sites, clusters) are drawn on top in every style, in flat and globe view.
+  - **Plain** (the default): the committed Natural Earth 1:50m outlines. It needs no outside service.
+  - **Map** (place names): OpenFreeMap's "liberty" style, `https://tiles.openfreemap.org/styles/liberty` (111 layers, 23 with text labels, 2 Oct 2026). The style's sources carry no attribution, but its vector source's TileJSON (`https://tiles.openfreemap.org/planet`) does: "OpenFreeMap © OpenMapTiles Data from OpenStreetMap". The app sets one attribution on that source, so nothing is shown twice: OpenFreeMap, © OpenMapTiles, and "© OpenStreetMap contributors" linking https://www.openstreetmap.org/copyright.
+  - **Satellite:** EOX Sentinel-2 cloudless, the WMTS layer without a year (`s2cloudless_3857`, Web Mercator, zoom 0–14), with EOX's required attribution word for word, "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017)", and a CC BY 4.0 link.
+  - **A tile service that does not respond** (no answer within 8 s when chosen, or a failed request later; a missing tile does not count) gives Plain again, with a one-line notice under the map. The rest of the app does not use these services.
+  - The attributions are always shown in full, to the right of the legend. MapLibre's default (`compact: true`) folds them into a button, and on a 921 px map hid them after the first drag.
+- **Facts (fetched 2 Oct 2026):**
+  - EOX's WMTS capabilities (`https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml`): the layers without a year are "Sentinel-2 cloudless layer for 2016 by EOX", "released under Creative Commons Attribution 4.0 International License"; the 2018 to 2025 layers are "Creative Commons Attribution-NonCommercial-ShareAlike 4.0". The capabilities also mark the 2017 layers CC BY 4.0.
+  - EOX's licence page (`https://cloudless.eox.at/license-non-commercial`; s2maps.eu now redirects to cloudless.eox.at): "For the years 2018 to 2025, EOxCloudless WM(T)S layers is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License", and "For the year 2016, EOxCloudless is licensed under the Creative Commons Attribution 4.0 International License". It lists no 2017 version. Its required attribution for 2016 reads "…data 2016 & 2017"; the capabilities text for the same layer reads "…data 2016".
+  - EOX's licence summary (`https://cloudless.eox.at/documentation/license`): "Attribution must be clearly visible wherever the imagery is displayed. For interactive maps, the credit should appear in the map interface."
+  - OpenFreeMap (`https://openfreemap.org`): "Using our public instance is completely free: there are no limits on the number of map views or requests." "There's no registration, no user database, no API keys, and no cookies." "Attribution is required."
+- **Against:**
+  - *Google map tiles:* "Google Maps Platform products require an API key for authentication and billing purposes, associating your project with your Google billing account" (Map Tiles API setup). Google's terms (3.2.3 (a), "No Scraping"): "Customer will not export, extract, or otherwise scrape Google Maps Content for use outside the Services", for example "bulk download Google Maps tiles", so tile URLs cannot be used directly. And 3.2.3 (e), "No Use With Non-Google Maps": "Customer will not use the Google Maps Core Services with or near a non-Google Map", which a switch next to OpenFreeMap and EOX would be.
+  - *EOX's 2018 to 2025 imagery:* non-commercial use only; commercial use needs EOX's paid licence.
+  - *EOX's 2017 layer:* marked CC BY 4.0 in the capabilities, but not on EOX's licence page, so it is not used.
+  - *A tile style as the default:* Plain works with no internet and no outside service.
+- **Gave up:**
+  - The satellite imagery is from 2016, the newest year EOX allows for commercial use without its paid licence.
+  - Map and Satellite need the internet, and depend on two free services with no service-level promise.
+  - On Map, the High and Watch fills are drawn over the style's place names, which they dim.
+- **Would change our mind:** A commercial EOX licence (newer imagery), or a map service FourKites already pays for.
