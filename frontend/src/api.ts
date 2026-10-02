@@ -42,6 +42,12 @@ export interface SiteDetail {
   gleif: { candidates: number; confirmed: { lei: string; parents: { type: string; parent_lei: string; parent_name: string | null }[] }[] };
 }
 export interface OwnerDetail { owner: string; sites: { os_id: string; name: string; country_code: string | null }[]; countries: string[]; all_in_one_country: boolean }
+/** A contributor of the uploaded file, for the upload page's pre-fill (backend/app/contributors.py). */
+export interface Contributor { name: string; rows: number; share: number; lists: string[]; current_lists: string[] }
+export interface UploadResult {
+  upload_id: string; rows: number; lists: { list: string; sites: number }[];
+  contributors: Contributor[]; preselect: string | null; hidden: string[];
+}
 export interface HazardDetail {
   event: { event_id: string; event_type: string; name: string; alert_level: string; level: Level };
   sites: (HazardSite & { owners: string[] })[];
@@ -67,7 +73,7 @@ export const api = {
   refreshHazards: () => call<HazardStatus>("/api/hazards/refresh", { method: "POST" }),
   upload: (file: File) => {
     const f = new FormData(); f.append("file", file);
-    return call<{ upload_id: string; rows: number; lists: { list: string; sites: number }[] }>("/api/uploads", { method: "POST", body: f });
+    return call<UploadResult>("/api/uploads", { method: "POST", body: f });
   },
   confirm: (id: string, body: { name: string; lists: string[]; current_lists: string[] }) =>
     call<{ customer_id: string; open_sites: number; gleif_matches: number; as_of: string }>(`/api/uploads/${enc(id)}/confirm`, {
