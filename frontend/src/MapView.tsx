@@ -17,7 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { SxProps, Theme } from "@mui/material/styles";
 import Map, { Layer, NavigationControl, Source, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
 import type { View } from "./api";
-import { countryName, threshold } from "./format";
+import { countryName, shortEventName, threshold } from "./format";
 import { boundsOf, coordsOf, sphericalMean, WORLD, type Focus } from "./geo";
 import { RISK } from "./theme";
 
@@ -187,7 +187,7 @@ export default function MapView(props: {
     else if (f.layer.id === "land") {
       const c = view.countries.find((x) => x.country_code === p.ISO_A2_EH);
       setTip({ ...at, title: p.NAME, sub: c?.level ? `${c.level}: ${(c.share * 100).toFixed(1)}%` : c ? `${c.sites} of your sites` : "None of your sites" });
-    } else setTip({ ...at, title: p.name, sub: `Disaster area (alert: ${p.alert_level})` });
+    } else setTip({ ...at, title: shortEventName(p.name), sub: `Disaster area (alert: ${p.alert_level})` });
   };
   const onClick = async (e: MapLayerMouseEvent) => {
     const f = top(e);

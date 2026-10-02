@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 import type { CountryShare, HazardDetail, OwnerDetail, OwnerShare, SiteDetail, View } from "./api";
 import type { CardKind } from "./Cards";
 import { AlertChip, LevelChip, TypeChip } from "./Chips";
-import { CERTIFICATE_WARNINGS, countryName, pct, plural, threshold, WARNINGS } from "./format";
+import { CERTIFICATE_WARNINGS, countryName, eventName, parentName, pct, plural, shortEventName, threshold, WARNINGS } from "./format";
 import { basisWords, disasterEvents } from "./summary";
 
 export type Detail =
@@ -81,11 +81,11 @@ function SitePanel({ d, go }: { d: SiteDetail; go: Go }) {
           : d.hazards.length === 0 && d.hazards_unlisted.length === 0 ? <Typography variant="body2">Not inside a current disaster area.</Typography>
           : <List dense disablePadding>
               {d.hazards.map((h) => (
-                <Pick key={h.event_id} onClick={() => go.disaster(h.event_id)} primary={h.event_name}
+                <Pick key={h.event_id} onClick={() => go.disaster(h.event_id)} primary={shortEventName(h.event_name)}
                       secondary={h.level ? `${h.level} for your sites` : undefined} end={<AlertChip alert={h.alert_level} />} />
               ))}
               {d.hazards_unlisted.map((h) => (
-                <Pick key={`unlisted:${h.event_id}`} onClick={() => go.disaster(h.event_id)} primary={h.event_name}
+                <Pick key={`unlisted:${h.event_id}`} onClick={() => go.disaster(h.event_id)} primary={shortEventName(h.event_name)}
                       secondary={`Not counted: ${notListed(h.country_code)}.`} />
               ))}
             </List>}
@@ -97,7 +97,7 @@ function SitePanel({ d, go }: { d: SiteDetail; go: Go }) {
         {d.gleif.confirmed.length === 0 ? <Typography variant="body2">No confirmed parent company.</Typography> : d.gleif.confirmed.map((m) => (
           m.parents.length === 0
             ? <Typography key={m.lei} variant="body2">Confirmed company (LEI {m.lei}); no parent company recorded in GLEIF.</Typography>
-            : <List key={m.lei} dense disablePadding>{m.parents.map((p) => <Plain key={p.type}>{PARENT_TYPE[p.type] ?? p.type}: {p.parent_name ?? `LEI ${p.parent_lei}`}</Plain>)}</List>
+            : <List key={m.lei} dense disablePadding>{m.parents.map((p) => <Plain key={p.type}>{PARENT_TYPE[p.type] ?? p.type}: {parentName(p)}</Plain>)}</List>
         ))}
       </Section>
       <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 2 }}>
@@ -134,7 +134,7 @@ function DisasterPanel({ d, go }: { d: HazardDetail; go: Go }) {
   const unlisted = [...byCountry].sort(([a], [b]) => countryName(a || null).localeCompare(countryName(b || null)));
   return (
     <>
-      <Header type="Disaster" name={e.name}>
+      <Header type="Disaster" name={eventName(e.name)}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
           <AlertChip alert={e.alert_level} />
           {e.level && <><Typography variant="body2">so your sites inside are at</Typography><LevelChip level={e.level} /></>}
@@ -231,7 +231,7 @@ function CardPanel({ card, view, high, watch, go }: { card: CardKind; view: View
       {st !== "ok" ? <Typography variant="body2">{st === "loading" ? "Checking for current disasters…" : "Disaster data unavailable."}</Typography>
         : events.length === 0 ? <Typography variant="body2">None of your sites is inside a current disaster area.</Typography>
         : <List dense disablePadding>{events.map((e) => (
-            <Pick key={e.event_id} onClick={() => go.disaster(e.event_id)} primary={e.name}
+            <Pick key={e.event_id} onClick={() => go.disaster(e.event_id)} primary={shortEventName(e.name)}
                   secondary={`${plural(e.sites.size, "site", "sites")}${e.level ? ` · ${e.level} for your sites` : ""}`} end={<AlertChip alert={e.alert_level} />} />
           ))}</List>}
     </>

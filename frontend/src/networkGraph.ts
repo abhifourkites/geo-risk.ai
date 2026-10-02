@@ -5,7 +5,7 @@
  *  Three columns: companies, sites, then (owner,) GLEIF company and parents one below the other. */
 import { MarkerType, type Edge, type Node } from "@xyflow/react";
 import type { NetworkGraph } from "./api";
-import { countryName, plural } from "./format";
+import { countryName, parentName, plural } from "./format";
 
 export type Tone = "company" | "osh" | "gleif" | "parent" | "rejected" | "more" | "conflict";
 export const CONFLICT = "conflicting verdicts – needs review";
@@ -77,7 +77,7 @@ export function buildGraph(g: NetworkGraph): { nodes: GraphNode[]; edges: Edge[]
   if (confirmed) {      // the backend sends parents only for a confirmed candidate; checked here too
     const by = Object.fromEntries(g.parents.map((p) => [p.type, p]));
     const parent = (id: string, y: number, type: string, p: NetworkGraph["parents"][number], caption = PARENT_CAPTION[type]) =>
-      info(id, x.right, y, { caption, title: p.parent_name ?? `LEI ${p.parent_lei}`, detail: `LEI ${p.parent_lei}`, tone: "parent" });
+      info(id, x.right, y, { caption, title: parentName(p), detail: p.parent_name ? `LEI ${p.parent_lei}` : undefined, tone: "parent" });
     const down = (id: string, source: string, target: string, label: string) =>
       line(id, source, target, { sourceHandle: "b", targetHandle: "t", label });
     let last = "gleif";

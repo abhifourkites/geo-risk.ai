@@ -41,8 +41,10 @@ export interface SiteDetail {
   owners: string[]; hazards: HazardSite[]; hazard_status: HazardStatus["state"];
   /** Events whose area holds the site, but which do not list its country as affected: not counted. */
   hazards_unlisted: HazardSite[];
-  gleif: { candidates: number; confirmed: { lei: string; parents: { type: string; parent_lei: string; parent_name: string | null }[] }[] };
+  gleif: { candidates: number; confirmed: { lei: string; parents: Parent[] }[] };
 }
+/** A parent company of a confirmed match. name_status: its name is known, being fetched from GLEIF, or not available there. */
+export interface Parent { type: string; parent_lei: string; parent_name: string | null; name_status?: "known" | "fetching" | "not_available" }
 export interface OwnerDetail { owner: string; sites: { os_id: string; name: string; country_code: string | null }[]; countries: string[]; all_in_one_country: boolean }
 /** A contributor of the uploaded file, for the upload page's pre-fill (backend/app/contributors.py). */
 export interface Contributor { name: string; rows: number; share: number; lists: string[]; current_lists: string[] }
@@ -79,7 +81,7 @@ export interface NetworkGraph {
   candidate: NetworkCandidate;
   companies: { customer_id: string; name: string }[];
   sites: NetworkSite[]; more_sites: number; owners: string[];
-  parents: { type: string; parent_lei: string; parent_name: string | null }[];
+  parents: Parent[];
   /** A confirmed GLEIF API candidate whose parents are still being fetched (in the background). */
   parents_fetching: boolean;
 }

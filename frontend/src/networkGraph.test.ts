@@ -49,6 +49,8 @@ describe("company network graph", () => {
     const g = { ...graph("yes"), parents: [{ type: "direct", parent_lei: "D", parent_name: "Direct Co" }, { type: "top", parent_lei: "T", parent_name: null }] };
     const { nodes, edges } = buildGraph(g);
     expect(nodes.filter((n) => n.id.startsWith("parent:")).map((n) => "title" in n.data && n.data.title)).toEqual(["Direct Co", "LEI T"]);
+    const fetched = buildGraph({ ...g, parents: [{ type: "direct", parent_lei: "D", parent_name: null, name_status: "not_available" }] }).nodes;
+    expect(fetched.find((n) => n.id === "parent:direct")!.data).toMatchObject({ title: "name not available (LEI D)" });
     expect(edges.filter((x) => x.id.startsWith("to:")).map((x) => `${x.source} -> ${x.target}: ${x.label}`)).toEqual([
       "gleif -> parent:direct: direct parent", "parent:direct -> parent:top: top parent"]);
   });

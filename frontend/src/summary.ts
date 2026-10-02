@@ -1,7 +1,7 @@
 /** The three answer cards, in plain words, from the numbers the API returns.
  *  The one-sentence summary comes from the backend (`sentence` in the view). */
 import type { CountryShare, HazardSite, OwnerShare, View } from "./api";
-import { countryName, pct, plural, threshold } from "./format";
+import { countryName, pct, plural, shortEventName, threshold } from "./format";
 
 export type SummaryInput = Pick<View, "coverage" | "countries" | "owners" | "hazards">;
 
@@ -62,6 +62,6 @@ export function disastersCard(v: SummaryInput): Card {
     : "None of your sites is inside a current disaster area";
   return {
     headline, more: null, note,
-    items: events.map((e) => ({ key: e.event_id, label: e.name, value: plural(e.sites.size, "site", "sites"), level: `alert: ${e.alert_level}` })),
+    items: events.map((e) => ({ key: e.event_id, label: shortEventName(e.name), value: plural(e.sites.size, "site", "sites"), level: `alert: ${e.alert_level}` })),
   };
 }
