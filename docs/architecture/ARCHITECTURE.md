@@ -84,7 +84,7 @@ erDiagram
     text os_id PK
     text lei PK "GLEIF company ID"
     text review_level "likely, possible, unlikely"
-    text person_verdict "yes, no or empty"
+    text person_verdict "yes, no, conflict or empty"
   }
   gleif_verdict {
     text kind PK "owner or site"
@@ -121,7 +121,7 @@ A site is inside a disaster area when its point lies in a current event's `hazar
 - `gleif_parent` is keyed on (`lei`, `type`), because a company can have both a direct and a top parent. `type` also allows `branch` (IS_INTERNATIONAL_BRANCH_OF).
 - `gleif_verdict` (an 8th table) holds the verdicts given on the Company network page. It is keyed like a candidate of the GLEIF slice file (`kind`, `our_names`, `lei`), so one verdict covers every company and site the candidate links to. No row means no verdict; every verdict starts empty.
   - It is created on backend start only if it does not exist, like every table. A start never resets data: existing companies, including uploaded ones, are kept, and no `docker compose down -v` is needed.
-  - On every start, and at once after each verdict, the candidates are linked again (`gleif_match` is rebuilt): a saved verdict is used over the file's `person_verdict` column, and a site linked to one LEI by two candidates is confirmed when either says yes, otherwise rejected when either says no.
+  - On every start, and at once after each verdict, the candidates are linked again (`gleif_match` is rebuilt): a saved verdict is used over the file's `person_verdict` column. For a site linked to one LEI by two candidates, a verdict from one and none from the other decides the link; yes from one and no from the other is stored as `conflict`: not confirmed, no parent shown, and marked "conflicting verdicts – needs review" on the page.
 - `site` has `warnings`, for the site warnings.
 - `hazard_event` has four more columns:
   - `event_type` and `episode_id`: the GDACS area request needs them.
