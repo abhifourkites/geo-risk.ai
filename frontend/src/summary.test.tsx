@@ -4,7 +4,8 @@ import AnswerCards from "./Cards";
 import type { OwnerShare } from "./api";
 import type { SummaryInput } from "./summary";
 
-// adidas, as GET /api/customers/adidas/view returned it on 30 Sep 2026: only the fields the cards read.
+// adidas, as GET /api/customers/adidas/view returned it on 30 Sep 2026 (owner counts as on 2 Oct 2026, after "null"
+// became an owner placeholder): only the fields the cards read.
 // The disaster sites are the 5 sites in flood FL1104183 on that day (live data; not read from GDACS here).
 const owner = (o: Partial<OwnerShare> & Pick<OwnerShare, "owner" | "share" | "sites" | "level" | "countries">): OwnerShare =>
   ({ all_in_one_country: false, country: null, ...o });
@@ -15,7 +16,7 @@ const owners = [
   owner({ owner: "HWASEUNG INDUSTRIES", share: 0.049030598067482375, sites: 10, level: null, countries: 3 }),
 ];
 const adidas: SummaryInput = {
-  coverage: { open_sites: 766, basis: "workers", workers_known: { known: 719, of: 766 }, owner_known: { known: 552, of: 766 }, location_known: { known: 766, of: 766 } },
+  coverage: { open_sites: 766, basis: "workers", workers_known: { known: 719, of: 766 }, owner_known: { known: 551, of: 766 }, location_known: { known: 766, of: 766 } },
   countries: [
     { country_code: "VN", share: 0.3152278581404079, sites: 157, workers_known: 149, level: "High" },
     { country_code: "ID", share: 0.1947850915083711, sites: 52, workers_known: 49, level: "High" },
@@ -25,7 +26,7 @@ const adidas: SummaryInput = {
     { country_code: "IN", share: 0.05033274721654394, sites: 40, workers_known: 35, level: "Watch" },
     { country_code: "TH", share: 0.025252199990609132, sites: 23, workers_known: 23, level: null },
   ],
-  owners: { top: owners, all: owners, at_high: 0, at_watch: 2, all_in_one_country: { count: 56, of_owners_with_2_plus_sites: 157 }, owner_known: { known: 552, of: 766 } },
+  owners: { top: owners, all: owners, at_high: 0, at_watch: 2, all_in_one_country: { count: 56, of_owners_with_2_plus_sites: 156 }, owner_known: { known: 551, of: 766 } },
   hazards: {
     status: { state: "ok", at: "2026-09-30T10:10:43", current_events: 251, areas: 404, error: null, repeated_rows: 24, repeated_by_type: { WF: 24 } },
     sites: ["TR201909837HW3X", "TR2019143NPNDKT", "TR2020029DMMXKT", "TR2020148B6AVBR", "TR202516839FJHW"].map(flood),
