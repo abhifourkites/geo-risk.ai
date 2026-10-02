@@ -28,6 +28,9 @@ setWorkerUrl(workerUrl);
 type World = FeatureCollection<Geometry, { ISO_A2_EH: string; NAME: string }>;
 
 const EMPTY: World = { type: "FeatureCollection", features: [] };
+// MapLibre's default attribution (compact: true) folds into a button and hides after the first drag; EOX's credit
+// "must be clearly visible" (DECISIONS #9). The MapLibre link is MapLibre's own default.
+const ATTRIBUTION = { compact: false, customAttribution: '<a href="https://maplibre.org/" target="_blank">MapLibre</a>' };
 const SMALL_AREA_DEG = 3;   // an area narrower than this (about 8 px at world zoom) also gets a ring marker
 const INTERACTIVE = ["selected-ring", "highlight", "site", "clusters", "disaster-ring", "disaster-fill", "land"];
 const SITE_LAYERS = new Set(["selected-ring", "highlight", "site"]);
@@ -231,15 +234,16 @@ export default function MapView(props: {
 
   return (
     <Box>
-      {/* the attributions (long for Satellite) wrap to the right of the legend, never over it */}
+      {/* the attributions (long for Satellite) wrap to the right of the legend, never over it, and stay legible over imagery */}
       <Box ref={box} sx={{ position: "relative", height: { xs: 380, md: 560 }, borderRadius: 2.5, overflow: "hidden", border: 1, borderColor: "divider", bgcolor: "#EEF1F2",
-                           "& .maplibregl-ctrl-bottom-right": { maxWidth: { sm: "calc(100% - 220px)" } } }}>
+                           "& .maplibregl-ctrl-bottom-right": { maxWidth: { sm: "calc(100% - 220px)" } },
+                           "& .maplibregl-ctrl-attrib": { bgcolor: "rgba(255, 255, 255, 0.85)" } }}>
         <Map ref={map} mapStyle={shown.style} styleDiffing={false} initialViewState={{ bounds: WORLD, fitBoundsOptions: { padding: 10 } }}
              projection={projection} renderWorldCopies={false} maxPitch={60}
              interactiveLayerIds={INTERACTIVE} cursor={tip ? "pointer" : "grab"}
              onMouseMove={onMove} onMouseLeave={() => { setHover(null); setTip(null); }} onClick={onClick}
              onLoad={onLoad} onIdle={onIdle} onError={onError}
-             style={{ width: "100%", height: "100%" }}>
+             style={{ width: "100%", height: "100%" }} attributionControl={ATTRIBUTION}>
           {/* Mounted from the start (empty until the file arrives), so the land layers are always added first,
               under the sites; mounted later, they were added on top and hid some clusters. After a change of map
               style, react-map-gl adds these sources and layers again, in this order, on top of the new style. */}
