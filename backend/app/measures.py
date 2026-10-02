@@ -62,15 +62,32 @@ def owner_shares(cur: psycopg.Cursor, c: str, basis: str, high: float, watch: fl
     return sorted(out, key=lambda x: (-x["share"], -x["sites"], x["owner"]))
 
 
+# A site's country is on the event's GDACS `affectedcountries` list; an event with no list (empty, or not stored yet)
+# uses the area alone. A site with no country is not on any list.
+LISTED = """(coalesce(cardinality(e.affected_countries), 0) = 0
+             OR coalesce(s.country_code = ANY(e.affected_countries), false))"""
+
+
+def _in_areas(cur: psycopg.Cursor, c: str, event_id: str | None, listed: bool) -> list[dict]:
+    cur.execute(f"""SELECT DISTINCT s.os_id, s.name, s.country_code, e.event_id, e.name AS event_name, e.alert_level
+                    FROM site s
+                    JOIN hazard_area a ON ST_Intersects(a.area, s.location)
+                    JOIN hazard_event e ON e.event_id = a.event_id AND e.is_current
+                    WHERE s.customer_id = %s AND (%s::text IS NULL OR e.event_id = %s) AND {"" if listed else "NOT "}{LISTED}
+                    ORDER BY e.event_id, s.os_id""", (c, event_id, event_id))
+    return [dict(r, level=HAZARD_LEVEL.get(r["alert_level"]) if listed else None) for r in cur.fetchall()]
+
+
 def hazard_sites(cur: psycopg.Cursor, c: str, event_id: str | None = None) -> list[dict]:
-    """The company's sites inside an affected area of a current GDACS event."""
-    cur.execute("""SELECT DISTINCT s.os_id, s.name, s.country_code, e.event_id, e.name AS event_name, e.alert_level
-                   FROM site s
-                   JOIN hazard_area a ON ST_Intersects(a.area, s.location)
-                   JOIN hazard_event e ON e.event_id = a.event_id AND e.is_current
-                   WHERE s.customer_id = %s AND (%s::text IS NULL OR e.event_id = %s)
-                   ORDER BY e.event_id, s.os_id""", (c, event_id, event_id))
-    return [dict(r, level=HAZARD_LEVEL.get(r["alert_level"])) for r in cur.fetchall()]
+    """The company's sites inside a current GDACS event: the site's point is inside an affected area, and its
+    country is in the event's affectedcountries list (an event with no list: the area alone)."""
+    return _in_areas(cur, c, event_id, listed=True)
+
+
+def hazard_sites_unlisted(cur: psycopg.Cursor, c: str, event_id: str | None = None) -> list[dict]:
+    """Sites inside an affected area of a current event, in a country the event does not list: not counted,
+    but shown (the hazard and site panels), so none is left out silently."""
+    return _in_areas(cur, c, event_id, listed=False)
 
 
 def hazard_areas(cur: psycopg.Cursor) -> list[dict]:
@@ -174,7 +191,9 @@ def site_detail(conn: psycopg.Connection, c: str, os_id: str) -> dict | None:
             return None
         cur.execute("SELECT owner_name FROM site_owner WHERE customer_id = %s AND os_id = %s ORDER BY 1", (c, os_id))
         owners = [r["owner_name"] for r in cur.fetchall()]
-        hz = [h for h in hazard_sites(cur, c) if h["os_id"] == os_id] if hazards.STATUS["state"] == "ok" else []
+        ok = hazards.STATUS["state"] == "ok"
+        hz = [h for h in hazard_sites(cur, c) if h["os_id"] == os_id] if ok else []
+        unlisted = [h for h in hazard_sites_unlisted(cur, c) if h["os_id"] == os_id] if ok else []
         cur.execute("""SELECT m.lei, m.review_level, m.person_verdict FROM gleif_match m
                        WHERE m.customer_id = %s AND m.os_id = %s ORDER BY m.review_level, m.lei""", (c, os_id))
         matches = cur.fetchall()
@@ -184,7 +203,7 @@ def site_detail(conn: psycopg.Connection, c: str, os_id: str) -> dict | None:
             cur.execute("SELECT type, parent_lei, parent_name FROM gleif_parent WHERE lei = %s ORDER BY type", (m["lei"],))
             parents.append({"lei": m["lei"], "parents": cur.fetchall()})
         return {"site": dict(site, workers_est=float(site["workers_est"]) if site["workers_est"] is not None else None),
-                "owners": owners, "hazards": hz, "hazard_status": hazards.STATUS["state"],
+                "owners": owners, "hazards": hz, "hazards_unlisted": unlisted, "hazard_status": hazards.STATUS["state"],
                 "gleif": {"candidates": len(matches), "confirmed": parents}}
 
 
@@ -205,7 +224,8 @@ def owner_detail(conn: psycopg.Connection, c: str, owner: str) -> dict | None:
 def hazard_detail(conn: psycopg.Connection, c: str, event_id: str) -> dict | None:
     """Multi-hop: event -> its sites -> their owners -> those owners' other sites (same company)."""
     with conn.cursor() as cur:
-        cur.execute("SELECT event_id, event_type, name, alert_level, is_current FROM hazard_event WHERE event_id = %s", (event_id,))
+        cur.execute("SELECT event_id, event_type, name, alert_level, is_current, coalesce(affected_countries, '{}') AS affected_countries "
+                    "FROM hazard_event WHERE event_id = %s", (event_id,))
         event = cur.fetchone()
         if not event:
             return None
@@ -227,4 +247,5 @@ def hazard_detail(conn: psycopg.Connection, c: str, event_id: str) -> dict | Non
             owners.setdefault(r["os_id"], []).append(r["owner_name"])
         return {"event": dict(event, level=HAZARD_LEVEL.get(event["alert_level"])),
                 "sites": [dict(s, owners=sorted(owners.get(s["os_id"], []))) for s in inside],
+                "unlisted": hazard_sites_unlisted(cur, c, event_id),      # inside the area, country not listed
                 "owners_other_sites": other}

@@ -76,10 +76,10 @@ def _site_square(conn, customer, os_id, half=0.001):     # about 100 m; the near
                                                 [x - half, y + half], [x - half, y - half]]]}
 
 
-def _add_event(conn, event_id, alert, geometry, current=True):
+def _add_event(conn, event_id, alert, geometry, current=True, countries=None):
     with conn.transaction(), conn.cursor() as cur:
-        cur.execute("INSERT INTO hazard_event (event_id, alert_level, is_current, event_type, episode_id, name) "
-                    "VALUES (%s, %s, %s, 'FL', 1, %s)", (event_id, alert, current, f"Test {event_id}"))
+        cur.execute("INSERT INTO hazard_event (event_id, alert_level, is_current, event_type, episode_id, name, affected_countries) "
+                    "VALUES (%s, %s, %s, 'FL', 1, %s, %s)", (event_id, alert, current, f"Test {event_id}", countries))
         cur.execute("INSERT INTO hazard_area (event_id, area) VALUES (%s, ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326))",
                     (event_id, json.dumps(geometry)))
 
@@ -118,6 +118,41 @@ def test_hazard_multi_hop(conn, clean_hazards, hazard_status):
             cur.execute("SELECT os_id FROM site_owner WHERE customer_id = 'adidas' AND owner_name = %s AND os_id <> %s",
                         (owner, SITE[1]))
             assert sorted(ids) == sorted(r["os_id"] for r in cur.fetchall())
+
+
+def _two_country_area(conn) -> tuple[tuple[str, str], dict]:
+    """One area over two adidas sites: SITE (Türkiye) and the first adidas site in the United Kingdom."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT os_id FROM site WHERE customer_id = 'adidas' AND country_code = 'GB' ORDER BY os_id LIMIT 1")
+        gb = ("adidas", cur.fetchone()["os_id"])
+    area = {"type": "MultiPolygon", "coordinates": [_site_square(conn, *SITE)["coordinates"], _site_square(conn, *gb)["coordinates"]]}
+    return gb, area
+
+
+def test_a_site_inside_the_area_in_an_unlisted_country_is_not_counted(conn, clean_hazards, hazard_status):
+    """Evidence, 2 Oct 2026: drought DR1018332's area covers 47 of Amazon's UK sites, but its affectedcountries
+    (29 countries) has no GB. A site counts only if its country is listed."""
+    hazard_status.update(state="ok")
+    gb, area = _two_country_area(conn)
+    _add_event(conn, "DR1", "Orange", area, countries=["TR", "DE"])
+    assert [(h["os_id"], h["level"]) for h in measures.hazard_sites(conn.cursor(), "adidas")] == [(SITE[1], "High")]
+    assert [(h["os_id"], h["country_code"], h["level"]) for h in measures.hazard_sites_unlisted(conn.cursor(), "adidas")] == [(gb[1], "GB", None)]
+    assert measures.view(conn, "adidas")["sentence"].endswith("1 of your sites is inside current disaster areas (alert: Orange).")
+    d = measures.hazard_detail(conn, "adidas", "DR1")
+    assert ([s["os_id"] for s in d["sites"]], [s["os_id"] for s in d["unlisted"]]) == ([SITE[1]], [gb[1]])
+    assert d["event"]["affected_countries"] == ["TR", "DE"]
+    gb_panel = measures.site_detail(conn, *gb)
+    assert (gb_panel["hazards"], [h["event_id"] for h in gb_panel["hazards_unlisted"]]) == ([], ["DR1"])
+    assert measures.site_detail(conn, *SITE)["hazards_unlisted"] == []
+
+
+@pytest.mark.parametrize("countries", [[], None])
+def test_an_event_with_no_country_list_uses_the_area_alone(conn, clean_hazards, hazard_status, countries):
+    hazard_status.update(state="ok")
+    gb, area = _two_country_area(conn)
+    _add_event(conn, "DR1", "Orange", area, countries=countries)   # [] as GDACS sends it; None: stored before the list was
+    assert sorted(h["os_id"] for h in measures.hazard_sites(conn.cursor(), "adidas")) == sorted([SITE[1], gb[1]])
+    assert measures.hazard_sites_unlisted(conn.cursor(), "adidas") == []
 
 
 REAL_CLIENT = httpx.AsyncClient
