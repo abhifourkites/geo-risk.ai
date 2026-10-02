@@ -25,6 +25,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - *GLEIF's live API for each company:* its rate limits were not checked. A one-time check on 2026-09-30 gave the same 3 parents as the file.
   - *GLEIF's fund links:* they are 227,252 of the 489,389 relationship rows (46.4%). They are fund managers, sub-funds and feeders, not company parents.
   - *FMCSA:* it covers carriers, which the brief's glossary separates from suppliers.
+  - *Loading every contributor in an uploaded file as a company:* the upload page fills in one company, and a person checks it and clicks "Load this company". Anonymous types ("A Brand / Retailer") and "(Claimed)" entries are not a company's lists. A download made for one company is also partial for every other contributor in it: all 3,798 rows of an Amazon download (2 Oct 2026, not in the repo) name Amazon.com, Inc., so Target's 233 sites in it (its February 2026 list) are all shared with Amazon.
 - **Gave up:**
   - Open Supply Hub allows 5,000 downloaded locations a year, and the lists are dated.
   - The GLEIF files are a snapshot (29 Sep 2026, 16:00), and they give no reason when a parent is missing.
