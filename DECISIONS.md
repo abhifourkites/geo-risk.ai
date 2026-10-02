@@ -66,6 +66,16 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
 - **Gave up:** Weak shaking counts the same as strong. Evidence (one-time browser check, 30 Sep 2026): on 4 current earthquakes, "Intensity 0" had the same width as "Intensity 4"; "Intensity 3" and "3.5" areas were up to 145 km wide.
 - **Would change our mind:** A shaking level that the company's risk team treats as the lower limit. Weaker areas would then not count.
 
+### GDACS: a site counts only in a country the event lists as affected
+
+- **Chose:** a site counts as inside a current event only if its point is inside an affected area **and** its country is in that event's `affectedcountries` list (ISO2, from the event list, stored with each event). An event with an empty list uses the area alone. A site left out this way is still shown: in the disaster panel, under "Inside the area, but GDACS does not list <country> as affected", and in its site panel.
+- **Evidence (live GDACS, 2 Oct 2026):** drought DR1018332 (Orange, current, episode 24, current since 21 Dec 2025) lists 29 affected countries, not GB, but its affected area (`Poly_area`) holds 47 of Amazon's UK sites, for example GB2022297018WT0, Montgomery Waters Ltd. (52.537, -3.064). The other 33 Amazon sites inside it are in listed countries (DE, AT, IT, FR, ES, HU, CZ, IE, SK). With the rule, the site–event pairs inside current events went from Amazon 83 → 36, adidas 27 → 22, Apple 16 → 15, Nike 4 → 3 and Samsung 3 → 3; every site removed was a UK site in DR1018332 (54 in all), and no site in a listed country was removed. 23 of the 228 current events had an empty list.
+- **Against:**
+  - *The area alone:* the drought's area crosses into the United Kingdom, so it counted 54 UK sites in an event that GDACS itself does not say affects the UK.
+  - *Leaving out events with no list:* those 23 events would never count.
+- **Gave up:** If GDACS leaves a really affected country off an event's list, that country's sites are not counted (they are still listed in the panels). A site with no country is not counted for an event that has a list.
+- **Would change our mind:** Evidence that GDACS's lists leave out countries its areas really affect, or finer drought areas.
+
 ## 3. Storage engine: PostgreSQL + PostGIS
 
 - **Chose:** PostgreSQL + PostGIS, run with Docker Compose.

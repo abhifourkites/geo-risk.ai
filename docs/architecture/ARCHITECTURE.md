@@ -107,6 +107,7 @@ erDiagram
     int episode_id
     text name
     text date_modified
+    text_array affected_countries "ISO2, from GDACS"
   }
   hazard_area {
     text event_id FK
@@ -114,7 +115,7 @@ erDiagram
   }
 ```
 
-A site is inside a disaster area when its point lies in a current event's `hazard_area`. The database works this out when asked; it isn't stored.
+A site is inside a disaster area when its point lies in a current event's `hazard_area` **and** its country is in that event's `affected_countries` (an empty list: the area alone). The database works this out when asked; it isn't stored. A site inside the area in a country the event does not list is not counted, and the panels show it as "inside the area, but GDACS does not list <country> as affected".
 
 **Changed in the build:**
 - `gleif_match` has `customer_id`, because a site's key is `customer_id` + `os_id`.
@@ -123,10 +124,11 @@ A site is inside a disaster area when its point lies in a current event's `hazar
   - It is created on backend start only if it does not exist, like every table. A start never resets data: existing companies, including uploaded ones, are kept, and no `docker compose down -v` is needed.
   - On every start, and at once after each verdict, the candidates are linked again (`gleif_match` is rebuilt): a saved verdict is used over the file's `person_verdict` column. For a site linked to one LEI by two candidates, a verdict from one and none from the other decides the link; yes from one and no from the other is stored as `conflict`: not confirmed, no parent shown, and marked "conflicting verdicts – needs review" on the page.
 - `site` has `warnings`, for the site warnings.
-- `hazard_event` has four more columns:
+- `hazard_event` has five more columns:
   - `event_type` and `episode_id`: the GDACS area request needs them.
   - `name`: shown on screen.
   - `date_modified`: the refresh compares it to find changed events. GDACS's event list has no `datetime` field; `datemodified` is the change marker.
+  - `affected_countries`: the ISO2 codes in the event list's `affectedcountries`, updated on every refresh. It was added after the first build, so a start adds it to an existing database (`ADD COLUMN IF NOT EXISTS`; no reset).
 - Spatial indexes on `site.location` and `hazard_area.area`.
 - A site's disaster level comes from its **event's** alert level: Orange or Red means High, Green means Watch. It does not come from the colour of a cyclone's wind-speed band.
 - Map areas are simplified, and their rings are turned clockwise, for drawing only. The inside check uses the stored shapes.
