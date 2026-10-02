@@ -39,6 +39,14 @@ def test_upload_lists_strings_with_site_counts():
     assert {"list": SAMSUNG_LIST, "sites": 187} in body["lists"]
 
 
+def test_upload_pre_fills_the_company():
+    body = upload((loader.DEMO_DIR / "samsung.csv").read_bytes(), "samsung.csv")
+    assert body["preselect"] == "Samsung"                  # on all 187 rows
+    first = body["contributors"][0]
+    assert (first["name"], first["lists"], first["current_lists"]) == ("Samsung", [SAMSUNG_LIST], [SAMSUNG_LIST])
+    assert body["hidden"] == ["A Brand / Retailer", "A Civil Society Organization"]
+
+
 def test_one_upload_changes_one_company_only(conn):
     before = snapshot(conn)
     full = (loader.DEMO_DIR / "samsung.csv").read_bytes()

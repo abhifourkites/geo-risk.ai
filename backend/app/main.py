@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 
-from . import db, gleif, hazards, loader, measures
+from . import contributors, db, gleif, hazards, loader, measures
 
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "uploads"   # an uploaded file waits here until it is confirmed
 
@@ -96,7 +96,8 @@ async def refresh_hazards() -> dict:
 
 @app.post("/api/uploads")
 async def upload(file: UploadFile = File(...)) -> dict:
-    """Step 1 of an upload: file in, the list strings in it (with site counts) out."""
+    """Step 1 of an upload: file in, the list strings in it (with site counts) out, and the choices the page
+    pre-fills (contributors.suggest)."""
     raw = await file.read()
     try:
         rows = loader.read_rows(raw)
@@ -107,7 +108,8 @@ async def upload(file: UploadFile = File(...)) -> dict:
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     upload_id = uuid.uuid4().hex
     (UPLOAD_DIR / f"{upload_id}.csv").write_bytes(raw)
-    return {"upload_id": upload_id, "file_name": file.filename, "rows": len(rows), "lists": loader.list_counts(rows)}
+    return {"upload_id": upload_id, "file_name": file.filename, "rows": len(rows), "lists": loader.list_counts(rows),
+            **contributors.suggest(rows)}
 
 
 class Confirm(BaseModel):
