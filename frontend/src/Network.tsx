@@ -16,7 +16,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Controls, Handle, Position, ReactFlow, type Node, type NodeProps, type NodeTypes } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, type NetworkCandidate, type NetworkGraph, type NetworkVerdict } from "./api";
+import { api, type Customer, type NetworkCandidate, type NetworkGraph, type NetworkVerdict } from "./api";
 import { countryName, plural } from "./format";
 import { buildGraph, CONFLICT, NODE_W, ROW, type HeaderData, type InfoData, type Tone } from "./networkGraph";
 
@@ -86,24 +86,32 @@ function Graph({ g }: { g: NetworkGraph }) {
   );
 }
 
+export const NO_CANDIDATES = "No GLEIF candidates for this company yet. The GLEIF name list was built from adidas and Nike names only; "
+  + "building it for other companies is not built yet (see README).";
+
 /** Company network: how Open Supply Hub sites and owners are matched to GLEIF companies (brief 3.1), and
- *  confirm or reject a match here instead of in a CSV (brief 3.3). Every verdict starts empty. */
-export default function Network() {
+ *  confirm or reject a match here instead of in a CSV (brief 3.3). Every verdict starts empty.
+ *  Shows the candidates of the company chosen in the top selector. */
+export default function Network({ company }: { company: Customer | undefined }) {
+  const cid = company?.customer_id ?? "";
   const [all, setAll] = useState<NetworkCandidate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState("");
-  const [company, setCompany] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number | null>(null);
   const [graph, setGraph] = useState<NetworkGraph | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const loadAll = useCallback(() => api.networkCandidates().then((list) => {
+  const loadAll = useCallback(() => api.networkCandidates(cid).then((list) => {
     setAll(list);
-    setSelected((s) => s ?? list[0]?.id ?? null);
-  }), []);
-  useEffect(() => { loadAll().catch((e) => setError(String((e as Error).message))); }, [loadAll]);
+    setSelected((s) => (s != null && list.some((x) => x.id === s) ? s : list[0]?.id ?? null));   // keep it if it is on this list
+  }), [cid]);
+  useEffect(() => {
+    if (!cid) return;
+    setAll(null); setGraph(null); setError(null);
+    loadAll().catch((e) => setError(String((e as Error).message)));
+  }, [cid, loadAll]);
   const current = all?.find((c) => c.id === selected) ?? null;
   useEffect(() => {
     if (selected == null) return;
@@ -112,13 +120,12 @@ export default function Network() {
     return () => { live = false; };
   }, [selected, current?.verdict]);
 
-  const companies = useMemo(() => [...new Set((all ?? []).flatMap((c) => c.companies))].sort(), [all]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (all ?? []).filter((c) => (!level || c.level === level) && (!company || c.companies.includes(company))
+    return (all ?? []).filter((c) => (!level || c.level === level)
       && (!q || [c.our_names, c.gleif_legal_name, c.gleif_matched_name, c.lei].some((s) => s.toLowerCase().includes(q))));
-  }, [all, level, company, query]);
-  useEffect(() => { setPage(1); }, [level, company, query]);
+  }, [all, level, query]);
+  useEffect(() => { setPage(1); }, [level, query, cid]);
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
   const rows = shown.slice((page - 1) * PAGE, page * PAGE);
 
@@ -130,20 +137,31 @@ export default function Network() {
   }
 
   if (error && !all) return <Alert severity="error">{error}</Alert>;
-  if (!all) return <Typography color="text.secondary">Loading…</Typography>;
+  if (!all || !company) return <Typography color="text.secondary">Loading…</Typography>;
   const count = (f: (c: NetworkCandidate) => boolean) => all.filter(f).length;
+  const intro = (
+    <>
+      <Typography variant="h3" component="h2">Company network: {company.name}</Typography>
+      <Typography variant="body2" sx={{ mt: 0.5, maxWidth: "95ch" }}>
+        How Open Supply Hub sites and owner names are matched to GLEIF companies. A match is only a candidate until a person confirms it here;
+        a confirmed match shows its GLEIF parent companies, here and in the map's site panel. Verdicts are saved and kept after a restart.
+      </Typography>
+    </>
+  );
+  if (!all.length) return (
+    <Stack spacing={2} component="main">
+      <Box>{intro}</Box>
+      <Alert severity="info" data-testid="no-candidates">{NO_CANDIDATES}</Alert>
+    </Stack>
+  );
 
   return (
     <Stack spacing={2} component="main">
       <Box>
-        <Typography variant="h3" component="h2">Company network</Typography>
-        <Typography variant="body2" sx={{ mt: 0.5, maxWidth: "95ch" }}>
-          How Open Supply Hub sites and owner names are matched to GLEIF companies. A match is only a candidate until a person confirms it here;
-          a confirmed match shows its GLEIF parent companies, here and in the map's site panel. Verdicts are saved and kept after a restart.
-        </Typography>
+        {intro}
         <Stack direction="row" spacing={2} sx={{ mt: 1, alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
           <Typography variant="body2" color="text.secondary" role="status">
-            {all.length} candidates from the GLEIF file: {count((c) => c.level === "1")} likely, {count((c) => c.level === "2")} possible,
+            {all.length} candidates for {company.name} from the GLEIF file: {count((c) => c.level === "1")} likely, {count((c) => c.level === "2")} possible,
             {" "}{count((c) => c.level === "3")} unlikely. Confirmed {count((c) => c.verdict === "yes")}, rejected {count((c) => c.verdict === "no")},
             {" "}not decided {count((c) => !c.verdict)}.
             {count((c) => c.conflict_with.length > 0) > 0 && ` ${count((c) => c.conflict_with.length > 0)} with conflicting verdicts – needs review.`}
@@ -161,13 +179,6 @@ export default function Network() {
                 <Select labelId="level-label" label="Review level" value={level} onChange={(e) => setLevel(String(e.target.value))}>
                   <MenuItem value="">All levels</MenuItem>
                   {Object.entries(LEVELS).map(([k, l]) => <MenuItem key={k} value={k}>{l} ({count((c) => c.level === k)})</MenuItem>)}
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 130 }}>
-                <InputLabel id="network-company-label">Company</InputLabel>
-                <Select labelId="network-company-label" label="Company" value={company} onChange={(e) => setCompany(String(e.target.value))}>
-                  <MenuItem value="">All companies</MenuItem>
-                  {companies.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </Select>
               </FormControl>
               <TextField size="small" type="search" label="Search names or LEI" value={query} onChange={(e) => setQuery(e.target.value)} id="network-search" sx={{ flex: 1, minWidth: 180 }} />
@@ -192,7 +203,8 @@ export default function Network() {
                   </Typography>
                   <Typography variant="body2">↔ {c.gleif_legal_name} <Typography component="span" variant="body2" color="text.secondary">({countryName(c.gleif_country || null)})</Typography></Typography>
                   <Typography variant="caption" color="text.secondary">
-                    LEI {c.lei} · {MATCH(c)} · {LEVELS[c.level]}{c.flags ? ` · ${c.flags}` : ""} · {c.companies.join(" and ")}
+                    LEI {c.lei} · {MATCH(c)} · {LEVELS[c.level]}{c.flags ? ` · ${c.flags}` : ""}
+                    {c.companies.length > 1 && <> · <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }} data-testid="applies-to">applies to {c.companies.join(" and ")}</Box></>}
                   </Typography>
                 </ListItemButton>
                 <Stack spacing={0.75} sx={{ justifyContent: "center", alignItems: "flex-end", px: 1.5, py: 1, flexShrink: 0 }}>
@@ -213,10 +225,9 @@ export default function Network() {
                     <Typography variant="body2" color="text.secondary">
                       On {plural(c.conflict_sites, "site", "sites")}, the same LEI is {c.verdict === "yes" ? "rejected" : "confirmed"} by:
                     </Typography>
-                    {c.conflict_with.map((j) => {
-                      const o = all.find((x) => x.id === j);
-                      return o && <Button key={j} size="small" sx={{ py: 0, minWidth: 0 }} onClick={() => setSelected(j)}>{o.names.join(" / ")} ({o.kind})</Button>;
-                    })}
+                    {c.conflict_with.map((j, k) => (     // the other candidate can be on another company's list; its graph still opens
+                      <Button key={j} size="small" sx={{ py: 0, minWidth: 0 }} onClick={() => setSelected(j)}>{c.conflict_with_names[k]}</Button>
+                    ))}
                     <Typography variant="body2" color="text.secondary">Those sites show no parent until one verdict is changed.</Typography>
                   </Box>
                 )}
@@ -228,15 +239,17 @@ export default function Network() {
         </Card>
         <Card component="section" aria-label="Graph" sx={{ position: "sticky", top: 16 }}>
           <CardContent>
-            {current && graph && graph.candidate.id === current.id ? (
+            {graph && graph.candidate.id === selected ? (
               <>
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
-                  <Typography variant="subtitle2" sx={{ flex: 1 }}>{current.names.join(" / ")} ↔ {current.gleif_legal_name}</Typography>
-                  <VerdictChip v={current.verdict} />
+                  <Typography variant="subtitle2" sx={{ flex: 1 }}>{graph.candidate.names.join(" / ")} ↔ {graph.candidate.gleif_legal_name}</Typography>
+                  <VerdictChip v={graph.candidate.verdict} />
                 </Stack>
+                {!current && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Not on {company.name}'s list: it applies to {graph.candidate.companies.join(" and ")}.</Typography>}
                 <Graph g={graph} />
               </>
-            ) : <Typography color="text.secondary">{current ? "Loading the graph…" : "Pick a candidate to see its graph."}</Typography>}
+            ) : <Typography color="text.secondary">{selected != null ? "Loading the graph…" : "Pick a candidate to see its graph."}</Typography>}
           </CardContent>
         </Card>
       </Box>

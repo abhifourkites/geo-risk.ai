@@ -171,7 +171,7 @@ export default function App() {
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel id="company-label">Company</InputLabel>
             <Select labelId="company-label" id="company" label="Company" value={customers.some((x) => x.customer_id === c) ? c : ""}
-                    onChange={(e) => { setC(String(e.target.value)); setPage("map"); }}>
+                    onChange={(e) => { setC(String(e.target.value)); setPage((p) => (p === "network" ? p : "map")); }}>
               {customers.map((x) => <MenuItem key={x.customer_id} value={x.customer_id}>{x.name}</MenuItem>)}
             </Select>
           </FormControl>
@@ -194,7 +194,7 @@ export default function App() {
       <Container maxWidth={false} sx={{ maxWidth: 1440, py: 3, px: { xs: 2, md: 3 } }}>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {page === "upload" && <Upload onDone={(id) => { loadCustomers(id).then(() => setPage("map")); }} />}
-        {page === "network" && <Suspense fallback={<Typography color="text.secondary">Loading…</Typography>}><Network /></Suspense>}
+        {page === "network" && <Suspense fallback={<Typography color="text.secondary">Loading…</Typography>}><Network company={customers.find((x) => x.customer_id === c)} /></Suspense>}
         {page === "map" && !view && !error && <Typography color="text.secondary">Loading…</Typography>}
 
         {page === "map" && view && (

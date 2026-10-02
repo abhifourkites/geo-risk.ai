@@ -61,13 +61,13 @@ export interface HazardDetail {
 /** Company network page (backend/app/network.py): one row of the GLEIF slice file. */
 export type NetworkVerdict = "yes" | "no" | null;
 export interface NetworkCandidate {
-  id: number; kind: "owner" | "site"; our_names: string; names: string[]; companies: string[];
+  id: number; kind: "owner" | "site"; our_names: string; names: string[]; companies: string[]; company_ids: string[];
   sites: number; file_sites: number; countries: string[];
   review_level: string; level: "1" | "2" | "3"; flags: string; match_type: string; gleif_name_field: string; gleif_matched_name: string;
   lei: string; gleif_legal_name: string; gleif_country: string; entity_status: string; registration_status: string;
   verdict: NetworkVerdict; verdict_from: "page" | "file" | null; decided_at: string | null;
   /** Sites whose link to this LEI is confirmed / has yes and no from two candidates; the candidates giving the opposite verdict. */
-  confirmed_sites: number; conflict_sites: number; conflict_with: number[];
+  confirmed_sites: number; conflict_sites: number; conflict_with: number[]; conflict_with_names: string[];
 }
 export interface NetworkSite { os_id: string; name: string; country_code: string | null; companies: string[]; owners: string[]; conflict: boolean }
 export interface NetworkGraph {
@@ -98,7 +98,7 @@ export const api = {
     const f = new FormData(); f.append("file", file);
     return call<UploadResult>("/api/uploads", { method: "POST", body: f });
   },
-  networkCandidates: () => call<NetworkCandidate[]>("/api/network/candidates"),
+  networkCandidates: (company: string) => call<NetworkCandidate[]>(`/api/network/candidates?company=${enc(company)}`),
   networkCandidate: (i: number) => call<NetworkGraph>(`/api/network/candidates/${i}`),
   setVerdict: (i: number, verdict: "yes" | "no" | null) => call<NetworkCandidate>(`/api/network/candidates/${i}/verdict`, verdict
     ? { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ verdict }) }
