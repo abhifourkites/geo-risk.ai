@@ -90,6 +90,12 @@ def affected_features(event_type: str, collection: dict) -> list[dict]:
             and is_affected(event_type, f["properties"].get("Class"), f["properties"].get("polygonlabel"))]
 
 
+def affected_countries(p: dict) -> list[str]:
+    """The ISO2 codes in an event's `affectedcountries` list ([{"iso2": "AT", "iso3": "AUT", "countryname": ...}, ...])."""
+    listed = p.get("affectedcountries") or []
+    return sorted({c["iso2"] for c in listed if isinstance(c, dict) and c.get("iso2")})
+
+
 async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) -> tuple[dict[str, dict], dict[str, int]]:
     """All current events in the window (today minus 30 days .. today), one row per event, read type by type.
     Also returns, per type, how many rows repeated a row already read for that type: each repeat means
@@ -114,7 +120,8 @@ async def fetch_current_events(client: httpx.AsyncClient, today: datetime.date) 
                 if event_id not in events or int(p["episodeid"]) > events[event_id]["episode_id"]:
                     events[event_id] = {"event_id": event_id, "event_type": p["eventtype"], "gdacs_id": p["eventid"],
                                         "episode_id": int(p["episodeid"]), "alert_level": p.get("alertlevel"),
-                                        "name": p.get("name"), "date_modified": p.get("datemodified")}
+                                        "name": p.get("name"), "date_modified": p.get("datemodified"),
+                                        "affected_countries": affected_countries(p)}
             if len(features) < 100:
                 break
     return events, repeated
@@ -149,10 +156,12 @@ async def refresh(conn: psycopg.Connection, today: datetime.date | None = None) 
     with conn.transaction(), conn.cursor() as cur:
         for e in events.values():
             cur.execute(
-                "INSERT INTO hazard_event (event_id, alert_level, is_current, event_type, episode_id, name, date_modified) "
-                "VALUES (%(event_id)s, %(alert_level)s, true, %(event_type)s, %(episode_id)s, %(name)s, %(date_modified)s) "
+                "INSERT INTO hazard_event (event_id, alert_level, is_current, event_type, episode_id, name, date_modified, "
+                "affected_countries) VALUES (%(event_id)s, %(alert_level)s, true, %(event_type)s, %(episode_id)s, %(name)s, "
+                "%(date_modified)s, %(affected_countries)s) "
                 "ON CONFLICT (event_id) DO UPDATE SET alert_level = EXCLUDED.alert_level, is_current = true, "
-                "episode_id = EXCLUDED.episode_id, name = EXCLUDED.name, date_modified = EXCLUDED.date_modified", e)
+                "episode_id = EXCLUDED.episode_id, name = EXCLUDED.name, date_modified = EXCLUDED.date_modified, "
+                "affected_countries = EXCLUDED.affected_countries", e)
         for event_id, features in fetched.items():
             cur.execute("DELETE FROM hazard_area WHERE event_id = %s", (event_id,))
             cur.executemany(

@@ -72,8 +72,11 @@ CREATE TABLE IF NOT EXISTS hazard_event (
     event_type    text NOT NULL,
     episode_id    integer NOT NULL,
     name          text,
-    date_modified text
+    date_modified text,
+    affected_countries text[]                -- GDACS `affectedcountries` (ISO2); empty or NULL: no list
 );
+-- added after the first build: a start adds it to an existing database (no reset needed)
+ALTER TABLE hazard_event ADD COLUMN IF NOT EXISTS affected_countries text[];
 
 CREATE TABLE IF NOT EXISTS hazard_area (
     event_id text NOT NULL REFERENCES hazard_event ON DELETE CASCADE,

@@ -144,9 +144,12 @@ def _refresh(monkeypatch, conn, lists, areas, seen, combined=None, today=datetim
     return asyncio.run(hazards.refresh(conn, today=today))
 
 
-def _event(eventid, current="true", modified="2026-09-29T10:00:00", episode=1, alert="Green", event_type="FL"):
-    return {"properties": {"eventtype": event_type, "eventid": eventid, "episodeid": episode, "iscurrent": current,
-                           "alertlevel": alert, "name": f"{event_type} {eventid}", "datemodified": modified}}
+def _event(eventid, current="true", modified="2026-09-29T10:00:00", episode=1, alert="Green", event_type="FL", countries=None):
+    p = {"eventtype": event_type, "eventid": eventid, "episodeid": episode, "iscurrent": current,
+         "alertlevel": alert, "name": f"{event_type} {eventid}", "datemodified": modified}
+    if countries is not None:      # as GDACS writes it: [{"iso2": "AT", "iso3": "AUT", "countryname": "Austria"}, ...]
+        p["affectedcountries"] = [{"iso2": c, "iso3": "", "countryname": c} for c in countries]
+    return {"properties": p}
 
 
 def test_refresh_pages_filters_and_compares_datemodified(conn, clean_hazards, hazard_status, monkeypatch):
@@ -174,6 +177,22 @@ def test_refresh_pages_filters_and_compares_datemodified(conn, clean_hazards, ha
     with conn.cursor() as cur:
         cur.execute("SELECT event_id, is_current FROM hazard_event ORDER BY 1")
         assert [(r["event_id"], r["is_current"]) for r in cur.fetchall()] == [("FL1", True), ("FL2", False)]
+
+
+def test_refresh_stores_each_events_affected_countries(conn, clean_hazards, hazard_status, monkeypatch):
+    seen: list[httpx.URL] = []
+    area = {"features": [_feature("Poly_area", "Affected Area")]}
+    lists = {"DR": [[_event(1, event_type="DR", countries=["FR", "DE", "FR"]), _event(2, event_type="DR", countries=[]),
+                     _event(3, event_type="DR")]]}                       # 3: no affectedcountries field at all
+    assert _refresh(monkeypatch, conn, lists, {"1": area, "2": area, "3": area}, seen)["state"] == "ok"
+    with conn.cursor() as cur:
+        cur.execute("SELECT event_id, affected_countries FROM hazard_event ORDER BY 1")
+        assert [(r["event_id"], r["affected_countries"]) for r in cur.fetchall()] == [("DR1", ["DE", "FR"]), ("DR2", []), ("DR3", [])]
+    lists["DR"][0][0] = _event(1, event_type="DR", countries=["FR"])          # the list changes: stored on the next refresh
+    _refresh(monkeypatch, conn, lists, {"1": area, "2": area, "3": area}, seen)
+    with conn.cursor() as cur:
+        cur.execute("SELECT affected_countries FROM hazard_event WHERE event_id = 'DR1'")
+        assert cur.fetchone()["affected_countries"] == ["FR"]
 
 
 NIKE_DROUGHT_SITE = ("nike", "BR2019085Q71GZV")
