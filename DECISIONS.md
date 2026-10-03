@@ -192,7 +192,7 @@ Each entry covers what we chose, what we chose against and why, what we gave up,
   - One company can be split. Nike's 3 "SHAHI" sites are not linked to adidas's 4 "SHAHI EXPORTS" sites.
   - Names that differ only by accents also stay apart.
   - A company can count as its own owner.
-  - No GLEIF parent is shown until a person confirms the match. 12 verdicts are saved (all yes, given on 2 Oct 2026): adidas 4 and Nike 1 in the GLEIF file's verdict column, Apple 1 and Amazon 9 in `data/reference/gleif_api_verdicts.csv` (ACE TURTLE OMNI and ALPINE APPARELS are shared by adidas and Amazon, HENKEL AG AND KGAA by Apple and Amazon).
+  - No GLEIF parent is shown until a person confirms the match. 13 verdicts are saved (all yes, given on 2 Oct 2026): adidas 4 and Nike 1 in the GLEIF file's verdict column, Apple 2 and Amazon 9 in `data/reference/gleif_api_verdicts.csv` (ACE TURTLE OMNI and ALPINE APPARELS are shared by adidas and Amazon, HENKEL AG AND KGAA by Apple and Amazon).
   - The rules know no "generic name": an equal name in another country is possible however common the name, so many more file candidates are possible than the file said (201 against 48).
 - **Would change our mind:** A reliable company identifier across sources (for example a confirmed LEI), or a reviewed list of name variants.
 
