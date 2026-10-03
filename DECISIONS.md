@@ -1,295 +1,129 @@
 # Decision log
 
-Each entry covers what we chose, what we chose against and why, what we gave up, and what would change our mind.
+One entry per decision: what we chose, what we chose against and why not, what it cost, and what would change our mind.
 
----
+## 1. Outcome: Geographic Supplier Risk Intelligence
 
-## 1. Outcome chosen: Geographic Supplier Risk Intelligence
-
-- **Chose:** Geographic Supplier Risk Intelligence.
-- **Against:**
-  - *Tier 2 and Tier 3 Supplier Intelligence:* the brief promises signals "derived from actual transaction flows", and the data has no supplier-to-supplier links.
+- **Chose:** Geographic Supplier Risk Intelligence: where a company's supplier sites are concentrated, by country and by owner, with live disaster areas on a map.
+- **Against, and why not:**
+  - *Tier 2 and Tier 3 Supplier Intelligence:* it promises signals "derived from actual transaction flows", and the data has no supplier-to-supplier links.
   - *Supplier Risk Intelligence:* it needs suppliers "scored continuously from live performance data", and there is no performance data.
-- **Gave up:** Upstream (Tier 2 and 3) visibility and supplier scoring. Even the chosen outcome is only partly served: alternative supplier identification is not built (#8).
+- **Cost:** No upstream visibility and no supplier scoring. Even this outcome is only partly served: alternative suppliers are not built (#8).
 - **Would change our mind:** Supplier-to-supplier links from transaction data, or performance data per supplier, such as delivery records.
 
-## 2. Data slice: Open Supply Hub, four demo customers, GLEIF and GDACS
+## 2. Data slice: Open Supply Hub, five companies, GLEIF and GDACS
 
 - **Chose:**
-  - **Open Supply Hub** as the foundation. It is the only source in the brief with production site locations.
-  - **Four demo customers** whose lists are public on Open Supply Hub: adidas, Nike, Apple and Samsung.
-  - **GLEIF** for parent companies. They come from the relationship file, read offline, using company links only: IS_DIRECTLY_CONSOLIDATED_BY, IS_ULTIMATELY_CONSOLIDATED_BY and IS_INTERNATIONAL_BRANCH_OF.
-  - **GLEIF's API** for the owner names of every other company (Apple, Samsung, any upload): see "GLEIF API: candidates for any company" below.
-  - **GDACS** for hazards, live.
-- **Against:**
-  - *GLEIF as the owner source:* of 30 likely matches, only 3 have a parent. Several of our largest owners (Feng Tay, YKK, Hwaseung, Shoetown, Ramatex, Interloop) got no GLEIF match.
-  - *GLEIF's live API for adidas and Nike too:* they keep the slice file's 440 candidates and its verdicts, so nothing about them changes. A one-time check on 2026-09-30 gave the same 3 parents as the file.
-  - *GLEIF's fund links:* they are 227,252 of the 489,389 relationship rows (46.4%). They are fund managers, sub-funds and feeders, not company parents.
-  - *FMCSA:* it covers carriers, which the brief's glossary separates from suppliers.
-  - *Loading every contributor in an uploaded file as a company:* the upload page fills in one company, and a person checks it and clicks "Load this company". Anonymous types ("A Brand / Retailer") and "(Claimed)" entries are not a company's lists. A download made for one company is also partial for every other contributor in it: all 3,798 rows of an Amazon download (2 Oct 2026; `data/demo/amazon.csv`) name Amazon.com, Inc., so Target's 233 sites in it (its February 2026 list) are all shared with Amazon.
-- **Gave up:**
-  - Open Supply Hub allows 5,000 downloaded locations a year, and the lists are dated.
-  - The GLEIF files are a snapshot (29 Sep 2026, 16:00), and they give no reason when a parent is missing.
-  - Other companies' candidates come only from GLEIF's legal-name search, which misses groups whose GLEIF legal name is written in another script (see below).
-- **Would change our mind:**
-  - The company's own supplier data.
-  - Another source of production locations without the download cap.
-  - GLEIF coverage for most matched companies.
-
-### GDACS: one query per event type
-
-- **Chose:** read GDACS's event list once per event type (TC, FL, EQ, VO, DR, WF). It is the documented call with one type in `eventlist`, and each type is paged until a page has fewer than 100 events. The refresh counts rows that repeat across pages, and the screen shows how many events may be missing.
-- **Against:**
-  - *One query for all six types* (the call in `docs/architecture/archive/ARCHITECTURE_detailed.md`, section 8): its pages are sorted only by end date, and many events share one, so events repeat across pages and others are on no page. On 30 Sep 2026 it returned 1,844 rows but 1,827 distinct events, and missed 12 current events: 11 wildfires, and the drought DR1015915 that holds Nike's site BR2019085Q71GZV.
-  - *Shorter date windows* were tested and do not close the wildfire gap: on 30 Sep 2026, 29 of 31 one-day windows still returned a full page of 100 wildfires, so they still need paging. They also found 19 wildfires (2 current) that the 30-day list missed, which confirms the gap is real. (one-time browser check, 30 Sep 2026; not repeated by the script)
-  - *Why the list repeats and skips events:* GDACS's own API specification (gdacsapi/swagger/v1/swagger.json) describes geteventlist/search as: "it returns the first 100 elements, it is possible to obtain record by paging specifying the page size and page number. The records are ordered by todate desc." This explains the repeated and skipped events.
-  - *A larger pageSize* does not help: 500 and 2000 both returned exactly 100 rows.
-  - *geteventlist/events4app:* at most 100 events, no droughts or volcanoes; missed FL1104122 and DR1015915.
-  - *geteventlist/map:* a subset only (6 wildfires; the Istanbul flood FL1104183 missing).
-  - *The gdacs-api Python package* (2.0.0, "Alpha", last released June 2022) uses events4app; its per-event GeoJSON file returned HTTP 403 for FL1104183; it calls GDACS without a timeout.
-  - (The five points above: one-time browser check, 30 Sep 2026.)
-- **Gave up:** Some current wildfires may be missing. On 30 Sep 2026 the wildfire list repeated 24 rows over 13 pages. The other five types repeated no rows, so none of their events was skipped.
-- **Would change our mind:** A GDACS feed or query that returns every current event without paging.
-
-### GDACS: change detection by episodeid + datemodified
-
-- **Chose:** a refresh fetches an event's areas only when its `episodeid` or `datemodified` differs from the stored values (`hazards.py`, `refresh`).
-- **Against:**
-  - *Comparing `datetime`* (as `docs/architecture/archive/ARCHITECTURE_detailed.md`, section 8, says): GDACS event records have no `datetime` field. Their date fields are `fromdate`, `todate` and `datemodified`.
-  - *Fetching every event's areas on each refresh:* on 30 Sep 2026, a refresh on an empty database fetched the areas of 251 events, and a refresh on a database that already held the events fetched 10.
-- **Gave up:** If GDACS changes an event's areas without changing its episode or `datemodified`, the app keeps the old areas until one of them changes.
-- **Would change our mind:** Evidence that GDACS changes areas without changing `datemodified`, or another change marker that GDACS documents.
-
-### GDACS: every earthquake intensity area counts
-
-- **Chose:** every earthquake intensity area (`Poly_SMPInt_N`, labelled "Intensity N", including "Intensity 0") counts as affected (`hazards.py`, `is_affected`), as the counting table (R8) lists it.
-- **Against:** *Only areas above an intensity cut-off:* the counting table has none, so any cut-off would be our own choice.
-- **Gave up:** Weak shaking counts the same as strong. Evidence (one-time browser check, 30 Sep 2026): on 4 current earthquakes, "Intensity 0" had the same width as "Intensity 4"; "Intensity 3" and "3.5" areas were up to 145 km wide.
-- **Would change our mind:** A shaking level that the company's risk team treats as the lower limit. Weaker areas would then not count.
-
-### GDACS: a site counts only in a country the event lists as affected
-
-- **Chose:** a site counts as inside a current event only if its point is inside an affected area **and** its country is in that event's `affectedcountries` list (ISO2, from the event list, stored with each event). An event with an empty list uses the area alone. A site left out this way is still shown: in the disaster panel, under "Inside the area, but GDACS does not list <country> as affected", and in its site panel.
-- **Evidence (live GDACS, 2 Oct 2026):** drought DR1018332 (Orange, current, episode 24, current since 21 Dec 2025) lists 29 affected countries, not GB, but its affected area (`Poly_area`) holds 47 of Amazon's UK sites, for example GB2022297018WT0, Montgomery Waters Ltd. (52.537, -3.064). The other 33 Amazon sites inside it are in listed countries (DE, AT, IT, FR, ES, HU, CZ, IE, SK). With the rule, the site–event pairs inside current events went from Amazon 83 → 36, adidas 27 → 22, Apple 16 → 15, Nike 4 → 3 and Samsung 3 → 3; every site removed was a UK site in DR1018332 (54 in all), and no site in a listed country was removed. 23 of the 228 current events had an empty list.
-- **Against:**
-  - *The area alone:* the drought's area crosses into the United Kingdom, so it counted 54 UK sites in an event that GDACS itself does not say affects the UK.
-  - *Leaving out events with no list:* those 23 events would never count.
-- **Gave up:** If GDACS leaves a really affected country off an event's list, that country's sites are not counted (they are still listed in the panels). A site with no country is not counted for an event that has a list.
-- **Would change our mind:** Evidence that GDACS's lists leave out countries its areas really affect, or finer drought areas.
-
-### GLEIF API: candidates for any company
-
-- **Chose:** for every company except adidas and Nike, one search of GLEIF's API per distinct owner name (owners only), automatically after "Load this company", or with "Find GLEIF candidates" on the Company network page (`gleif_api.py`). It runs in the background, with progress shown, and the app stays usable.
-  - `GET https://api.gleif.org/api/v1/lei-records?filter[entity.legalName]=<core name>&page[size]=15`; at most 10 results kept per name, most likely first.
-  - The core name is the owner name without commas and without R4's legal-form words, plus PTE (not an R4 word): "BRANDIX ASIA" found BRANDIX ASIA HOLDINGS PTE. LIMITED (SG); the name with "PTE LTD" found nothing. R4 itself is unchanged.
-  - **At most 1 request a second**, with the app named in the User-Agent; network errors, 5xx and 429 are retried after 2 s and 5 s (the GDACS helper). **Every answer is cached in the database** (`gleif_api_cache`), so a name or a parent is never fetched twice, and a stopped search resumes where it stopped.
-  - **Parents** (`/lei-records/{LEI}/direct-parent` and `/ultimate-parent`) are fetched only when a person confirms a match, and cached.
-  - **Nothing is confirmed automatically.**
-- **Facts (GLEIF's API documentation, and live tests on 2 Oct 2026):**
-  - "Rate limiting is currently set at 60 requests, per minute, per user." GLEIF sends no rate-limit headers, so the app keeps the pace itself.
-  - "There is no charge for the use of GLEIF's LEI data."
-  - `filter[entity.legalName]=X` means "contains X", not exact: "Intel" returned "INTEL INVEST" (CY) first.
-  - A comma means OR: "YKK TAIWAN CO., LTD." returned unrelated companies (TRANSLINK (LTD) LTD). A comma is never sent.
-  - Fuzzy matching "does not guarantee that the LEI belongs to the legal entity you are searching for", so a person's review stays.
-- **Live run (2 Oct 2026):**
-
-  | Company | Owner names | Requests sent | Time | Names with a result | Candidates: likely / possible / unlikely |
-  |---|---|---|---|---|---|
-  | Apple | 41 | 41 | 45 s | 34 | 4 / 41 / 158 |
-  | Samsung | 102 | 90 (12 cached) | 103 s | 57 | 8 / 49 / 235 |
-  | Amazon | 273 | 266 (7 cached) | 308 s | 124 | 50 / 91 / 279 |
-
-  These levels are from the first rules (legal name only, no cap). The current rules rate stored results again on start, from the cache, without a request. No request failed or was answered 429. Each company's 10 largest owners, by their first candidate (our reading of the names and countries, not a check of company records):
-  - Apple: the group found for 5 (INTEL, MICRON TECHNOLOGY, HENKEL, CATCHER TECHNOLOGY, INFINEON); a subsidiary first for 2 (WISTRON: Wistron Hong Kong; PEGATRON: PEGATRON Czech); a same-name company in another country first for 1 (FLEX: "Flex", BE); not found for 2 (LG DISPLAY, QUALCOMM TECHNOLOGIES). We had expected about 5 right, 2 subsidiary-first and 3 not found.
-  - Samsung: the group found for 2 (THE DOW CHEMICAL, ENTEGRIS); a subsidiary first for 4 (HITACHI: HITACHI AMERICA; SAMSUNG ELECTRO MECHANICS: an Indian software unit; ELENTEC: ELENTEC INDIA; TDK: TDK HOLDING, FR); not found for 4 (TAIYO YUDEN, MURATA MANUFACTURING, TAIYO NIPPON SANSO, TOKYO ELECTRON).
-  - Amazon: the group found for 3 (AVERY DENNISON, BRANDIX ASIA, CONSERVE ITALIA); a subsidiary first for 1 (LDH LA DORIA: LDH (LA DORIA) LIMITED, GB); another company first for 2 (GS MARKETING: GS PACIFIC MARKETING, AU; OMEGA PHARMA: OMEGA PHARMA, IN); not found for 4 (GREAT GIANT FIBRE GARMENT, YKK TAIWAN, EPIC GARMENTS DWC, INTERLOOP).
-- **Against:**
-  - *Trusting the first result:* "Intel" returned INTEL INVEST (CY) first.
-  - *Sending the full name:* a comma makes it an OR search, and legal-form words such as PTE LTD make "contains" find nothing.
-  - *More than 1 request a second:* GLEIF allows 60 a minute.
-- **Gave up:**
-  - **Cost: no fee, but the internet is needed** for every new search (cached answers do not need it). Time: about one second per owner name not searched before (Amazon: about 5 minutes).
-  - Only the legal name is searched. Groups whose GLEIF legal name is in another script (for example Japanese and Korean companies) are not found by their English name, and a subsidiary with an English legal name can come first.
-  - A short or common name matches many records, and only the first 15 are read.
-- **Would change our mind:** A GLEIF search that also matches other and transliterated names, or a higher rate limit.
+  - **Open Supply Hub** as the foundation: the only source in the brief with production-site locations.
+  - **Five companies** with public lists: adidas, Nike, Apple and Samsung (loaded on first start), and Amazon (an upload file, `data/demo/amazon.csv`, not loaded on start).
+  - **GLEIF** for parent companies: the relationship file (29 Sep 2026), read offline, company links only. For companies other than adidas and Nike, GLEIF's API: one search per owner name, at most 1 request a second, every answer cached, nothing confirmed automatically.
+  - **GDACS** for disasters, live:
+    - the event list is read once per event type, because one read of all six types repeats and skips events (on 30 Sep 2026 it missed 12 current events);
+    - an event's areas are fetched again only when its `episodeid` or `datemodified` changes;
+    - every earthquake intensity area counts, as the counting table lists it;
+    - a site counts only if its country is in the event's `affectedcountries` list (an empty list: the area alone).
+- **Against, and why not:**
+  - *GLEIF as the owner source:* of 30 likely matches in the file, only 3 have a parent.
+  - *GLEIF's fund links:* 46.4% of relationship rows, and they are fund managers and feeders, not company parents.
+  - *FMCSA:* carriers, which the brief's glossary separates from suppliers.
+  - *The API's first result as the match:* "Intel" returned INTEL INVEST (CY) first.
+- **Cost:** Open Supply Hub allows 5,000 downloaded locations a year, and the lists are dated. The API search matches legal names only, so it misses groups whose legal name is in another script. Some current wildfires can still be missed. If GDACS leaves a really affected country off its list, that country's sites are not counted (the panels still list them).
+- **Would change our mind:** The company's own supplier data; a production-site source without the cap; GLEIF parents for most matched companies; a GDACS feed with every current event and no paging.
 
 ## 3. Storage engine: PostgreSQL + PostGIS
 
-- **Chose:** PostgreSQL + PostGIS, run with Docker Compose.
-  - FourKites' geo-service schema uses PostgreSQL: it has `enable_extension "plpgsql"`, `enable_extension "pg_trgm"` and `jsonb` columns.
-  - PostGIS is our addition, for the map check (is a point inside a disaster area?).
-- **Against:** *A separate graph database:* every question the screen asks is a few joins over 8 tables (#4).
-- **Gave up:**
-  - It needs Docker.
-  - Database size and query time at 50× the demo (116,350 site rows) were not measured.
+- **Chose:** PostgreSQL with PostGIS, run with Docker Compose. FourKites' geo-service schema already uses PostgreSQL (`pg_trgm`, `jsonb`). PostGIS answers "is this site inside a disaster area?".
+- **Against, and why not:** *A graph database:* every question the screen asks is a few joins over 8 graph tables (#4).
+- **Cost:** It needs Docker. Database size and query time at 50× the demo (116,350 site rows) were not measured.
 - **Would change our mind:** Evidence that FourKites' own services use a different store.
 
 ## 4. Graph model: 8 graph tables (14 in all), a hop is a join
 
 - **Chose:**
-  - 14 tables: 8 graph tables (customer, site, site_owner, gleif_match, gleif_parent, gleif_verdict, hazard_event, hazard_area) + `hazard_area_part` (each disaster area cut into small pieces, for speed) + 5 GLEIF API tables (`gleif_api_cache`, `_job`, `_name`, `_candidate`, `_parent`). The last 6 are not part of the graph.
-  - **Verdicts in their own table, `gleif_verdict`**, keyed by the GLEIF slice file's candidate (kind, our names, LEI). One verdict answers "is this name that company?" for every company and site the candidate links to. Like every table, it is created on start only if it does not exist, so adding it needed no database reset.
-  - A hop is a join. The multi-hop questions are:
-    - site → owner → that owner's other sites;
-    - site → confirmed GLEIF entity → parent;
-    - disaster event → its sites → their owners → those owners' other sites.
-  - Each company's rows are kept apart. One upload changes one company only, and a site is stored once per company.
-- **Against:**
-  - *One shared site table keyed only by the Open Supply Hub ID:* a second company's upload would overwrite the first company's site data. 7 sites are on both Apple's and Samsung's lists.
-  - *A separate database per company:* more to run and back up, for no gain at demo size.
-  - *Verdicts as a column of `gleif_match`:* that table is rebuilt from the slice file on every start and every upload, so the verdicts would be lost.
-- **Gave up:** A site on two companies' lists is stored twice. For the 7 shared sites, the needed columns are identical in both files today.
+  - 8 graph tables (customer, site, site_owner, gleif_match, gleif_parent, gleif_verdict, hazard_event, hazard_area), plus `hazard_area_part` (disaster areas cut into small pieces, for speed) and 5 GLEIF API tables: 14 in all.
+  - A hop is a join: site → owner → that owner's other sites; site → confirmed GLEIF company → parent; disaster → its sites → their owners → those owners' other sites.
+  - Each company's rows are kept apart: one upload changes one company only.
+  - Verdicts have their own table, keyed by (kind, our names, LEI).
+- **Against, and why not:**
+  - *One site table keyed only by the Open Supply Hub ID:* a second company's upload would overwrite the first company's site data. 7 sites are on both Apple's and Samsung's lists.
+  - *A database per company:* more to run and back up, for no gain at demo size.
+  - *Verdicts as a column of `gleif_match`:* that table is rebuilt on every start and upload, so verdicts would be lost.
+- **Cost:** A site on two companies' lists is stored twice. For the 7 shared sites, the needed columns are identical today.
 - **Would change our mind:** An existing FourKites tenancy model that this data should follow.
 
-## 5. Resolution strategy: clean names, never merge, confirm GLEIF matches
+## 5. Resolution: clean names, never merge, a person confirms GLEIF matches
 
 - **Chose:**
-  - **Owner names are cleaned:** upper case, `&` → AND, punctuation removed, and legal-form words such as LTD removed.
-    - Letters of every script are kept.
-    - Different spellings are never merged.
-    - Conflicting reports are shown as conflicts.
-  - **A self-named owner is kept when it is the site's only owner.**
-  - **"NULL" (any case) is a placeholder, like NO GROUP (..), N/A and NA:** data/demo/facilities.csv has "null" as an owner value 6 times, and counting it made a fake owner "NULL" (4 adidas sites, 2 Nike sites).
-  - **GLEIF name matches are candidates** until a person confirms them, on the Company network page (Confirm / Reject / Undo), not only by editing the CSV: "an interface that only its author can operate has failed" (brief 3.3).
-  - **Verdicts are saved in committed files**, so a fresh clone (an empty database) shows the same confirmed matches: the GLEIF file's verdict column for adidas's and Nike's candidates, and `data/reference/gleif_api_verdicts.csv` (company, our name, LEI, verdict, decided_at) for GLEIF API candidates, applied when that company's search finds the candidate. A verdict given on the page is used over a saved one, and Undo goes back to it.
-  - **Verdicts are shared** because they are a fact about the GLEIF company; each company sees only its own sites and is not told which other companies share an owner, so one customer never sees another's suppliers.
-  - **One set of written rules rates every GLEIF candidate** (`rating.py`), for every company: the slice file's 440 (adidas, Nike) and GLEIF API results (any other company). The file's own level is kept for reference (`file_review_level`; on the Company network page as "file: …" where it differs).
-    - Names are compared after R4 cleaning, and, for this comparison only, without DE CV, SRL, S R L and PTE; R4 itself is unchanged. Evidence: row 3 "VERTICAL KNITS SA DE CV" (MX) and row 13 "L.I.M. (LAVORAZONI INDUSTRIALI METALLICHE) S.R.L." (IT).
-    - Our name is compared with the GLEIF legal name and with each GLEIF other name (the file's matched name when it matched an other name; the API's `entity.otherNames`); the best match decides. Evidence: rows 5, 10, 22, 23, 24 and 26 matched on GLEIF other names in the file, but their legal names are Vietnamese, Chinese or French. Transliterated other names are not used: 26 file rows matched one, and using them would change 12 (11 unlikely → possible, 1 unlikely → likely).
-    - likely: an equal name, the GLEIF country (legal address) is one of the owner's site countries, and the entity is ACTIVE; **capped at possible** when the GLEIF category is SOLE_PROPRIETOR or FUND or the registration is LAPSED. Evidence: rows 173, 223 and 289 are sole proprietors; without the cap ARYAN APPARELS would have two likely LEIs.
-    - possible: an equal name in another country, or a GLEIF name that starts with our name, as whole words, in one of the owner's site countries (subsidiaries such as "HITACHI AMERICA" or "Avery Dennison België").
-    - unlikely: everything else. Flags: not active, registration lapsed, fund, sole proprietor.
-    - Each company sees a candidate on several companies' lists rated with only its own site countries: a GLEIF API candidate with the same owner name and LEI, and a slice-file row on adidas's and Nike's lists (one verdict either way). 8 AVERY DENNISON rows are possible with both companies' countries but unlikely with one company's own: the GLEIF company is in NL, where adidas has no AVERY DENNISON site (6 rows), or in BR, where Nike has none (2).
-  - **Agreement with the slice file's own levels: 241 of 440** (with the first rules, legal name only and no cap: 270):
-
-    | File level | Rules: likely | Rules: possible | Rules: unlikely |
-    |---|---|---|---|
-    | 30 likely | 17 | 13 | 0 |
-    | 48 possible | 16 | 25 | 7 |
-    | 362 unlikely | 0 | 163 | 199 |
-
-    The other names moved 37 (2 possible → likely, 11 unlikely → likely, 24 unlikely → possible), the dropped words 8 (1 possible → likely, 7 unlikely → possible), and the cap 21 (likely → possible: 17 lapsed, 3 lapsed sole proprietors, 1 sole proprietor). Of the 163 the file calls unlikely and the rules possible, 156 are an equal name in another country, and 125 are names the file marked "generic name / fund / sole proprietor".
-  - **Under the rules:** adidas 25 likely, 101 possible, 95 unlikely (the file: 23 / 40 / 158); Nike 10 / 149 / 186 (the file: 9 / 28 / 308), each with its own site countries; all 440, with the file's countries: 33 / 201 / 206 (the file: 30 / 48 / 362). PT. Paxar Indonesia, PT. COATS REJO INDONESIA and Racing Force S.p.A. stay likely. 32 distinct LEIs are likely, 5 of them with a GLEIF parent record (the file: 30 and 3); the 2 more are MAS Active (Private) Limited (LK) and ACE TURTLE OMNI PRIVATE LIMITED (IN), whose parents' names are not in our GLEIF files.
-  - **A site linked to one LEI by two candidates:** yes from one and nothing from the other confirms the link; no from one and nothing from the other rejects it; **yes from one and no from the other is a conflict**: the link is not confirmed (no parent shown), and the Company network list marks both candidates "conflicting verdicts – needs review", each naming the other. 47 links of adidas and Nike sites are reached by two candidates, for example one site's two owner names FAR EASTERN and FAR EASTERN NEW CENTURY (LEI 25490051NUU24RRHW523, which has a GLEIF parent). The slice file also has one question twice: VERTICAL KNITS with LEI 4469000001E9305R6057 (an exact match on another name, and a starts-with match on the legal name); both rows share one verdict.
-  - **13 rows of the slice file reach one more site than its `our_sites` column says** (FAR EASTERN 8 → 9 on 10 rows, POU CHEN 13 → 14, UNIVERSAL APPAREL 1 → 2 on 2 rows): the file's counts used the older owner rule that dropped every self-named owner; the current rule keeps a sole self-named owner, so each name reaches one more site (CN2019093WZSXE8 "FAR EASTERN", TW202206598XFKC "Pou Chen Corporation", TH2019098FKBF6V "Universal Apparel Co.,Ltd"). The page shows the sites the app links.
-- **Against:**
-  - *Merging similar names automatically.*
-  - *Dropping non-Latin letters:* owners written only in Chinese would disappear, for example `三芳化學工業股份有限公司`.
-  - *Always dropping a self-named owner:* it deleted real owner groups, such as INTEL (9 Apple sites) and HITACHI (9 Samsung sites). Owner known fell to 21 of 749 Apple sites and 8 of 187 Samsung sites.
-  - *Never dropping it:* a site that lists itself next to its real parent would show a false conflict. Conflicts would rise from 187 to 204 for adidas, and from 231 to 256 for Nike.
-  - *Keeping the file's levels for adidas and Nike:* two rule sets for one question, and the file's were not written down.
-  - *Taking only the most likely candidate's verdict for a site and LEI (as the CSV-only build did):* a confirm on one candidate could be hidden by an undecided candidate for the same site, so a confirmed match would not show its parent.
-  - *Letting yes win over no on one link:* two people who disagree would see a parent that neither has settled.
-  - *Trusting GLEIF name matches:* "FAR EASTERN" matched a Taiwanese bank and a securities firm, and "XING YE" matched a Hong Kong bank branch (`興業銀行股份有限公司香港分行`).
-  - *A "generic name" rule* (demote candidates when one owner name has N or more equal-name matches in countries outside its site countries). Tested read-only on 2 Oct 2026:
-    - with N = 5, MAS is not caught (it has only 3: MAS (BE), MAS (FR), Momentum Advisory Services (BE));
-    - AVERY DENNISON at Amazon also has exactly 3, including AVERY DENNISON CORPORATION (US), which GLEIF records as the parent of PT Paxar Indonesia;
-    - so N = 3 catches both, and N = 4 catches neither.
-    - A "one-word name" variant would also demote every equal-name candidate of FLEX and DELTA, which are owner names on the lists; whether the right company is among those candidates was not checked.
-
-    We kept the rules as they are: "possible" is broad on purpose, because a group can be registered in another country from its sites, and a person reviews "likely" first.
-- **Gave up:**
-  - One company can be split. Nike's 3 "SHAHI" sites are not linked to adidas's 4 "SHAHI EXPORTS" sites.
-  - Names that differ only by accents also stay apart.
-  - A company can count as its own owner.
-  - No GLEIF parent is shown until a person confirms the match. 13 verdicts are saved (all yes, given on 2 Oct 2026): adidas 4 and Nike 1 in the GLEIF file's verdict column, Apple 2 and Amazon 9 in `data/reference/gleif_api_verdicts.csv` (ACE TURTLE OMNI and ALPINE APPARELS are shared by adidas and Amazon, HENKEL AG AND KGAA by Apple and Amazon).
-  - The rules know no "generic name": an equal name in another country is possible however common the name, so many more file candidates are possible than the file said (201 against 48).
+  - **Owner names are cleaned:** upper case, `&` → AND, punctuation and legal-form words such as LTD removed. Letters of every script are kept. Different spellings are never merged, and conflicting reports are shown as conflicts. A self-named owner is kept when it is the site's only owner. "NULL", N/A and NO GROUP are placeholders, not owners.
+  - **GLEIF name matches are candidates** until a person confirms them on the Company network page. One set of written rules rates every candidate likely, possible or unlikely, for every company, using that company's own site countries. A sole proprietor, fund or lapsed registration is at most possible. The GLEIF file's own level is kept for reference.
+  - **One verdict per name and LEI**, applied to every company with that name and LEI, because it is a fact about the GLEIF company. Each company sees only its own sites, and is not told which other companies share an owner. Yes and no on one site link is a conflict, and is not confirmed. The 13 verdicts given are saved in committed files, so a fresh clone shows the same matches.
+- **Against, and why not:**
+  - *Trusting GLEIF name matches:* "FAR EASTERN" matched a Taiwanese bank and a securities firm.
+  - *Dropping non-Latin letters:* owners written only in Chinese would disappear.
+  - *Always dropping a self-named owner:* owner known fell to 21 of 749 Apple sites, deleting real groups such as INTEL.
+  - *A "generic name" rule:* at 5 or more same-name matches abroad it misses MAS (3); at 3 it also demotes AVERY DENNISON CORPORATION, which GLEIF records as the parent of PT Paxar Indonesia.
+  - *Keeping the file's own levels for adidas and Nike:* two rule sets for one question, and the file's rules were not written down.
+- **Cost:** One company can be split: Nike's 3 "SHAHI" sites are not linked to adidas's 4 "SHAHI EXPORTS" sites. A company can count as its own owner. No parent shows until a person confirms. "Possible" is broad: 201 of the file's 440 candidates, against the file's 48.
 - **Would change our mind:** A reliable company identifier across sources (for example a confirmed LEI), or a reviewed list of name variants.
 
-## 6. Location level: country only in the MVP
+## 6. Location level: country only
 
-- **Chose:** Concentration by country, from `country_code`. Region level is not used. A Vietnam 2025 province mapping is in the repo: prepared, not used in the MVP.
-- **Against:** *Region level:* no column in the file names a region, so it would need a boundary file.
-- **Gave up:** A country hides clusters inside it.
-  - Vietnam holds 31.5% of adidas's and 40.6% of Nike's estimated workers.
-  - A region view would show Dong Nai, with 13.5% of Nike's workers.
-  - With the same thresholds, every demo customer has 2 to 4 countries at High (adidas 3, Nike 3, Apple 2, Samsung 4).
-- **Would change our mind:** A boundary file we may use.
+- **Chose:** Concentration by country, from `country_code`. A Vietnam 2025 province mapping is in the repo, prepared but not used.
+- **Against, and why not:** *Region level:* no column in the file names a region, so it needs a boundary file. Natural Earth's 1:50m states file covers 9 countries, not Vietnam; the 1:10m file is 40.7 MB as GeoJSON.
+- **Cost:** A country hides clusters inside it. Vietnam holds 40.6% of Nike's estimated workers; a region view would show Dong Nai, with 13.5%.
+- **Would change our mind:** A region boundary file we may use, small enough to ship.
 
 ## 7. Risk levels: High 10%, Watch 5%
 
 - **Chose:**
-  - **High:** 10% or more in one country or under one owner, OR a site inside a current Orange or Red disaster area.
-  - **Watch:** 5% or more, OR a site inside a current Green area.
-  - **Share basis:** estimated workers when they are known for at least 90% of the company's open sites; otherwise site counts. The screen shows which one is in use:
-    - adidas: workers (719 of 766, 93.9%);
-    - Nike: workers (625 of 625);
-    - Apple: sites (workers known for 65 of 749);
-    - Samsung: sites (workers known for 4 of 187).
-  - **Every number shows its base**, and a measure appears only when its field is known.
-- **Against:**
+  - **High:** 10% or more in one country or under one owner, or a site inside a current Orange or Red disaster area. **Watch:** 5% or more, or a site inside a current Green area. Both thresholds can be changed on screen.
+  - **Disaster level** comes from the event's alert level, for every event type.
+  - **Share basis:** estimated workers when they are known for at least 90% of open sites (adidas, Nike); otherwise site counts (Apple, Samsung, Amazon). Every number shows its base.
+- **Against, and why not:**
   - *Site counts when workers are known:* sites differ in size. Dong Nai has 5.4% of Nike's sites but 13.5% of its workers.
-  - *Workers always:* Apple's and Samsung's shares would rest on 65 and 4 sites.
-  - *A 10% cut only:* it flags no owner for adidas or Nike, so Feng Tay's 9.3% of Nike's workers would be hidden.
+  - *A 10% cut only:* no owner is flagged for adidas or Nike, so Feng Tay's 9.3% of Nike's workers would be hidden.
   - *3%:* up to 10 owners, too many to act on.
-- **Gave up:**
-  - The thresholds are our choice, not a standard.
-  - Worker numbers are estimates, and 47 adidas sites have none.
-  - On the site basis, a small site weighs the same as a large one.
-  - Thin measures still appear: Apple's owner measures rest on 66 of 749 sites.
+  - *A cyclone's wind-band colour:* only cyclones have bands.
+- **Cost:** The thresholds are our choice, not a standard, and worker numbers are estimates. On the site basis a small site weighs the same as a large one. Thin measures still show: Apple's owner measures rest on 66 of 749 sites. A site in the outer band of an Orange cyclone is High.
 - **Would change our mind:** A threshold the company's risk team already uses, or real production volumes per site.
-
-### Disaster level: from the event's alert level
-
-- **Chose:** a site's disaster level comes from the event's alert level: Orange or Red is High, Green is Watch (`measures.py`, `HAZARD_LEVEL`). The same rule applies to every event type.
-- **Against:** *The cyclone band colour* (`Poly_Green`, `Poly_Orange` and `Poly_Red`, labelled 60, 90 and 120 km/h): only cyclones have these bands. Flood, earthquake, wildfire, drought and volcano areas carry no colour, only their event's alert level.
-- **Gave up:** A site in the outer 60 km/h band of an Orange cyclone is High.
-- **Would change our mind:** A risk rule that rates cyclone sites by the wind band they are in.
 
 ## 8. What we left out
 
-- **Chose not to build:**
-  - **Alternative suppliers.**
-  - **Single-source by material.** It is shown as owner dependency instead, labelled that way.
-  - **Product grouping.** Product words are shown only as information, labelled "reported by any contributor".
-  - **Supplier-to-supplier links.**
-  - **Tier labels.** Each list's own name is shown instead:
-    - adidas: Primary (438 sites), Licensee (194), Wet Process Suppliers (134) (each site counted once, by its first list; 3 sites are on two lists, so per list the counts are 438 / 195 / 136);
-    - Nike: February 2024 Facility List;
-    - Apple: Apple 2019 Facility List;
-    - Samsung: Samsung 2021 Facility List.
-  - **Near-real-time supplier lists.**
-  - **Performance trends.**
-  - **Per-company login.**
-- **Why:** the data has no product, material, supplier-to-supplier or performance data. The lists are only as fresh as their publishers make them. The login is left out because this is a demo.
-- **Against:**
-  - *Facility type as a stand-in for products:* 747 of 850 open adidas and Nike sites that have one list "Final Product Assembly". Apple's and Samsung's files have no facility type.
-  - *Product words from the download:* they merge every contributor's words.
-  - *Mapping product words to standard product codes (HS):* we tested it, and a person would still need to check every code.
-  - *A rough Nike-only version from Nike's broad categories:* nothing for adidas.
-  - *Mapping lists to tiers ourselves.*
-- **Gave up:**
-  - One of the four parts of the outcome (alternative suppliers).
-  - A product view, and a tier filter.
-  - Owner dependency is not the brief's definition of single-source dependency, and ownership is not supply.
-- **Would change our mind:**
-  - The company's own supplier data: what each site makes, and which site it supplies.
-  - The company's own tier definitions.
-  - Supplier performance data.
-  - A daily supplier feed.
+- **Chose not to build:** alternative suppliers; single-source by material (shown as owner dependency, labelled so); product grouping (product words shown only as information); supplier-to-supplier links; tier labels (each list's own name is shown); near-real-time supplier lists; performance trends; per-company login.
+- **Against, and why not:**
+  - *Facility type as a stand-in for products:* 747 of 850 open adidas and Nike sites that have one say "Final Product Assembly".
+  - *Product words from the download:* they merge every contributor's words; 80 of adidas's 766 open sites have "NIKE" among them.
+  - *Mapping product words to HS codes:* tested; a person would still need to check every code.
+  - *Mapping lists to tiers ourselves:* adidas's and Nike's lists do not define tiers, and Apple's and Samsung's list names do not mention them, so we would be guessing.
+- **Cost:** One of the four parts of the outcome (alternative suppliers), a product view and a tier filter. Owner dependency is not the brief's single-source dependency, and ownership is not supply.
+- **Would change our mind:** The company's own supplier data (what each site makes, and which site it supplies), its tier definitions, supplier performance data, or a daily supplier feed.
 
 ## 9. Map styles: Plain by default; Map and Satellite from free services
 
-- **Chose:** a map-style switch on the Risk map: Plain, Map and Satellite (`frontend/src/basemap.ts`). The app's own layers (High / Watch country fills, disaster areas, sites, clusters) are drawn on top in every style, in flat and globe view.
-  - **Plain** (the default): the committed Natural Earth 1:50m outlines. It needs no outside service.
-  - **Map** (place names): OpenFreeMap's "liberty" style, `https://tiles.openfreemap.org/styles/liberty` (111 layers, 23 with text labels, 2 Oct 2026). The style's sources carry no attribution, but its vector source's TileJSON (`https://tiles.openfreemap.org/planet`) does: "OpenFreeMap © OpenMapTiles Data from OpenStreetMap". The app sets one attribution on that source, so nothing is shown twice: OpenFreeMap, © OpenMapTiles, and "© OpenStreetMap contributors" linking https://www.openstreetmap.org/copyright.
-  - **Satellite:** EOX Sentinel-2 cloudless, the WMTS layer without a year (`s2cloudless_3857`, Web Mercator, zoom 0–14), with EOX's required attribution word for word, "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017)", and a CC BY 4.0 link.
-  - **The base is swapped below the app's layers, inside one map style** (`swapBase`). The map keeps Plain's style; Map's layers (its style document fetched once, then kept) or Satellite's raster layer are added below the app's lowest layer and removed again. The app's layers never leave the map, so they show at once after every switch while the base's tiles fill in. "Loading map style…" shows over the map while Map's style document is fetched.
-  - **A tile service that does not respond** gives Plain again, with a one-line notice under the map: Map's style not fetched within 8 s; Satellite's check tile (one EOX tile, fetched alongside while its tiles are already shown) not fetched within 8 s; or a failed request later (a missing tile does not count). The rest of the app does not use these services.
-  - The attributions are always shown in full, to the right of the legend. MapLibre's default (`compact: true`) folds them into a button, and on a 921 px map hid them after the first drag.
-- **Facts (fetched 2 Oct 2026):**
-  - EOX's WMTS capabilities (`https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml`): the layers without a year are "Sentinel-2 cloudless layer for 2016 by EOX", "released under Creative Commons Attribution 4.0 International License"; the 2018 to 2025 layers are "Creative Commons Attribution-NonCommercial-ShareAlike 4.0". The capabilities also mark the 2017 layers CC BY 4.0.
-  - EOX's licence page (`https://cloudless.eox.at/license-non-commercial`; s2maps.eu now redirects to cloudless.eox.at): "For the years 2018 to 2025, EOxCloudless WM(T)S layers is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License", and "For the year 2016, EOxCloudless is licensed under the Creative Commons Attribution 4.0 International License". It lists no 2017 version. Its required attribution for 2016 reads "…data 2016 & 2017"; the capabilities text for the same layer reads "…data 2016".
-  - EOX's licence summary (`https://cloudless.eox.at/documentation/license`): "Attribution must be clearly visible wherever the imagery is displayed. For interactive maps, the credit should appear in the map interface."
-  - OpenFreeMap (`https://openfreemap.org`): "Using our public instance is completely free: there are no limits on the number of map views or requests." "There's no registration, no user database, no API keys, and no cookies." "Attribution is required."
-- **Against:**
-  - *Google map tiles:* "Google Maps Platform products require an API key for authentication and billing purposes, associating your project with your Google billing account" (Map Tiles API setup). Google's terms (3.2.3 (a), "No Scraping"): "Customer will not export, extract, or otherwise scrape Google Maps Content for use outside the Services", for example "bulk download Google Maps tiles", so tile URLs cannot be used directly. And 3.2.3 (e), "No Use With Non-Google Maps": "Customer will not use the Google Maps Core Services with or near a non-Google Map", which a switch next to OpenFreeMap and EOX would be.
-  - *EOX's 2018 to 2025 imagery:* non-commercial use only; commercial use needs EOX's paid licence.
-  - *EOX's 2017 layer:* marked CC BY 4.0 in the capabilities, but not on EOX's licence page, so it is not used.
-  - *A tile style as the default:* Plain works with no internet and no outside service.
-  - *Replacing the whole map style on a switch (`setStyle`):* the app's layers were removed and built again each time (react-map-gl adds them back after the new style's first `styledata` event, then MapLibre's workers process their GeoJSON again). Measured on 3 Oct 2026, from click to the app's layers drawn on the new base: Plain→Map 0.8 s, Map→Satellite 2.4 s (waiting for EOX's check tile first), Satellite→Plain 1.4 s, Plain→Satellite 1.3 s; with a slower CPU and network 3.5, 5.8, 2.7 and 3.1 s. They were missing for 0.5–1.3 s on every switch (2.0–2.5 s slower), Plain included.
-- **Gave up:**
-  - The satellite imagery is from 2016, the newest year EOX allows for commercial use without its paid licence.
-  - Map and Satellite need the internet, and depend on two free services with no service-level promise.
-  - On Map, the High and Watch fills are drawn over the style's place names, which they dim.
+- **Chose:**
+  - A switch between Plain (the committed Natural Earth outlines, no outside service, the default), Map (OpenFreeMap's liberty style: free, no key) and Satellite (EOX Sentinel-2 cloudless, the 2016 layer).
+  - Only the base is swapped, below the app's layers, so they never leave the map.
+  - A service that does not respond gives Plain again, with a one-line notice.
+  - The attributions are always shown in full: EOX requires its credit to be "clearly visible".
+- **Against, and why not:**
+  - *Google map tiles:* an API key and billing are required, and Google's terms forbid scraping tiles (3.2.3 (a)) and use "with or near a non-Google Map" (3.2.3 (e)).
+  - *EOX's 2018 to 2025 imagery:* non-commercial use only (CC BY-NC-SA 4.0). The 2016 layer is CC BY 4.0.
+  - *EOX's 2017 layer:* CC BY 4.0 in the WMTS capabilities, but not on EOX's licence page.
+  - *Replacing the whole style on a switch:* the app's layers were missing for 0.5–1.3 s on every switch (3 Oct 2026).
+- **Cost:** The satellite imagery is from 2016. Map and Satellite need the internet, and two free services with no service-level promise. On Map, the High and Watch fills dim the place names.
 - **Would change our mind:** A commercial EOX licence (newer imagery), or a map service FourKites already pays for.
+
+## 10. Frameworks and libraries
+
+- **Chose:**
+  - FastAPI (MIT) and React (MIT) with TypeScript (Apache-2.0): the brief's house stack.
+  - MapLibre GL JS (BSD-3-Clause), through react-map-gl (MIT), for the map: flat and globe views, with disaster areas and clustered sites drawn from GeoJSON.
+  - MUI (MIT) for the screen's components.
+  - @xyflow/react (MIT) for the Company network graph.
+
+  The licences are those in each installed package's metadata.
+- **Against, and why not:**
+  - *Leaflet:* its projections are all flat, and the app has a globe view.
+  - *Mapbox GL JS:* since version 2, its licence allows use only "with the relevant Mapbox product(s)" by developers "with a current active Mapbox account".
+- **Cost:** The map needs WebGL. MUI and @xyflow/react are two more dependencies to keep up to date.
+- **Would change our mind:** A map or component library the FourKites team already uses.
