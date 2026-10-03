@@ -1,0 +1,13 @@
+{
+  "name": "walkthrough-capture",
+  "private": true,
+  "description": "Captures the product guide's screenshots from the running app (headless Chrome), and builds docs/walkthrough/index.html. Not part of the app.",
+  "type": "module",
+  "scripts": {
+    "capture": "node capture.mjs",
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "25.12.0"
+  }
+}

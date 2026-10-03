@@ -1,0 +1,1198 @@
+{
+ "shots": [
+  {
+   "name": "01-header",
+   "file": "01-header.webp",
+   "title": "Header and tabs (adidas)",
+   "width": 1440,
+   "height": 117,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 117
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Company",
+     "x": 208.2,
+     "y": 12.7,
+     "w": 160,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Disaster data",
+     "x": 384.2,
+     "y": 16,
+     "w": 272.4,
+     "h": 32,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Check for new disasters",
+     "x": 1208.7,
+     "y": 12.9,
+     "w": 207.3,
+     "h": 38.3,
+     "source": "dom"
+    },
+    {
+     "n": 4,
+     "label": "Pages",
+     "x": 24,
+     "y": 64,
+     "w": 1392,
+     "h": 40,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "02-summary",
+   "file": "02-summary.webp",
+   "title": "The summary sentence and the three answer cards",
+   "width": 1416,
+   "height": 418,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 418
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Company and sites",
+     "x": 12,
+     "y": 12,
+     "w": 1392,
+     "h": 21.6,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Summary sentence",
+     "x": 12,
+     "y": 33.6,
+     "w": 1108.2,
+     "h": 97.2,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Countries",
+     "x": 12,
+     "y": 154.8,
+     "w": 453.3,
+     "h": 250.5,
+     "source": "dom"
+    },
+    {
+     "n": 4,
+     "label": "Owner companies",
+     "x": 481.3,
+     "y": 154.8,
+     "w": 453.3,
+     "h": 250.5,
+     "source": "dom"
+    },
+    {
+     "n": 5,
+     "label": "Disasters now",
+     "x": 950.7,
+     "y": 154.8,
+     "w": 453.3,
+     "h": 250.5,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "03-map",
+   "file": "03-map.webp",
+   "title": "The map: Plain style, flat",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Show all current disasters",
+     "x": 29,
+     "y": 34.4,
+     "w": 198.8,
+     "h": 24,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Flat map / Globe view",
+     "x": 243.8,
+     "y": 31.2,
+     "w": 163,
+     "h": 30.4,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Plain / Map / Satellite",
+     "x": 414.8,
+     "y": 31.2,
+     "w": 162.3,
+     "h": 30.4,
+     "source": "dom"
+    },
+    {
+     "n": 4,
+     "label": "Reset view",
+     "x": 585.1,
+     "y": 30.2,
+     "w": 93,
+     "h": 32.4,
+     "source": "dom"
+    },
+    {
+     "n": 5,
+     "label": "Zoom and compass",
+     "x": 893.7,
+     "y": 23.2,
+     "w": 29,
+     "h": 87,
+     "source": "dom"
+    },
+    {
+     "n": 6,
+     "label": "Group of sites",
+     "x": 795.5,
+     "y": 215.3,
+     "w": 48,
+     "h": 48,
+     "source": "map"
+    },
+    {
+     "n": 7,
+     "label": "High country",
+     "x": 768.3,
+     "y": 257.2,
+     "w": 23.8,
+     "h": 50,
+     "source": "map"
+    },
+    {
+     "n": 8,
+     "label": "Disaster area",
+     "x": 402.3,
+     "y": 83.3,
+     "w": 144.6,
+     "h": 105.6,
+     "source": "map",
+     "event": "DR1018332"
+    },
+    {
+     "n": 9,
+     "label": "Legend",
+     "x": 20,
+     "y": 429.8,
+     "w": 196,
+     "h": 133.4,
+     "source": "dom"
+    },
+    {
+     "n": 10,
+     "label": "Details panel",
+     "x": 949.7,
+     "y": 12.2,
+     "w": 453.3,
+     "h": 560,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "04-globe",
+   "file": "04-globe.webp",
+   "title": "Globe view",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Globe view",
+     "x": 316.3,
+     "y": 31.2,
+     "w": 90.5,
+     "h": 30.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Reset view",
+     "x": 585.1,
+     "y": 30.2,
+     "w": 93,
+     "h": 32.4,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "07-show-all",
+   "file": "07-show-all.webp",
+   "title": "Show all current disasters, turned on",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Show all current disasters",
+     "x": 29,
+     "y": 34.4,
+     "w": 198.8,
+     "h": 24,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "An area with none of your sites",
+     "x": 24.9,
+     "y": 256,
+     "w": 93.6,
+     "h": 43.6,
+     "source": "map",
+     "event": "TC1001329"
+    }
+   ]
+  },
+  {
+   "name": "11a-countries-table",
+   "file": "11a-countries-table.webp",
+   "title": "Countries table",
+   "width": 1416,
+   "height": 622,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 134,
+    "w": 1416,
+    "h": 622
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Countries / Owner companies",
+     "x": 29,
+     "y": 13.8,
+     "w": 1358,
+     "h": 48,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Search",
+     "x": 1190,
+     "y": 103.6,
+     "w": 199,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Sorted by Share",
+     "x": 965,
+     "y": 149.4,
+     "w": 100,
+     "h": 39,
+     "source": "dom"
+    },
+    {
+     "n": 4,
+     "label": "Vietnam row",
+     "x": 21,
+     "y": 188.4,
+     "w": 1374,
+     "h": 36,
+     "source": "dom"
+    },
+    {
+     "n": 5,
+     "label": "Rows and pages",
+     "x": 21,
+     "y": 549.4,
+     "w": 1374,
+     "h": 52,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "11b-owners-table",
+   "file": "11b-owners-table.webp",
+   "title": "Owner companies table",
+   "width": 1416,
+   "height": 622,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 134,
+    "w": 1416,
+    "h": 622
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Owner companies",
+     "x": 131.9,
+     "y": 13.8,
+     "w": 163.6,
+     "h": 48,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "POU CHEN row",
+     "x": 21,
+     "y": 188.4,
+     "w": 1374,
+     "h": 36,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Countries column",
+     "x": 1235,
+     "y": 149.4,
+     "w": 160,
+     "h": 39,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "10b-owner-panel",
+   "file": "10b-owner-panel.webp",
+   "title": "Owner panel: POU CHEN (adidas)",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Share and level",
+     "x": 966.7,
+     "y": 29.2,
+     "w": 419.3,
+     "h": 77.2,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Its sites",
+     "x": 966.7,
+     "y": 199.9,
+     "w": 419.3,
+     "h": 384.1,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "10a-country-panel",
+   "file": "10a-country-panel.webp",
+   "title": "Country panel: Vietnam (adidas)",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Share and level",
+     "x": 966.7,
+     "y": 29.2,
+     "w": 419.3,
+     "h": 77.2,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Sites",
+     "x": 966.7,
+     "y": 178.4,
+     "w": 419.3,
+     "h": 405.6,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Vietnam outlined",
+     "x": 302.6,
+     "y": 13.2,
+     "w": 257.3,
+     "h": 536.2,
+     "source": "map"
+    }
+   ]
+  },
+  {
+   "name": "05-style-map",
+   "file": "05-style-map.webp",
+   "title": "Map style \"Map\": place names",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Map",
+     "x": 462.5,
+     "y": 31.2,
+     "w": 45.5,
+     "h": 30.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Credits",
+     "x": 441.9,
+     "y": 551.2,
+     "w": 490.7,
+     "h": 20,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "06-style-satellite",
+   "file": "06-style-satellite.webp",
+   "title": "Map style \"Satellite\"",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Satellite",
+     "x": 507.1,
+     "y": 31.2,
+     "w": 70,
+     "h": 30.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Credits",
+     "x": 232,
+     "y": 531.2,
+     "w": 700.7,
+     "h": 40,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "12a-how",
+   "file": "12a-how.webp",
+   "title": "How these numbers are worked out",
+   "width": 1416,
+   "height": 395,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 259,
+    "w": 1416,
+    "h": 395
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "High at (%)",
+     "x": 29,
+     "y": 269.7,
+     "w": 140,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Watch at (%)",
+     "x": 185,
+     "y": 269.7,
+     "w": 140,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Coverage",
+     "x": 29,
+     "y": 158.8,
+     "w": 757,
+     "h": 22.6,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "12b-source",
+   "file": "12b-source.webp",
+   "title": "Source and limits of the data",
+   "width": 1416,
+   "height": 251,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 637,
+    "w": 1416,
+    "h": 251
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Disaster data source",
+     "x": 29,
+     "y": 69.4,
+     "w": 757,
+     "h": 42.9,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Your lists",
+     "x": 29,
+     "y": 124.3,
+     "w": 757,
+     "h": 21.4,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "13-loading",
+   "file": "13-loading.webp",
+   "title": "A company switch: Loading Nike…",
+   "width": 1440,
+   "height": 228,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 228
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Company",
+     "x": 208.2,
+     "y": 12.7,
+     "w": 160,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Loading Nike…",
+     "x": 24,
+     "y": 129,
+     "w": 1392,
+     "h": 86.5,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "08-site-panel",
+   "file": "08-site-panel.webp",
+   "title": "Site panel: PT. Paxar Indonesia (Nike)",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 106,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Owner companies",
+     "x": 966.7,
+     "y": 122.3,
+     "w": 419.3,
+     "h": 55.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Disaster area",
+     "x": 966.7,
+     "y": 253.1,
+     "w": 419.3,
+     "h": 43.4,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "On your lists",
+     "x": 966.7,
+     "y": 312.5,
+     "w": 419.3,
+     "h": 76.8,
+     "source": "dom"
+    },
+    {
+     "n": 4,
+     "label": "Parent company",
+     "x": 966.7,
+     "y": 405.3,
+     "w": 419.3,
+     "h": 88.8,
+     "source": "dom"
+    },
+    {
+     "n": 5,
+     "label": "The site on the map",
+     "x": 458.5,
+     "y": 278.6,
+     "w": 28,
+     "h": 28,
+     "source": "map"
+    }
+   ]
+  },
+  {
+   "name": "09a-disaster-panel",
+   "file": "09a-disaster-panel.webp",
+   "title": "Disaster panel: drought DR1018332 (Amazon)",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 106,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Alert and level",
+     "x": 966.7,
+     "y": 29.7,
+     "w": 419.3,
+     "h": 247.3,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Your sites inside",
+     "x": 966.7,
+     "y": 350.1,
+     "w": 419.3,
+     "h": 233.9,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "The drought's area",
+     "x": 173.4,
+     "y": 73.7,
+     "w": 600.2,
+     "h": 438,
+     "source": "map",
+     "event": "DR1018332"
+    }
+   ]
+  },
+  {
+   "name": "09b-disaster-owners",
+   "file": "09b-disaster-owners.webp",
+   "title": "Their owners, and those owners' other sites (Amazon)",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 106,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Their owners",
+     "x": 966.7,
+     "y": 25.6,
+     "w": 419.3,
+     "h": 55.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Those owners' other sites",
+     "x": 966.7,
+     "y": 97,
+     "w": 419.3,
+     "h": 43.4,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "09c-disaster-unlisted",
+   "file": "09c-disaster-unlisted.webp",
+   "title": "Inside the area, but not counted (Amazon)",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 106,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Inside the area, not counted",
+     "x": 966.7,
+     "y": 25.4,
+     "w": 419.3,
+     "h": 558.6,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "09d-disaster-other-sites",
+   "file": "09d-disaster-other-sites.webp",
+   "title": "Those owners' other sites (Apple, the same drought)",
+   "width": 1415,
+   "height": 584,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 13,
+    "y": 107,
+    "w": 1415,
+    "h": 584
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Those owners' other sites",
+     "x": 966.7,
+     "y": 25.1,
+     "w": 419.3,
+     "h": 558.9,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "14a-upload-empty",
+   "file": "14a-upload-empty.webp",
+   "title": "Upload a supplier list",
+   "width": 1416,
+   "height": 240,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 240
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "The three steps",
+     "x": 29,
+     "y": 65.3,
+     "w": 1358,
+     "h": 86.8,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Choose a file",
+     "x": 29,
+     "y": 164,
+     "w": 126.4,
+     "h": 38.3,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "14b-upload-amazon",
+   "file": "14b-upload-amazon.webp",
+   "title": "data/demo/amazon.csv chosen (not loaded)",
+   "width": 1416,
+   "height": 783,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 783
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Rows and lists",
+     "x": 29,
+     "y": 218.3,
+     "w": 1358,
+     "h": 21.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Company found",
+     "x": 29,
+     "y": 251.7,
+     "w": 1358,
+     "h": 49.4,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Ticked and current",
+     "x": 29,
+     "y": 364.6,
+     "w": 1358,
+     "h": 21.4,
+     "source": "dom"
+    },
+    {
+     "n": 4,
+     "label": "The 2026 list: ticked and current",
+     "x": 30,
+     "y": 562.3,
+     "w": 1356,
+     "h": 34.4,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "14c-upload-amazon-name",
+   "file": "14c-upload-amazon-name.webp",
+   "title": "data/demo/amazon.csv chosen: the company name (not loaded)",
+   "width": 1416,
+   "height": 888,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 0,
+    "w": 1416,
+    "h": 888
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Company name",
+     "x": 29,
+     "y": 812,
+     "w": 199,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Load this company (not clicked)",
+     "x": 244,
+     "y": 812.2,
+     "w": 169.2,
+     "h": 38.3,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "14d-upload-facilities",
+   "file": "14d-upload-facilities.webp",
+   "title": "data/demo/facilities.csv chosen: suggestions (not loaded)",
+   "width": 1416,
+   "height": 783,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 783
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Rows and lists",
+     "x": 29,
+     "y": 218.3,
+     "w": 1358,
+     "h": 21.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Suggested companies",
+     "x": 29,
+     "y": 251.7,
+     "w": 1358,
+     "h": 102.2,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Search and Show all lists",
+     "x": 29,
+     "y": 369.9,
+     "w": 1358,
+     "h": 39.4,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "15a-network-adidas",
+   "file": "15a-network-adidas.webp",
+   "title": "Company network: adidas, a candidate not decided",
+   "width": 1416,
+   "height": 783,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 783
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Candidates and verdicts",
+     "x": 12,
+     "y": 118.1,
+     "w": 860.7,
+     "h": 21.4,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Review level",
+     "x": 29,
+     "y": 178,
+     "w": 150,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Search names or LEI",
+     "x": 191,
+     "y": 178,
+     "w": 524.8,
+     "h": 38.6,
+     "source": "dom"
+    },
+    {
+     "n": 4,
+     "label": "A candidate",
+     "x": 13,
+     "y": 255,
+     "w": 718.8,
+     "h": 103,
+     "source": "dom"
+    },
+    {
+     "n": 5,
+     "label": "Confirm / Reject / Undo (not clicked)",
+     "x": 509.2,
+     "y": 304.8,
+     "w": 210.6,
+     "h": 32.4,
+     "source": "dom"
+    },
+    {
+     "n": 6,
+     "label": "Dashed line: not confirmed",
+     "x": 1286.5,
+     "y": 412.6,
+     "w": 12,
+     "h": 54.9,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "15b-network-paxar",
+   "file": "15b-network-paxar.webp",
+   "title": "Company network: PT. Paxar Indonesia (Nike), confirmed",
+   "width": 1416,
+   "height": 783,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 783
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Confirmed",
+     "x": 1299.5,
+     "y": 178,
+     "w": 87.5,
+     "h": 24,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Solid line: confirmed",
+     "x": 1105.3,
+     "y": 382.6,
+     "w": 115.5,
+     "h": 17.1,
+     "source": "dom"
+    },
+    {
+     "n": 3,
+     "label": "Parent companies",
+     "x": 1221.2,
+     "y": 467.2,
+     "w": 142.6,
+     "h": 71.3,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "15c-network-henkel",
+   "file": "15c-network-henkel.webp",
+   "title": "Company network: HENKEL AG AND KGAA (Apple), a shared verdict",
+   "width": 1416,
+   "height": 783,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 783
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "Shared verdict",
+     "x": 29,
+     "y": 380.4,
+     "w": 451.5,
+     "h": 37.6,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Your company: Apple only",
+     "x": 788.8,
+     "y": 452.2,
+     "w": 142.6,
+     "h": 35,
+     "source": "dom"
+    }
+   ]
+  },
+  {
+   "name": "15d-network-samsung",
+   "file": "15d-network-samsung.webp",
+   "title": "Company network: Samsung, no candidates yet",
+   "width": 1416,
+   "height": 204,
+   "scale": 2,
+   "viewport_crop": {
+    "x": 12,
+    "y": 117,
+    "w": 1416,
+    "h": 204
+   },
+   "markers": [
+    {
+     "n": 1,
+     "label": "No candidates yet",
+     "x": 12,
+     "y": 120.6,
+     "w": 1392,
+     "h": 70.9,
+     "source": "dom"
+    },
+    {
+     "n": 2,
+     "label": "Find GLEIF candidates (not clicked)",
+     "x": 1111,
+     "y": 130.6,
+     "w": 285,
+     "h": 32.4,
+     "source": "dom"
+    }
+   ]
+  }
+ ],
+ "captured": {
+  "at_utc": "2026-10-03T13:07:40.072Z",
+  "at_local": "Sat Oct 03 2026 18:37:40 GMT+0530 (India Standard Time)",
+  "base": "http://localhost:5173",
+  "viewport": "1440x900",
+  "scale": 2,
+  "disaster_data_chip": "Disaster data: 3 Oct 2026, 12:38 UTC",
+  "app_commit": "25de639",
+  "chrome": "Chrome/154.0.8037.58"
+ },
+ "blocked_requests": [],
+ "console_errors": []
+}
