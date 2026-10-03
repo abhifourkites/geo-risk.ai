@@ -5,806 +5,181 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Supplier Risk Map Guide</title>
 <style>
-:root { --ink:#1F2A2E; --muted:#56656A; --line:#DDE3E5; --bg:#F6F7F5; --paper:#FFFFFF; --navy:#1F3A5F; --pin:#C2255C; --code:#5F3DC4; --codebg:#F4F1FD; }
+:root { --ink:#1F2A2E; --muted:#56656A; --line:#DDE3E5; --bg:#F6F7F5; --paper:#FFFFFF; --navy:#1F3A5F; --pin:#C2255C; --code:#5F3DC4; }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
-main { max-width: 1180px; margin: 0 auto; padding: 0 24px 120px; }
-a { color: var(--navy); text-underline-offset: 2px; }
-code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #EDF0F1; padding: 1px 5px; border-radius: 4px; }
-h1 { font-size: 44px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 16px; }
-h2 { font-size: 28px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 12px; display: flex; align-items: baseline; gap: 12px; }
-h3 { font-size: 19px; margin: 0 0 12px; }
-section { padding-top: 56px; scroll-margin-top: 12px; }
-section > p { max-width: 78ch; }
-.secno { font-size: 15px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 8px; padding: 2px 9px; }
-.step { font-size: 13px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 6px; }
-
-.cover { padding: 64px 0 8px; }
-.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
-.lede { font-size: 20px; line-height: 1.5; max-width: 62ch; margin: 0 0 24px; }
-.grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
-.card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 20px 24px; }
-.card h3 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 10px; }
-.card p, .card ul { margin: 0 0 10px; }
-.card ul { padding-left: 20px; }
-dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
-dl.facts dt { color: var(--muted); }
-dl.facts dd { margin: 0; font-weight: 600; }
-.live { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: #FFF4E6; color: #7A4100; font-size: 14px; }
-.legend-demo { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
-nav.toc ol { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 24px; }
-nav.toc li { break-inside: avoid; margin: 0 0 6px; }
-nav.toc a { text-decoration: none; display: flex; gap: 10px; align-items: baseline; }
-nav.toc a:hover { text-decoration: underline; }
-.tocno { min-width: 22px; font-weight: 700; color: var(--muted); }
-details.figs { margin-top: 12px; font-size: 14px; }
-details.figs ol { columns: 2; column-gap: 24px; padding-left: 0; list-style: none; margin: 8px 0 0; }
-details.figs li { break-inside: avoid; margin-bottom: 4px; }
-
-.block { margin: 36px 0 0; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+main { max-width: 1180px; margin: 0 auto; padding: 56px 24px 96px; }
+h1 { font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 14px; }
+.intro { margin: 0; color: var(--ink); }
+.intro .live { color: #7A4100; background: #FFF4E6; border-radius: 6px; padding: 1px 6px; }
+section.fig { margin-top: 56px; }
+h2 { font-size: 22px; line-height: 1.25; margin: 0 0 14px; display: flex; align-items: baseline; gap: 10px; }
+h2 .no { font-size: 14px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 7px; padding: 1px 8px; }
+h2 .co { font-size: 15px; font-weight: 500; color: var(--muted); }
+section.fig > p { max-width: 82ch; margin: 14px 4px 0; color: var(--ink); }
+code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #EDF0F1; padding: 1px 5px; border-radius: 4px; }
+.code { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--code); background: #F1EDFC; border-radius: 4px; padding: 2px 6px; margin-right: 2px; }
 figure.shot { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(31,42,46,0.06); }
-.frame { width: 100%; }
 .frame.band { padding-top: 34px; }
-.frame.band-b { padding-bottom: 34px; }
 .img { position: relative; width: 100%; }
 .img img { display: block; width: 100%; height: auto; border-radius: 8px; }
-figcaption { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--muted); padding: 10px 4px 0; }
-figcaption .fig { font-weight: 700; color: var(--ink); }
-figcaption .full { margin-left: auto; font-size: 13px; }
 .box { position: absolute; border: 2px solid var(--pin); border-radius: 6px; box-shadow: 0 0 0 2px rgba(255,255,255,0.9); pointer-events: none; }
-.pin { position: absolute; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--pin); color: #fff; font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 9px 3px 3px; border-radius: 999px; box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,0.25); pointer-events: none; z-index: 1; }
-.pin b, .num { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #fff; color: var(--pin); font-size: 11px; font-weight: 800; flex: none; }
-.num { background: var(--pin); color: #fff; width: 22px; height: 22px; font-size: 12px; margin-top: 2px; }
-
-.notes { padding: 16px 4px 0; }
-.notes p { margin: 0 0 10px; max-width: 86ch; }
-.label { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-right: 6px; }
-ol.marks { list-style: none; padding: 0; margin: 6px 0 14px; display: grid; gap: 8px; }
-ol.marks li { display: flex; gap: 10px; align-items: flex-start; max-width: 92ch; }
-.flow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; margin: 4px 0 10px; }
-.flow p { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
-.flow .label { display: block; margin-bottom: 2px; }
-.code { background: var(--codebg); border-left: 3px solid var(--code); border-radius: 8px; padding: 10px 14px; margin: 10px 0; max-width: 92ch; }
-.code ul { margin: 6px 0 0; padding-left: 20px; }
-.tag { display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--code); margin-right: 6px; }
-.src { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--code); white-space: nowrap; }
-
-ul.know { list-style: none; padding: 0; margin: 16px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-ul.know li { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-ul.know b { display: block; margin-bottom: 4px; }
-footer { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
-
+.lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.lines line { stroke: var(--pin); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.lines line.halo { stroke: #fff; stroke-width: 5; }
+.pill { position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; background: var(--pin); color: #fff; font-size: 13px; font-weight: 600; line-height: 1; padding: 4px 11px 4px 4px; border-radius: 999px; box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(0,0,0,0.25); pointer-events: none; z-index: 1; }
+.pill b { display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; background: #fff; color: var(--pin); font-size: 11px; font-weight: 800; flex: none; }
+section.know { margin-top: 64px; }
+section.know ul { margin: 0; padding-left: 22px; max-width: 82ch; }
+section.know li { margin-bottom: 6px; }
+footer { margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
 #hide-marks { position: absolute; opacity: 0; pointer-events: none; }
 .toggle { position: fixed; right: 20px; bottom: 20px; z-index: 10; background: var(--navy); color: #fff; border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.2); user-select: none; }
-.toggle::after { content: "Hide markers"; }
-#hide-marks:checked ~ .toggle::after { content: "Show markers"; }
+.toggle::after { content: "Hide callouts"; }
+#hide-marks:checked ~ .toggle::after { content: "Show callouts"; }
 #hide-marks:checked ~ main .mk { display: none; }
 #hide-marks:focus-visible ~ .toggle { outline: 3px solid var(--pin); outline-offset: 2px; }
-@media (max-width: 860px) { .grid, .flow, ul.know { grid-template-columns: 1fr; } nav.toc ol, details.figs ol { columns: 1; } h1 { font-size: 34px; } }
-@media print { .toggle { display: none; } section { break-before: page; } .block { break-inside: avoid; } }
+@media print { .toggle { display: none; } section.fig { break-inside: avoid; } }
 </style>
 </head>
 <body>
 <input type="checkbox" id="hide-marks">
-<label for="hide-marks" class="toggle" title="Show or hide the numbered markers on the screenshots"></label>
+<label for="hide-marks" class="toggle" title="Show or hide the callouts on the screenshots"></label>
 <main>
-<header class="cover" id="cover">
-  <p class="eyebrow">Product guide</p>
-  <h1>Supplier risk map</h1>
-  <p class="lede">The Supplier risk map shows a company where its suppliers' sites are concentrated, which owner companies hold many of them, and which sites are inside a current disaster area. It is for the company's own procurement and risk team, and its Chief Procurement Officer.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>What it uses</h3>
-      <p>Supplier lists from Open Supply Hub, loaded by upload; current disaster areas from GDACS, read live; and company records from GLEIF, whose parent companies show only after a person confirms a match.</p>
-      <p>The demo companies are adidas, Nike, Apple, Samsung and Amazon.com, Inc. They are stand-ins, used because their supplier lists are public on Open Supply Hub; this guide does not claim they are FourKites customers.</p>
-      <h3 style="margin-top:18px">How to read this guide</h3>
-      <ul>
-        <li>Every screenshot is from the running app. Each numbered marker <span class="legend-demo"><span class="pin" style="position:static"><b>1</b>Name</span></span> sits on the element its note explains; its box was measured on the page when the screenshot was taken.</li>
-        <li>Each screenshot is followed by what it shows, what each marked control does, what you do, and what happens next.</li>
-        <li><span class="tag">Code only</span> marks behaviour that is in the app's source code but not shown in a screenshot.</li>
-        <li>Nothing was confirmed, rejected, undone, loaded or refreshed for this guide. Buttons that would change data are described, not clicked.</li>
-        <li>The button at the bottom right hides or shows the markers.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>Captured</h3>
-      <dl class="facts">
-        <dt>Date</dt><dd>3 Oct 2026, 13:07 UTC (18:37 India Standard Time)</dd>
-        <dt>Header showed</dt><dd>Disaster data: 3 Oct 2026, 12:38 UTC</dd>
-        <dt>Screen</dt><dd>1440 × 900 px, at 2×</dd>
-        <dt>Browser</dt><dd>Headless Chrome 154</dd>
-        <dt>App version</dt><dd>commit 25de639</dd>
-        <dt>Screenshots</dt><dd>27</dd>
-      </dl>
-      <p class="live">Disaster data is live. On another day the disaster areas, the sites inside them, and every sentence and count that mentions them will differ from these screenshots.</p>
-    </div>
-  </div>
-</header>
+<h1>Supplier risk map</h1>
+<p class="intro">The Supplier risk map shows where a company's supplier sites are concentrated, which owners hold many, and which are in a current disaster area.<br>
+It is for the company's procurement and risk team; the examples use the public supplier lists of adidas, Nike and Amazon.<br>
+Captured 3 Oct 2026, 13:47 UTC, with disaster data from 12:38 UTC. <span class="live">Disaster data is live, so areas and counts will differ on another day.</span></p>
 
-<section id="contents" style="padding-top:40px">
-  <div class="card">
-    <h3>Contents</h3>
-    <nav class="toc"><ol>
-<li><a href="#cover"><span class="tocno">1</span>About this guide</a></li>
-<li><a href="#getting-around"><span class="tocno">2</span>Getting around</a></li>
-<li><a href="#risk-map"><span class="tocno">3</span>Risk map, piece by piece</a></li>
-<li><a href="#where-exposed"><span class="tocno">4</span>Workflow: Where is my company exposed?</a></li>
-<li><a href="#disaster-hits"><span class="tocno">5</span>Workflow: A disaster hits</a></li>
-<li><a href="#add-list"><span class="tocno">6</span>Workflow: Add a new supplier list</a></li>
-<li><a href="#review-match"><span class="tocno">7</span>Workflow: Review a company match</a></li>
-<li><a href="#map-styles"><span class="tocno">8</span>Map styles</a></li>
-<li><a href="#good-to-know"><span class="tocno">9</span>Good to know</a></li>
-    </ol></nav>
-    <details class="figs"><summary>All 27 screenshots</summary><ol>
-<li><a href="#fig-01-header">Figure 1</a> Header and tabs (adidas)</li>
-<li><a href="#fig-13-loading">Figure 2</a> A company switch: Loading Nike…</li>
-<li><a href="#fig-02-summary">Figure 3</a> The summary sentence and the three answer cards</li>
-<li><a href="#fig-03-map">Figure 4</a> The map: Plain style, flat</li>
-<li><a href="#fig-04-globe">Figure 5</a> Globe view</li>
-<li><a href="#fig-07-show-all">Figure 6</a> Show all current disasters, turned on</li>
-<li><a href="#fig-12a-how">Figure 7</a> How these numbers are worked out</li>
-<li><a href="#fig-12b-source">Figure 8</a> Source and limits of the data</li>
-<li><a href="#fig-11a-countries-table">Figure 9</a> Countries table</li>
-<li><a href="#fig-10a-country-panel">Figure 10</a> Country panel: Vietnam (adidas)</li>
-<li><a href="#fig-11b-owners-table">Figure 11</a> Owner companies table</li>
-<li><a href="#fig-10b-owner-panel">Figure 12</a> Owner panel: POU CHEN (adidas)</li>
-<li><a href="#fig-08-site-panel">Figure 13</a> Site panel: PT. Paxar Indonesia (Nike)</li>
-<li><a href="#fig-09a-disaster-panel">Figure 14</a> Disaster panel: drought DR1018332 (Amazon)</li>
-<li><a href="#fig-09b-disaster-owners">Figure 15</a> Their owners, and those owners' other sites (Amazon)</li>
-<li><a href="#fig-09c-disaster-unlisted">Figure 16</a> Inside the area, but not counted (Amazon)</li>
-<li><a href="#fig-09d-disaster-other-sites">Figure 17</a> Those owners' other sites (Apple, the same drought)</li>
-<li><a href="#fig-14a-upload-empty">Figure 18</a> Upload a supplier list</li>
-<li><a href="#fig-14b-upload-amazon">Figure 19</a> data/demo/amazon.csv chosen (not loaded)</li>
-<li><a href="#fig-14c-upload-amazon-name">Figure 20</a> data/demo/amazon.csv chosen: the company name (not loaded)</li>
-<li><a href="#fig-14d-upload-facilities">Figure 21</a> data/demo/facilities.csv chosen: suggestions (not loaded)</li>
-<li><a href="#fig-15a-network-adidas">Figure 22</a> Company network: adidas, a candidate not decided</li>
-<li><a href="#fig-15b-network-paxar">Figure 23</a> Company network: PT. Paxar Indonesia (Nike), confirmed</li>
-<li><a href="#fig-15c-network-henkel">Figure 24</a> Company network: HENKEL AG AND KGAA (Apple), a shared verdict</li>
-<li><a href="#fig-15d-network-samsung">Figure 25</a> Company network: Samsung, no candidates yet</li>
-<li><a href="#fig-05-style-map">Figure 26</a> Map style &quot;Map&quot;: place names</li>
-<li><a href="#fig-06-style-satellite">Figure 27</a> Map style &quot;Satellite&quot;</li>
-    </ol></details>
-  </div>
+<section class="fig" id="fig-1">
+<h2><span class="no">1</span>Overview <span class="co">adidas</span></h2>
+<figure class="shot">
+  <div class="frame band"><div class="img" style="aspect-ratio:1440/535">
+    <img src="assets/01-overview.webp" width="1440" height="535" alt="Overview (adidas)">
+    <span class="mk box" style="left:26.472%;top:2.430%;width:19.333%;height:7.103%"></span><span class="mk box" style="left:1.458%;top:27.589%;width:77.375%;height:19.290%"></span><span class="mk box" style="left:1.458%;top:50.243%;width:97.083%;height:47.944%"></span>
+    <svg class="mk lines" viewBox="0 0 1440 535" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="290" y1="9.7" x2="290" y2="-24"/><line class="halo" x1="659.5999999999999" y1="32" x2="852" y2="32"/><line class="halo" x1="1135.2" y1="200" x2="1284" y2="200"/><line x1="290" y1="9.7" x2="290" y2="-24"/><line x1="659.5999999999999" y1="32" x2="852" y2="32"/><line x1="1135.2" y1="200" x2="1284" y2="200"/></svg>
+    <span class="mk pill" style="left:20.139%;top:-4.486%"><b>1</b>Pick a company: every number updates</span><span class="mk pill" style="left:59.167%;top:5.981%"><b>2</b>When disaster data was last read</span><span class="mk pill" style="left:89.167%;top:37.383%"><b>3</b>The answer in one sentence</span><span class="mk pill" style="left:49.167%;top:84.112%"><b>4</b>Click a card to highlight its sites</span>
+  </div></div>
+</figure>
+<p>The top bar holds the company, the time of the last disaster check, Check for new disasters (not clicked here) and three pages: Risk map, Upload a supplier list and Company network. Below it, the summary sentence and three cards answer where adidas is exposed.</p>
 </section>
 
-<section id="getting-around">
-<h2><span class="secno">2</span>Getting around</h2>
-<p>Every page has the same bar at the top: the company you are looking at, when disaster data was last read, and the three pages.</p>
-<div class="block">
-
-<figure class="shot" id="fig-01-header">
-  <div class="frame band"><div class="img" style="aspect-ratio:1440/117">
-    <img src="assets/01-header.webp" width="1440" height="117" alt="Header and tabs (adidas)" loading="lazy">
-    <span class="mk box" style="left:calc(14.458% - 3px);top:calc(10.855% - 3px);width:calc(11.111% + 6px);height:calc(32.991% + 6px)"></span><span class="mk pin" style="left:14.458%;top:10.855%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Company</span><span class="mk box" style="left:calc(26.681% - 3px);top:calc(13.675% - 3px);width:calc(18.917% + 6px);height:calc(27.350% + 6px)"></span><span class="mk pin" style="left:26.681%;top:13.675%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Disaster data</span><span class="mk box" style="left:calc(83.938% - 3px);top:calc(11.026% - 3px);width:calc(14.396% + 6px);height:calc(32.735% + 6px)"></span><span class="mk pin" style="left:98.333%;top:11.026%;transform:translate(calc(calc(-100% + 3px) + 0px), calc(calc(-100% - 7px) + 0px))"><b>3</b>Check for new disasters</span><span class="mk box" style="left:calc(1.667% - 3px);top:calc(54.701% - 3px);width:calc(96.667% + 6px);height:calc(34.188% + 6px)"></span><span class="mk pin" style="left:98.333%;top:54.701%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>4</b>Pages</span>
+<section class="fig" id="fig-2">
+<h2><span class="no">2</span>The map <span class="co">adidas</span></h2>
+<figure class="shot">
+  <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
+    <img src="assets/03-map.webp" width="1415" height="584" alt="The map: Plain style, flat (adidas)">
+    <span class="mk box" style="left:1.201%;top:3.116%;width:47.562%;height:9.658%"></span><span class="mk box" style="left:56.007%;top:36.353%;width:3.816%;height:9.247%"></span><span class="mk box" style="left:51.237%;top:31.199%;width:2.968%;height:7.192%"></span><span class="mk box" style="left:28.219%;top:13.750%;width:10.643%;height:19.110%"></span>
+    <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="228" y1="18.2" x2="228" y2="-24"/><line class="halo" x1="846.5" y1="239" x2="1140" y2="239"/><line class="halo" x1="767" y1="182.2" x2="1122" y2="150"/><line class="halo" x1="399.3" y1="120" x2="232" y2="120"/><line x1="228" y1="18.2" x2="228" y2="-24"/><line x1="846.5" y1="239" x2="1140" y2="239"/><line x1="767" y1="182.2" x2="1122" y2="150"/><line x1="399.3" y1="120" x2="232" y2="120"/></svg>
+    <span class="mk pill" style="left:16.113%;top:-4.110%"><b>1</b>Show all disasters, globe, style, reset</span><span class="mk pill" style="left:80.565%;top:40.925%"><b>2</b>226 sites here: click to zoom in</span><span class="mk pill" style="left:79.293%;top:25.685%"><b>3</b>High: 10% or more of workers</span><span class="mk pill" style="left:16.396%;top:20.548%"><b>4</b>Drought area: 17 of your sites</span>
   </div></div>
-  <figcaption><span class="fig">Figure 1</span> Header and tabs (adidas) <a class="full" href="assets/01-header.webp">Full size</a></figcaption>
 </figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The top bar on the Risk map page, with adidas chosen.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Company.</b> Chooses whose supplier lists you see. Every number, map, panel and table below then belongs to that company only. Changing it on Risk map or Upload a supplier list opens Risk map; on Company network you stay on that page.</div></li>
-<li><span class="num">2</span><div><b>Disaster data.</b> When the app last read GDACS's list of current disasters, in UTC. Here: "Disaster data: 3 Oct 2026, 12:38 UTC".</div></li>
-<li><span class="num">3</span><div><b>Check for new disasters.</b> Reads GDACS again now, then reloads the page's numbers. While it runs, the button reads "Checking…". It was not clicked for this guide.</div></li>
-<li><span class="num">4</span><div><b>Pages.</b> The three pages: Risk map, Upload a supplier list and Company network.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Pick a company in the Company list, or click a page.</p>
-    <p><span class="label">What happens next</span> The page shows that company. While its numbers load, "Loading <i>company</i>…" is shown (<a href="#fig-13-loading">Figure 2</a>).</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> The chip reads "Checking for current disasters…" while the first GDACS check after a start is still running, and the page asks again every 5 seconds. It reads "Disaster data unavailable", outlined in red, when the disaster data could not be read. <span class="src">App.tsx</span></p>
-<p class="code"><span class="tag">Code only</span> While a GLEIF candidate search runs for the chosen company, a chip "Finding GLEIF candidates: N of M names" appears next to the company. Clicking it opens Company network. <span class="src">App.tsx</span></p>
-</div>
-</div>
-<div class="block">
-
-<figure class="shot" id="fig-13-loading">
-  <div class="frame band"><div class="img" style="aspect-ratio:1440/228">
-    <img src="assets/13-loading.webp" width="1440" height="228" alt="A company switch: Loading Nike…" loading="lazy">
-    <span class="mk box" style="left:calc(14.458% - 3px);top:calc(5.570% - 3px);width:calc(11.111% + 6px);height:calc(16.930% + 6px)"></span><span class="mk pin" style="left:14.458%;top:5.570%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Company</span><span class="mk box" style="left:calc(1.667% - 3px);top:calc(56.579% - 3px);width:calc(96.667% + 6px);height:calc(37.939% + 6px)"></span><span class="mk pin" style="left:98.333%;top:56.579%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b>Loading Nike…</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 2</span> A company switch: Loading Nike… <a class="full" href="assets/13-loading.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> Just after choosing Nike: the chip reads "Loading…", and "Loading Nike…" takes the place of the page until Nike's numbers arrive. For this screenshot only, the capture browser's network was slowed by 4 seconds, so that the message stayed on screen long enough to be captured.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Company.</b> Now Nike.</div></li>
-<li><span class="num">2</span><div><b>Loading Nike….</b> The previous company's numbers and panel are cleared at once, so adidas's numbers never show under Nike's name.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Wait.</p>
-    <p><span class="label">What happens next</span> Nike's summary, cards, map and tables appear, and the map fits Nike's sites.</p>
-  </div>
-  
-</div>
-</div>
-
+<p>Countries at High are red and at Watch amber, nearby sites are grouped with their count, and disaster areas are outlined in purple. The legend at the bottom left explains each colour and symbol. Clicking a site, a country or a disaster area opens its details in the panel on the right.</p>
 </section>
-<section id="risk-map">
-<h2><span class="secno">3</span>Risk map, piece by piece</h2>
-<p>The Risk map page answers three questions for the chosen company: where its suppliers' sites are concentrated, which owner companies hold many of them, and which sites are inside a current disaster area. From top to bottom: the summary and three cards, the map with its details panel, two tables (see <a href="#where-exposed">Where is my company exposed?</a>), and two sections that explain the numbers. The screenshots in this section use adidas.</p>
-<div class="block">
 
-<figure class="shot" id="fig-02-summary">
-  <div class="frame band"><div class="img" style="aspect-ratio:1416/418">
-    <img src="assets/02-summary.webp" width="1416" height="418" alt="The summary sentence and the three answer cards" loading="lazy">
-    <span class="mk box" style="left:calc(0.847% - 3px);top:calc(2.871% - 3px);width:calc(98.305% + 6px);height:calc(5.167% + 6px)"></span><span class="mk pin" style="left:0.847%;top:2.871%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Company and sites</span><span class="mk box" style="left:calc(0.847% - 3px);top:calc(8.038% - 3px);width:calc(78.263% + 6px);height:calc(23.254% + 6px)"></span><span class="mk pin" style="left:79.110%;top:19.665%;transform:translate(calc(9px + 0px), calc(-50% + 0px))"><b>2</b>Summary sentence</span><span class="mk box" style="left:calc(0.847% - 3px);top:calc(37.033% - 3px);width:calc(32.013% + 6px);height:calc(59.928% + 6px)"></span><span class="mk pin" style="left:32.860%;top:37.033%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>3</b>Countries</span><span class="mk box" style="left:calc(33.990% - 3px);top:calc(37.033% - 3px);width:calc(32.013% + 6px);height:calc(59.928% + 6px)"></span><span class="mk pin" style="left:66.003%;top:37.033%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>4</b>Owner companies</span><span class="mk box" style="left:calc(67.140% - 3px);top:calc(37.033% - 3px);width:calc(32.013% + 6px);height:calc(59.928% + 6px)"></span><span class="mk pin" style="left:99.153%;top:37.033%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>5</b>Disasters now</span>
+<section class="fig" id="fig-3">
+<h2><span class="no">3</span>The site panel: PT. Paxar Indonesia <span class="co">Nike</span></h2>
+<figure class="shot">
+  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
+    <img src="assets/08-site-panel.webp" width="1415" height="584" alt="Site panel: PT. Paxar Indonesia (Nike)">
+    <span class="mk box" style="left:68.106%;top:20.428%;width:30.057%;height:10.514%"></span><span class="mk box" style="left:68.106%;top:42.825%;width:30.057%;height:8.459%"></span><span class="mk box" style="left:68.106%;top:68.887%;width:30.057%;height:16.233%"></span><span class="mk box" style="left:32.191%;top:47.192%;width:2.403%;height:5.822%"></span>
+    <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="963.7" y1="120" x2="720" y2="120"/><line class="halo" x1="963.7" y1="250.1" x2="720" y2="190"/><line class="halo" x1="963.7" y1="445" x2="752" y2="445"/><line class="halo" x1="470" y1="275.6" x2="470" y2="230"/><line x1="963.7" y1="120" x2="720" y2="120"/><line x1="963.7" y1="250.1" x2="720" y2="190"/><line x1="963.7" y1="445" x2="752" y2="445"/><line x1="470" y1="275.6" x2="470" y2="230"/></svg>
+    <span class="mk pill" style="left:50.883%;top:20.548%"><b>1</b>Owner company, from Open Supply Hub</span><span class="mk pill" style="left:50.883%;top:32.534%"><b>2</b>Not inside a current disaster area</span><span class="mk pill" style="left:53.145%;top:76.199%"><b>3</b>GLEIF parent, once a person confirms</span><span class="mk pill" style="left:33.216%;top:39.384%"><b>4</b>The selected site on the map</span>
   </div></div>
-  <figcaption><span class="fig">Figure 3</span> The summary sentence and the three answer cards <a class="full" href="assets/02-summary.webp">Full size</a></figcaption>
 </figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The top of the Risk map page for adidas.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Company and sites.</b> "adidas · 766 sites on your current lists".</div></li>
-<li><span class="num">2</span><div><b>Summary sentence.</b> One sentence with the answer: "3 countries at High (Vietnam, Indonesia, China) and 3 at Watch, by share of your suppliers' workers; 2 owner companies at Watch; 17 of your sites are inside current disaster areas (alert: Orange)."</div></li>
-<li><span class="num">3</span><div><b>Countries.</b> "3 countries hold 10% or more": Vietnam 31.5%, Indonesia 19.5% and China 12.8%, each High. Below: "3 more hold 5% or more: Pakistan 8.4%, Cambodia 8.2%, India 5.0%". The last line gives the basis: "Share of your suppliers' workers".</div></li>
-<li><span class="num">4</span><div><b>Owner companies.</b> "2 owners hold 5% or more": POU CHEN 7.4% and THE LOOK MACAO COMMERCIAL OFFSHORE 5.9%, both Watch. The base: "Owner known for 551 of 766 sites".</div></li>
-<li><span class="num">5</span><div><b>Disasters now.</b> "17 of your sites are inside 1 current disaster area": the drought in Austria, Bosnia and Herzegovina, Belgium and 26 more countries, 17 sites, Alert: Orange. The source: "Disaster data: GDACS, automatic alerts".</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click a card.</p>
-    <p><span class="label">What happens next</span> The card is outlined and the details panel lists what it counts: the countries at High or Watch, the owners at High or Watch (or the largest owner when none is), or each disaster with your sites inside. The map highlights their sites and moves to them. Clicking the same card again closes its panel.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> The panel each card opens ("Where you are most exposed", "Owners holding the biggest shares", "Your sites inside a current disaster area") is not captured in this guide. <span class="src">Panel.tsx, App.tsx</span></p>
-</div>
-</div>
-<div class="block">
+<p>A site's panel lists its owner, warnings, disaster status, the lists it is on and its parent company. It was opened from Nike's Countries table: Indonesia, then this site. It is on Nike's February 2024 list and has about 334 workers.</p>
+</section>
 
-<figure class="shot" id="fig-03-map">
+<section class="fig" id="fig-4">
+<h2><span class="no">4</span>The owner panel: POU CHEN <span class="co">adidas</span></h2>
+<figure class="shot">
+  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
+    <img src="assets/10b-owner-panel.webp" width="1415" height="584" alt="Owner panel: POU CHEN (adidas)">
+    <span class="mk box" style="left:68.106%;top:4.486%;width:30.057%;height:14.247%"></span><span class="mk box" style="left:68.106%;top:19.760%;width:30.057%;height:8.373%"></span><span class="mk box" style="left:68.106%;top:33.716%;width:30.057%;height:66.798%"></span>
+    <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="963.7" y1="140" x2="800" y2="140"/><line x1="963.7" y1="140" x2="800" y2="140"/></svg>
+    <span class="mk pill" style="left:87.633%;top:9.589%"><b>1</b>7.4% of workers: Watch level</span><span class="mk pill" style="left:56.537%;top:23.973%"><b>2</b>9 sites in 4 countries</span><span class="mk pill" style="left:86.360%;top:36.301%"><b>3</b>Its sites, highlighted on the map</span>
+  </div></div>
+</figure>
+<p>Opened by clicking POU CHEN in the Owner companies table below the map. It shows what share of adidas's suppliers' workers the owner holds, and where its sites are.</p>
+</section>
+
+<section class="fig" id="fig-5">
+<h2><span class="no">5</span>The disaster panel: the drought <span class="co">Amazon.com, Inc.</span></h2>
+<figure class="shot">
   <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/03-map.webp" width="1415" height="584" alt="The map: Plain style, flat" loading="lazy">
-    <span class="mk box" style="left:calc(2.049% - 3px);top:calc(5.890% - 3px);width:calc(14.049% + 6px);height:calc(4.110% + 6px)"></span><span class="mk pin" style="left:2.049%;top:5.890%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Show all</span><span class="mk box" style="left:calc(17.230% - 3px);top:calc(5.342% - 3px);width:calc(11.519% + 6px);height:calc(5.205% + 6px)"></span><span class="mk pin" style="left:17.230%;top:5.342%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Projection</span><span class="mk box" style="left:calc(29.314% - 3px);top:calc(5.342% - 3px);width:calc(11.470% + 6px);height:calc(5.205% + 6px)"></span><span class="mk pin" style="left:29.314%;top:5.342%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>3</b>Map style</span><span class="mk box" style="left:calc(41.350% - 3px);top:calc(5.171% - 3px);width:calc(6.572% + 6px);height:calc(5.548% + 6px)"></span><span class="mk pin" style="left:41.350%;top:5.171%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>4</b>Reset view</span><span class="mk box" style="left:calc(63.159% - 3px);top:calc(3.973% - 3px);width:calc(2.049% + 6px);height:calc(14.897% + 6px)"></span><span class="mk pin" style="left:63.159%;top:11.421%;transform:translate(calc(calc(-100% - 9px) + 0px), calc(-50% + 0px))"><b>5</b>Zoom, compass</span><span class="mk box" style="left:calc(56.219% - 3px);top:calc(36.866% - 3px);width:calc(3.392% + 6px);height:calc(8.219% + 6px)"></span><span class="mk pin" style="left:56.219%;top:36.866%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>6</b>Group of sites</span><span class="mk box" style="left:calc(54.297% - 3px);top:calc(44.041% - 3px);width:calc(1.682% + 6px);height:calc(8.562% + 6px)"></span><span class="mk pin" style="left:55.979%;top:48.322%;transform:translate(calc(9px + 0px), calc(-50% + 0px))"><b>7</b>High country</span><span class="mk box" style="left:calc(28.431% - 3px);top:calc(14.264% - 3px);width:calc(10.219% + 6px);height:calc(18.082% + 6px)"></span><span class="mk pin" style="left:38.650%;top:23.305%;transform:translate(calc(9px + 0px), calc(-50% + 0px))"><b>8</b>Disaster area</span><span class="mk box" style="left:calc(1.413% - 3px);top:calc(73.596% - 3px);width:calc(13.852% + 6px);height:calc(22.842% + 6px)"></span><span class="mk pin" style="left:1.413%;top:73.596%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>9</b>Legend</span><span class="mk box" style="left:calc(67.117% - 3px);top:calc(2.089% - 3px);width:calc(32.035% + 6px);height:calc(95.890% + 6px)"></span><span class="mk pin" style="left:67.117%;top:97.979%;transform:translate(calc(4px + 0px), calc(calc(-100% - 4px) + 0px))"><b>10</b>Details panel</span>
+    <img src="assets/09c-disaster-unlisted.webp" width="1415" height="584" alt="Disaster panel: drought DR1018332, not counted (Amazon)">
+    <span class="mk box" style="left:68.106%;top:3.836%;width:30.057%;height:96.678%"></span><span class="mk box" style="left:14.261%;top:12.894%;width:9.859%;height:45.394%"></span><span class="mk box" style="left:12.042%;top:12.106%;width:42.841%;height:76.027%"></span>
+    <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="1176" y1="22.4" x2="1176" y2="-24"/><line x1="1176" y1="22.4" x2="1176" y2="-24"/></svg>
+    <span class="mk pill" style="left:83.110%;top:-4.110%"><b>1</b>Inside the area, but not counted</span><span class="mk pill" style="left:15.265%;top:17.979%"><b>2</b>UK: not on GDACS's affected list</span><span class="mk pill" style="left:50.883%;top:25.685%"><b>3</b>The drought's affected area</span>
   </div></div>
-  <figcaption><span class="fig">Figure 4</span> The map: Plain style, flat <a class="full" href="assets/03-map.webp">Full size</a></figcaption>
 </figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The map in its default state: Plain style, Flat map, all of adidas's sites in view, and the empty details panel: "Click a site, a country or a disaster area to see details."</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Show all.</b> Show all current disasters. Off (as here), the map draws only the disaster areas that hold at least one of your sites, plus a disaster you selected. On: see <a href="#fig-07-show-all">Figure 6</a>.</div></li>
-<li><span class="num">2</span><div><b>Projection.</b> Flat map or Globe view (<a href="#fig-04-globe">Figure 5</a>). Switching moves the map back to your sites.</div></li>
-<li><span class="num">3</span><div><b>Map style.</b> Plain, Map or Satellite (see <a href="#map-styles">Map styles</a>).</div></li>
-<li><span class="num">4</span><div><b>Reset view.</b> Back to all your sites, without tilt or rotation.</div></li>
-<li><span class="num">5</span><div><b>Zoom, compass.</b> Zoom in and out. The compass shows the map's rotation and tilt; clicking it turns the map back to north and flat.</div></li>
-<li><span class="num">6</span><div><b>Group of sites.</b> Nearby sites are grouped in a circle with their count: here 226. Clicking a group zooms in until it splits.</div></li>
-<li><span class="num">7</span><div><b>High country.</b> Vietnam, filled red: High, 10% or more. Countries at Watch (5% to under 10%) are filled amber: India, Pakistan and Cambodia here. Clicking a country opens its panel (<a href="#fig-10a-country-panel">Figure 10</a>).</div></li>
-<li><span class="num">8</span><div><b>Disaster area.</b> The drought DR1018332's affected area, outlined in purple. Clicking it opens the disaster panel (<a href="#fig-09a-disaster-panel">Figure 14</a>).</div></li>
-<li><span class="num">9</span><div><b>Legend.</b> High: 10% or more; Watch: 5% to under 10%; Disaster area; Your site; Group of sites (count); Selected site. The percentages follow the High at and Watch at fields (<a href="#fig-12a-how">Figure 7</a>).</div></li>
-<li><span class="num">10</span><div><b>Details panel.</b> Shows whatever you click: a site, a country, an owner or a disaster.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Hover over the map, or click a site, a group, a country or a disaster area.</p>
-    <p><span class="label">What happens next</span> A click opens the details panel and moves the map to the selection; a click on a group zooms in.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> Hovering shows a label: a site's name and country; for a group, "N sites" and "Click to zoom in"; for a country, its name and its level and share (or "N of your sites", or "None of your sites"); for a disaster area, its name and "Disaster area (alert: …)". <span class="src">MapView.tsx</span></p>
-<p class="code"><span class="tag">Code only</span> Below the map, outside this screenshot, a line reads "Disaster data: GDACS, automatic alerts. Confirm before acting." When a High or Watch country is too small to draw at the map's scale, another line names it: "Too small to draw at this map scale: … Their sites still show on the map." <span class="src">MapView.tsx</span></p>
-<p class="code"><span class="tag">Code only</span> The credits in the bottom-right corner ("Natural Earth | MapLibre" on Plain) are always shown in full. <span class="src">MapView.tsx</span></p>
-</div>
-</div>
-<div class="block">
+<p>Opened from the Disasters now card, then scrolled down. These 47 sites in the United Kingdom are inside the drought's area but not counted: GDACS lists 29 countries as affected, and the United Kingdom is not one of them.</p>
+</section>
 
-<figure class="shot" id="fig-04-globe">
-  <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/04-globe.webp" width="1415" height="584" alt="Globe view" loading="lazy">
-    <span class="mk box" style="left:calc(22.353% - 3px);top:calc(5.342% - 3px);width:calc(6.396% + 6px);height:calc(5.205% + 6px)"></span><span class="mk pin" style="left:22.353%;top:5.342%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Globe view</span><span class="mk box" style="left:calc(41.350% - 3px);top:calc(5.171% - 3px);width:calc(6.572% + 6px);height:calc(5.548% + 6px)"></span><span class="mk pin" style="left:41.350%;top:5.171%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Reset view</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 5</span> Globe view <a class="full" href="assets/04-globe.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The same map as a globe, centred on adidas's sites.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Globe view.</b> Selected. Flat map goes back to the flat projection.</div></li>
-<li><span class="num">2</span><div><b>Reset view.</b> On the globe: centres it on your sites again.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Drag to turn the globe; use Flat map to go back.</p>
-    <p><span class="label">What happens next</span> Sites, groups, shading and disaster areas behave as on the flat map.</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-
-<figure class="shot" id="fig-07-show-all">
-  <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/07-show-all.webp" width="1415" height="584" alt="Show all current disasters, turned on" loading="lazy">
-    <span class="mk box" style="left:calc(2.049% - 3px);top:calc(5.890% - 3px);width:calc(14.049% + 6px);height:calc(4.110% + 6px)"></span><span class="mk pin" style="left:2.049%;top:5.890%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Show all</span><span class="mk box" style="left:calc(1.760% - 3px);top:calc(43.836% - 3px);width:calc(6.615% + 6px);height:calc(7.466% + 6px)"></span><span class="mk pin" style="left:1.760%;top:43.836%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>None of your sites</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 6</span> Show all current disasters, turned on <a class="full" href="assets/07-show-all.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> Show all current disasters, turned on: every current GDACS affected area is drawn, not only those that hold your sites. Areas narrower than 3 degrees also get a ring, so they can be seen when zoomed out; the many small circles are these rings.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Show all.</b> On.</div></li>
-<li><span class="num">2</span><div><b>None of your sites.</b> Tropical Cyclone RACHEL-26 (TC1001329, Green alert). It is drawn only because Show all is on: all 17 of adidas's sites inside a disaster area are in the drought DR1018332.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Turn it off to see only the areas that hold your sites.</p>
-    <p><span class="label">What happens next</span> Only the map changes. The summary sentence, the cards and the tables count the same sites with the switch on or off.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> The rings are drawn only when zoomed out (below zoom 4.5). <span class="src">MapView.tsx</span></p>
-</div>
-</div>
-<div class="block">
-
-<figure class="shot" id="fig-12a-how">
+<section class="fig" id="fig-6">
+<h2><span class="no">6</span>How these numbers are worked out <span class="co">adidas</span></h2>
+<figure class="shot">
   <div class="frame"><div class="img" style="aspect-ratio:1416/395">
-    <img src="assets/12a-how.webp" width="1416" height="395" alt="How these numbers are worked out" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(68.278% - 3px);width:calc(9.887% + 6px);height:calc(9.772% + 6px)"></span><span class="mk pin" style="left:11.935%;top:68.278%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b></span><span class="mk box" style="left:calc(13.065% - 3px);top:calc(68.278% - 3px);width:calc(9.887% + 6px);height:calc(9.772% + 6px)"></span><span class="mk pin" style="left:22.952%;top:68.278%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b></span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(40.203% - 3px);width:calc(53.460% + 6px);height:calc(5.722% + 6px)"></span><span class="mk pin" style="left:55.508%;top:40.203%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>3</b>Coverage</span>
+    <img src="assets/12a-how.webp" width="1416" height="395" alt="How these numbers are worked out (adidas)">
+    <span class="mk box" style="left:1.836%;top:65.241%;width:10.311%;height:13.570%"></span><span class="mk box" style="left:12.853%;top:65.241%;width:10.311%;height:13.570%"></span><span class="mk box" style="left:1.836%;top:39.443%;width:53.884%;height:7.241%"></span>
+    <svg class="mk lines" viewBox="0 0 1416 395" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="172" y1="257.7" x2="1000" y2="236"/><line class="halo" x1="328" y1="272" x2="1000" y2="272"/><line class="halo" x1="789" y1="170" x2="952" y2="170"/><line x1="172" y1="257.7" x2="1000" y2="236"/><line x1="328" y1="272" x2="1000" y2="272"/><line x1="789" y1="170" x2="952" y2="170"/></svg>
+    <span class="mk pill" style="left:70.621%;top:59.747%"><b>1</b>Change the High threshold</span><span class="mk pill" style="left:70.621%;top:68.861%"><b>2</b>Change the Watch threshold</span><span class="mk pill" style="left:67.232%;top:43.038%"><b>3</b>Each number shows its base</span>
   </div></div>
-  <figcaption><span class="fig">Figure 7</span> How these numbers are worked out <a class="full" href="assets/12a-how.webp">Full size</a></figcaption>
 </figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> "How these numbers are worked out", opened. It explains the counted sites (766 for adidas), the share basis (workers, known for 719 of 766 sites), coverage, the levels and how owners are counted ("56 of 156 owners with 2 or more sites have all of them in one country").</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>High at (%).</b> The share at which a country or owner is High: 10.</div></li>
-<li><span class="num">2</span><div><b>Watch at (%).</b> The share at which it is at Watch: 5. Next to them: "Now: High 10% or more, Watch 5% or more."</div></li>
-<li><span class="num">3</span><div><b>Coverage.</b> "Owner known for 551 of 766 sites. Location known for 766 of 766 sites."</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Change High at or Watch at.</p>
-    <p><span class="label">What happens next</span> The app works out the numbers again with the new thresholds: the sentence, the cards, the shading, the legend and the tables follow.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> The thresholds are not saved: they start at 10 and 5 each time the page is opened. <span class="src">App.tsx</span></p>
-</div>
-</div>
-<div class="block">
-
-<figure class="shot" id="fig-12b-source">
-  <div class="frame"><div class="img" style="aspect-ratio:1416/251">
-    <img src="assets/12b-source.webp" width="1416" height="251" alt="Source and limits of the data" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(27.649% - 3px);width:calc(53.460% + 6px);height:calc(17.092% + 6px)"></span><span class="mk pin" style="left:55.508%;top:36.195%;transform:translate(calc(9px + 0px), calc(-50% + 0px))"><b>1</b>Disaster data</span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(49.522% - 3px);width:calc(53.460% + 6px);height:calc(8.526% + 6px)"></span><span class="mk pin" style="left:55.508%;top:53.785%;transform:translate(calc(9px + 0px), calc(-50% + 0px))"><b>2</b>Your lists</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 8</span> Source and limits of the data <a class="full" href="assets/12b-source.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> "Source and limits of the data", opened.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Disaster data.</b> "GDACS (Global Disaster Awareness and Coordination System). Alerts are automatic, not reviewed by people. Confirm before making decisions."</div></li>
-<li><span class="num">2</span><div><b>Your lists.</b> The lists counted for adidas; "each name carries the list's date": Primary Jan 2026, Licensee Jan 2026 and Wet Process Suppliers Apr 2026.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Read before acting on a number.</p>
-    <p><span class="label">What happens next</span> Nothing changes; this section only explains.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> When GDACS's list of current disasters repeats entries across its pages, a line here says that some disasters may be missing from the map. There was no such line at capture time. <span class="src">App.tsx</span></p>
-</div>
-</div>
-
+<p>Shares use suppliers' workers because workers are known for at least 90% of sites (719 of 766 here). <span class="code">Code only</span> Changing a threshold recalculates the country and owner levels; it is not saved.</p>
 </section>
-<section id="where-exposed">
-<h2><span class="secno">4</span>Workflow: Where is my company exposed?</h2>
-<p>Start from the summary sentence and the cards (<a href="#fig-02-summary">Figure 3</a>), then use the tables and panels to see which countries, owners and sites make up each number. Steps 1 to 4 use adidas; step 5 uses Nike.</p>
-<div class="block">
-<h3><span class="step">Step 1</span> Open the Countries table</h3>
-<figure class="shot" id="fig-11a-countries-table">
-  <div class="frame band"><div class="img" style="aspect-ratio:1416/622">
-    <img src="assets/11a-countries-table.webp" width="1416" height="622" alt="Countries table" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(2.219% - 3px);width:calc(95.904% + 6px);height:calc(7.717% + 6px)"></span><span class="mk pin" style="left:2.048%;top:2.219%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Tabs</span><span class="mk box" style="left:calc(84.040% - 3px);top:calc(16.656% - 3px);width:calc(14.054% + 6px);height:calc(6.206% + 6px)"></span><span class="mk pin" style="left:98.093%;top:16.656%;transform:translate(calc(calc(-100% + 3px) + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Search</span><span class="mk box" style="left:calc(68.150% - 3px);top:calc(24.019% - 3px);width:calc(7.062% + 6px);height:calc(6.270% + 6px)"></span><span class="mk pin" style="left:68.150%;top:24.019%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>3</b>Share</span><span class="mk box" style="left:calc(1.483% - 3px);top:calc(30.289% - 3px);width:calc(97.034% + 6px);height:calc(5.788% + 6px)"></span><span class="mk pin" style="left:30.593%;top:30.289%;transform:translate(calc(0px + 0px), calc(4px + 0px))"><b>4</b>Vietnam</span><span class="mk box" style="left:calc(1.483% - 3px);top:calc(88.328% - 3px);width:calc(97.034% + 6px);height:calc(8.360% + 6px)"></span><span class="mk pin" style="left:30.593%;top:88.328%;transform:translate(calc(0px + 0px), calc(4px + 0px))"><b>5</b>Rows and pages</span>
+
+<section class="fig" id="fig-7">
+<h2><span class="no">7</span>Upload: Amazon's file, pre-filled</h2>
+<figure class="shot">
+  <div class="frame"><div class="img" style="aspect-ratio:1416/783">
+    <img src="assets/14b-upload-amazon.webp" width="1416" height="783" alt="Upload: data/demo/amazon.csv chosen (not loaded)">
+    <span class="mk box" style="left:1.836%;top:27.497%;width:96.328%;height:3.499%"></span><span class="mk box" style="left:1.836%;top:31.762%;width:96.328%;height:7.075%"></span><span class="mk box" style="left:1.907%;top:71.430%;width:96.186%;height:5.160%"></span>
+    <svg class="mk lines" viewBox="0 0 1416 783" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <span class="mk pill" style="left:83.333%;top:29.246%"><b>1</b>3798 rows naming 980 lists</span><span class="mk pill" style="left:83.333%;top:35.249%"><b>2</b>Company found on every row</span><span class="mk pill" style="left:63.559%;top:73.946%"><b>3</b>Latest list ticked and marked current</span>
   </div></div>
-  <figcaption><span class="fig">Figure 9</span> Countries table <a class="full" href="assets/11a-countries-table.webp">Full size</a></figcaption>
 </figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The tables below the map, on the Countries tab: "Share of your suppliers' workers, largest first. Click a row to see it on the map."</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Tabs.</b> Countries or Owner companies.</div></li>
-<li><span class="num">2</span><div><b>Search.</b> Filters the rows as you type.</div></li>
-<li><span class="num">3</span><div><b>Share.</b> Sorted by Share, largest first. Click a column header to sort by that column.</div></li>
-<li><span class="num">4</span><div><b>Vietnam.</b> 31.5%, High, 157 sites, workers known for 149 of 157.</div></li>
-<li><span class="num">5</span><div><b>Rows and pages.</b> 10 rows per page (25, 50 or 100 can be chosen): "1–10 of 46".</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click the Vietnam row.</p>
-    <p><span class="label">What happens next</span> The country panel opens (<a href="#fig-10a-country-panel">Figure 10</a>) and the map moves to Vietnam's sites.</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 2</span> Read the country panel</h3>
-<figure class="shot" id="fig-10a-country-panel">
+<p>Choosing an Open Supply Hub file (here <code>data/demo/amazon.csv</code>) fills in the company and ticks its newest list; personal contact columns (claim_*) are dropped. Nothing is loaded until the lists and the name are checked and loaded, which was not done here.</p>
+</section>
+
+<section class="fig" id="fig-8">
+<h2><span class="no">8</span>Company network: PT. Paxar Indonesia confirmed <span class="co">Nike</span></h2>
+<figure class="shot">
+  <div class="frame"><div class="img" style="aspect-ratio:1416/783">
+    <img src="assets/15b-network-paxar.webp" width="1416" height="783" alt="Company network: PT. Paxar Indonesia, confirmed (Nike)">
+    <span class="mk box" style="left:35.749%;top:37.165%;width:15.297%;height:4.904%"></span><span class="mk box" style="left:91.561%;top:22.350%;width:6.603%;height:3.831%"></span><span class="mk box" style="left:77.846%;top:48.480%;width:8.581%;height:2.950%"></span><span class="mk box" style="left:86.031%;top:59.285%;width:10.494%;height:9.872%"></span>
+    <svg class="mk lines" viewBox="0 0 1416 783" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="722.8" y1="300" x2="900" y2="300"/><line class="halo" x1="1296.5" y1="175" x2="1240" y2="140"/><line class="halo" x1="1102.3" y1="402.70000000000005" x2="1000" y2="440"/><line class="halo" x1="1218.2" y1="505" x2="1000" y2="505"/><line x1="722.8" y1="300" x2="900" y2="300"/><line x1="1296.5" y1="175" x2="1240" y2="140"/><line x1="1102.3" y1="402.70000000000005" x2="1000" y2="440"/><line x1="1218.2" y1="505" x2="1000" y2="505"/></svg>
+    <span class="mk pill" style="left:63.559%;top:38.314%"><b>1</b>Confirm or reject each candidate</span><span class="mk pill" style="left:87.571%;top:17.880%"><b>2</b>Confirmed by a person</span><span class="mk pill" style="left:70.621%;top:56.194%"><b>3</b>Solid line: a confirmed match</span><span class="mk pill" style="left:70.621%;top:64.496%"><b>4</b>GLEIF parent: AVERY DENNISON CORPORATION</span>
+  </div></div>
+</figure>
+<p>A match between an Open Supply Hub name and a GLEIF company stays a candidate (dashed line) until a person confirms it. Only then does its parent company show, here and in the site panel (figure 3).</p>
+</section>
+
+<section class="fig" id="fig-9">
+<h2><span class="no">9</span>The Satellite style <span class="co">adidas</span></h2>
+<figure class="shot">
   <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/10a-country-panel.webp" width="1415" height="584" alt="Country panel: Vietnam (adidas)" loading="lazy">
-    <span class="mk box" style="left:calc(68.318% - 3px);top:calc(5.000% - 3px);width:calc(29.633% + 6px);height:calc(13.219% + 6px)"></span><span class="mk pin" style="left:97.951%;top:5.000%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b>Share and level</span><span class="mk box" style="left:calc(68.318% - 3px);top:calc(30.548% - 3px);width:calc(29.633% + 6px);height:calc(69.452% + 6px)"></span><span class="mk pin" style="left:97.951%;top:30.548%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b>Sites</span><span class="mk box" style="left:calc(21.385% - 3px);top:calc(2.260% - 3px);width:calc(18.184% + 6px);height:calc(91.815% + 6px)"></span><span class="mk pin" style="left:21.385%;top:2.260%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>3</b>On the map</span>
+    <img src="assets/06-style-satellite.webp" width="1415" height="584" alt="Map style &quot;Satellite&quot; (adidas, Vietnam)">
+    <span class="mk box" style="left:35.625%;top:4.829%;width:5.371%;height:6.233%"></span><span class="mk box" style="left:16.184%;top:90.445%;width:49.943%;height:7.877%"></span>
+    <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="544" y1="28.2" x2="544" y2="-24"/><line class="halo" x1="760" y1="528.2" x2="760" y2="505"/><line class="halo" x1="562.9000000000001" y1="355" x2="752" y2="355"/><line x1="544" y1="28.2" x2="544" y2="-24"/><line x1="760" y1="528.2" x2="760" y2="505"/><line x1="562.9000000000001" y1="355" x2="752" y2="355"/></svg>
+    <span class="mk pill" style="left:38.445%;top:-4.110%"><b>1</b>Satellite: EOX's 2016 imagery</span><span class="mk pill" style="left:53.710%;top:86.473%"><b>2</b>Credits always shown in full</span><span class="mk pill" style="left:53.145%;top:60.788%"><b>3</b>Shading and sites stay on top</span>
   </div></div>
-  <figcaption><span class="fig">Figure 10</span> Country panel: Vietnam (adidas) <a class="full" href="assets/10a-country-panel.webp">Full size</a></figcaption>
 </figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The country panel for Vietnam.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Share and level.</b> "31.5% of your suppliers' workers", High. Below: "157 sites; workers known for 149 of 157. These sites are highlighted on the map."</div></li>
-<li><span class="num">2</span><div><b>Sites.</b> Vietnam's sites, A to Z.</div></li>
-<li><span class="num">3</span><div><b>On the map.</b> Vietnam is outlined and its sites are highlighted; other sites are faded.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click a site name.</p>
-    <p><span class="label">What happens next</span> The site panel opens (like <a href="#fig-08-site-panel">Figure 13</a>) and the map flies to the site, tilted.</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 3</span> Switch to Owner companies</h3>
-<figure class="shot" id="fig-11b-owners-table">
-  <div class="frame band"><div class="img" style="aspect-ratio:1416/622">
-    <img src="assets/11b-owners-table.webp" width="1416" height="622" alt="Owner companies table" loading="lazy">
-    <span class="mk box" style="left:calc(9.315% - 3px);top:calc(2.219% - 3px);width:calc(11.554% + 6px);height:calc(7.717% + 6px)"></span><span class="mk pin" style="left:9.315%;top:2.219%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Owner companies</span><span class="mk box" style="left:calc(1.483% - 3px);top:calc(30.289% - 3px);width:calc(97.034% + 6px);height:calc(5.788% + 6px)"></span><span class="mk pin" style="left:30.593%;top:30.289%;transform:translate(calc(0px + 0px), calc(4px + 0px))"><b>2</b>POU CHEN</span><span class="mk box" style="left:calc(87.218% - 3px);top:calc(24.019% - 3px);width:calc(11.299% + 6px);height:calc(6.270% + 6px)"></span><span class="mk pin" style="left:98.517%;top:24.019%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>3</b></span>
-  </div></div>
-  <figcaption><span class="fig">Figure 11</span> Owner companies table <a class="full" href="assets/11b-owners-table.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The Owner companies tab: "A site with 2 or more owners counts in full under each." 509 owners, 10 per page.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Owner companies.</b> The tab.</div></li>
-<li><span class="num">2</span><div><b>POU CHEN.</b> 7.4%, Watch, 9 sites, 4 countries.</div></li>
-<li><span class="num">3</span><div><b>Countries.</b> An owner in one country shows that country (STYLE TEXTILE: Pakistan); otherwise the number of countries.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click the POU CHEN row.</p>
-    <p><span class="label">What happens next</span> The owner panel opens (<a href="#fig-10b-owner-panel">Figure 12</a>) and the map moves to its sites.</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 4</span> Read the owner panel</h3>
-<figure class="shot" id="fig-10b-owner-panel">
-  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/10b-owner-panel.webp" width="1415" height="584" alt="Owner panel: POU CHEN (adidas)" loading="lazy">
-    <span class="mk box" style="left:calc(68.318% - 3px);top:calc(5.000% - 3px);width:calc(29.633% + 6px);height:calc(13.219% + 6px)"></span><span class="mk pin" style="left:97.951%;top:5.000%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b>Share and level</span><span class="mk box" style="left:calc(68.318% - 3px);top:calc(34.229% - 3px);width:calc(29.633% + 6px);height:calc(65.771% + 6px)"></span><span class="mk pin" style="left:97.951%;top:34.229%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b></span>
-  </div></div>
-  <figcaption><span class="fig">Figure 12</span> Owner panel: POU CHEN (adidas) <a class="full" href="assets/10b-owner-panel.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The owner panel for POU CHEN. Its 9 sites are highlighted on the map; other sites are faded.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Share and level.</b> "7.4% of your suppliers' workers", Watch. Below: "9 sites in 4 countries: China, Indonesia, Myanmar (Burma), Vietnam. Not all in one country."</div></li>
-<li><span class="num">2</span><div><b>Its sites.</b> Each site with its country.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click a site.</p>
-    <p><span class="label">What happens next</span> Its site panel opens and the map flies to it.</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 5</span> Read a site panel (Nike)</h3>
-<figure class="shot" id="fig-08-site-panel">
-  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/08-site-panel.webp" width="1415" height="584" alt="Site panel: PT. Paxar Indonesia (Nike)" loading="lazy">
-    <span class="mk box" style="left:calc(68.318% - 3px);top:calc(20.942% - 3px);width:calc(29.633% + 6px);height:calc(9.486% + 6px)"></span><span class="mk pin" style="left:97.951%;top:20.942%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b>Owner companies</span><span class="mk box" style="left:calc(68.318% - 3px);top:calc(43.339% - 3px);width:calc(29.633% + 6px);height:calc(7.432% + 6px)"></span><span class="mk pin" style="left:97.951%;top:43.339%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b>Disaster area</span><span class="mk box" style="left:calc(68.318% - 3px);top:calc(53.510% - 3px);width:calc(29.633% + 6px);height:calc(13.151% + 6px)"></span><span class="mk pin" style="left:97.951%;top:53.510%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>3</b></span><span class="mk box" style="left:calc(68.318% - 3px);top:calc(69.401% - 3px);width:calc(29.633% + 6px);height:calc(15.205% + 6px)"></span><span class="mk pin" style="left:97.951%;top:69.401%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>4</b></span><span class="mk box" style="left:calc(32.403% - 3px);top:calc(47.705% - 3px);width:calc(1.979% + 6px);height:calc(4.795% + 6px)"></span><span class="mk pin" style="left:32.403%;top:47.705%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>5</b>The site</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 13</span> Site panel: PT. Paxar Indonesia (Nike) <a class="full" href="assets/08-site-panel.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The site panel for Nike's PT. Paxar Indonesia (Open Supply Hub ID ID2021182JC36SX), opened from Nike's Countries table (Indonesia), then the site. The panel also shows "Warnings: None." and "about 334 workers".</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Owner companies.</b> AVERY DENNISON. Clicking an owner opens its owner panel.</div></li>
-<li><span class="num">2</span><div><b>Disaster area.</b> "Not inside a current disaster area."</div></li>
-<li><span class="num">3</span><div><b>On your lists.</b> The list the site is on: "Nike [Public List] (Nike Inc. Brand(s) February 2024 Facility List)".</div></li>
-<li><span class="num">4</span><div><b>Parent company.</b> "Direct parent: AVERY DENNISON CORPORATION" and "Top parent: AVERY DENNISON CORPORATION", from GLEIF. They show because a person confirmed this site's GLEIF match (<a href="#fig-15b-network-paxar">Figure 23</a>).</div></li>
-<li><span class="num">5</span><div><b>The site.</b> The selected site, with a ring. The map flew to it.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click the owner to see its other sites, or another site on the map.</p>
-    <p><span class="label">What happens next</span> The panel shows the owner or the other site.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> A site inside a disaster area lists that disaster with its alert and "High for your sites" or "Watch for your sites"; clicking it opens the disaster panel. A site inside an area whose country GDACS does not list as affected shows "Not counted: inside the area, but GDACS does not list … as affected." <span class="src">Panel.tsx</span></p>
-<p class="code"><span class="tag">Code only</span> Without a confirmed GLEIF match, Parent company reads "No confirmed parent company." <span class="src">Panel.tsx</span></p>
-</div>
-</div>
-
-</section>
-<section id="disaster-hits">
-<h2><span class="secno">5</span>Workflow: A disaster hits</h2>
-<p>This example uses Amazon.com, Inc. and the drought DR1018332, current at capture time. Disaster data is live: on another day the areas, the sites inside them and the counts will differ.</p>
-      <p><b>Step 1.</b> Click the Disasters now card: its panel lists each disaster with your sites inside. Click the drought there, or click its purple area on the map.</p>
-<div class="block">
-<h3><span class="step">Step 2</span> Read the disaster panel</h3>
-<figure class="shot" id="fig-09a-disaster-panel">
-  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/09a-disaster-panel.webp" width="1415" height="584" alt="Disaster panel: drought DR1018332 (Amazon)" loading="lazy">
-    <span class="mk box" style="left:calc(68.318% - 3px);top:calc(5.086% - 3px);width:calc(29.633% + 6px);height:calc(42.346% + 6px)"></span><span class="mk pin" style="left:97.951%;top:5.086%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b></span><span class="mk box" style="left:calc(68.318% - 3px);top:calc(59.949% - 3px);width:calc(29.633% + 6px);height:calc(40.051% + 6px)"></span><span class="mk pin" style="left:97.951%;top:59.949%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b>Your sites inside (33)</span><span class="mk box" style="left:calc(12.254% - 3px);top:calc(12.620% - 3px);width:calc(42.417% + 6px);height:calc(75.000% + 6px)"></span><span class="mk pin" style="left:12.254%;top:12.620%;transform:translate(calc(4px + 0px), calc(4px + 0px))"><b>3</b>The area</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 14</span> Disaster panel: drought DR1018332 (Amazon) <a class="full" href="assets/09a-disaster-panel.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The disaster panel for the drought, with the map fitted to its area and the sites inside.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Alert and level.</b> The disaster's name, with the countries GDACS lists; "Alert: Orange", "so your sites inside are at High"; and "GDACS alerts are automatic, not reviewed by people. Confirm before acting."</div></li>
-<li><span class="num">2</span><div><b>Your sites inside (33).</b> Each site with its country and owner, for example "PROPET AUSTRIA · Austria · Owner: PRO PET".</div></li>
-<li><span class="num">3</span><div><b>The area.</b> The drought's affected area, outlined more thickly while it is selected. The sites inside are highlighted.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Scroll the panel.</p>
-    <p><span class="label">What happens next</span> The owners of those sites and the owners' other sites follow (<a href="#fig-09b-disaster-owners">Figure 15</a>).</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 3</span> See the owners</h3>
-<figure class="shot" id="fig-09b-disaster-owners">
-  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/09b-disaster-owners.webp" width="1415" height="584" alt="Their owners, and those owners' other sites (Amazon)" loading="lazy">
-    <span class="mk box" style="left:calc(68.318% - 3px);top:calc(4.384% - 3px);width:calc(29.633% + 6px);height:calc(9.486% + 6px)"></span><span class="mk pin" style="left:97.951%;top:4.384%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b>Their owners</span><span class="mk box" style="left:calc(68.318% - 3px);top:calc(16.610% - 3px);width:calc(29.633% + 6px);height:calc(7.432% + 6px)"></span><span class="mk pin" style="left:97.951%;top:16.610%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b>Other sites</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 15</span> Their owners, and those owners' other sites (Amazon) <a class="full" href="assets/09b-disaster-owners.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The same panel, scrolled down.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Their owners.</b> The owners of the sites inside: PRO PET. Clicking an owner opens its owner panel.</div></li>
-<li><span class="num">2</span><div><b>Other sites.</b> "Those owners' other sites": the same owners' other sites on your lists. "None." here: PRO PET has no other site on Amazon's lists.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Scroll further.</p>
-    <p><span class="label">What happens next</span> The sites that are inside the area but not counted follow (<a href="#fig-09c-disaster-unlisted">Figure 16</a>).</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 4</span> Check the sites that are not counted</h3>
-<figure class="shot" id="fig-09c-disaster-unlisted">
-  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/09c-disaster-unlisted.webp" width="1415" height="584" alt="Inside the area, but not counted (Amazon)" loading="lazy">
-    <span class="mk box" style="left:calc(68.318% - 3px);top:calc(4.349% - 3px);width:calc(29.633% + 6px);height:calc(95.651% + 6px)"></span><span class="mk pin" style="left:97.951%;top:100.000%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(calc(-100% - 4px) + 0px))"><b>1</b>Not counted</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 16</span> Inside the area, but not counted (Amazon) <a class="full" href="assets/09c-disaster-unlisted.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The end of the panel.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Not counted.</b> "Inside the area, but GDACS does not list United Kingdom as affected (47)", with "Not counted: GDACS lists 29 countries as affected by this event." Then the 47 sites in the United Kingdom. They are listed, but they are not among the 33 and do not change the level.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click a site to open its panel.</p>
-    <p><span class="label">What happens next</span> Its site panel says "Not counted: inside the area, but GDACS does not list United Kingdom as affected."</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 5</span> When the owners have other sites (Apple)</h3>
-<figure class="shot" id="fig-09d-disaster-other-sites">
-  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/09d-disaster-other-sites.webp" width="1415" height="584" alt="Those owners' other sites (Apple, the same drought)" loading="lazy">
-    <span class="mk box" style="left:calc(68.318% - 3px);top:calc(4.298% - 3px);width:calc(29.633% + 6px);height:calc(95.702% + 6px)"></span><span class="mk pin" style="left:97.951%;top:4.298%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b>Other sites</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 17</span> Those owners' other sites (Apple, the same drought) <a class="full" href="assets/09d-disaster-other-sites.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The same drought for Apple, whose owners inside the area also have sites elsewhere.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Other sites.</b> "HENKEL AG AND KGAA: 3 other sites" (China, and two in the United States) and "INTEL: 8 other sites" (China, Israel, Malaysia, the United States, …).</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click one of these sites.</p>
-    <p><span class="label">What happens next</span> Its site panel opens and the map flies to it. While the disaster is selected, these other sites are highlighted on the map with the sites inside.</p>
-  </div>
-  
-</div>
-</div>
-
-</section>
-<section id="add-list">
-<h2><span class="secno">6</span>Workflow: Add a new supplier list</h2>
-<p>A company's list is an Open Supply Hub download (CSV). Nothing is loaded until you click "Load this company"; it was not clicked for this guide. The two files used here are in the repository: <code>data/demo/amazon.csv</code> and <code>data/demo/facilities.csv</code>.</p>
-<div class="block">
-<h3><span class="step">Step 1</span> Open the upload page</h3>
-<figure class="shot" id="fig-14a-upload-empty">
-  <div class="frame band-b"><div class="img" style="aspect-ratio:1416/240">
-    <img src="assets/14a-upload-empty.webp" width="1416" height="240" alt="Upload a supplier list" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(27.208% - 3px);width:calc(95.904% + 6px);height:calc(36.167% + 6px)"></span><span class="mk pin" style="left:97.952%;top:27.208%;transform:translate(calc(calc(-100% + 3px) + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>The three steps</span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(68.333% - 3px);width:calc(8.927% + 6px);height:calc(15.958% + 6px)"></span><span class="mk pin" style="left:2.048%;top:84.292%;transform:translate(calc(-3px + 0px), calc(7px + 0px))"><b>2</b>Choose a file</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 18</span> Upload a supplier list <a class="full" href="assets/14a-upload-empty.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> Upload a supplier list, before a file is chosen.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>The three steps.</b> "Choose an Open Supply Hub download (CSV). Personal contact columns (claim_*) are dropped." The company is filled in, and its lists with the latest year in their name are ticked and marked current. "Only sites on a current list that are not closed are loaded. A new upload replaces only this company's data."</div></li>
-<li><span class="num">2</span><div><b>Choose a file.</b> Opens the file picker. "No file chosen" until then.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click Choose a file and pick a CSV.</p>
-    <p><span class="label">What happens next</span> The file is sent to the app, which reads it and keeps it until you load it. The lists in it appear (<a href="#fig-14b-upload-amazon">Figure 19</a>).</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 2</span> A file for one company</h3>
-<figure class="shot" id="fig-14b-upload-amazon">
-  <div class="frame"><div class="img" style="aspect-ratio:1416/783">
-    <img src="assets/14b-upload-amazon.webp" width="1416" height="783" alt="data/demo/amazon.csv chosen (not loaded)" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(27.880% - 3px);width:calc(95.904% + 6px);height:calc(2.733% + 6px)"></span><span class="mk pin" style="left:97.952%;top:27.880%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b>Rows and lists</span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(32.146% - 3px);width:calc(95.904% + 6px);height:calc(6.309% + 6px)"></span><span class="mk pin" style="left:97.952%;top:32.146%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b>Company found</span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(46.564% - 3px);width:calc(95.904% + 6px);height:calc(2.733% + 6px)"></span><span class="mk pin" style="left:97.952%;top:46.564%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>3</b>Ticked and current</span><span class="mk box" style="left:calc(2.119% - 3px);top:calc(71.814% - 3px);width:calc(95.763% + 6px);height:calc(4.393% + 6px)"></span><span class="mk pin" style="left:50.000%;top:71.814%;transform:translate(calc(0px + 0px), calc(4px + 0px))"><b>4</b>The 2026 list</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 19</span> data/demo/amazon.csv chosen (not loaded) <a class="full" href="assets/14b-upload-amazon.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> <code>amazon.csv</code> chosen, not loaded.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Rows and lists.</b> "3798 rows in the file, naming 980 lists."</div></li>
-<li><span class="num">2</span><div><b>Company found.</b> "Amazon.com, Inc. is on every row of the file, so it is filled in. Check its lists below."</div></li>
-<li><span class="num">3</span><div><b>Ticked and current.</b> "Showing 850 of 980 lists; Amazon.com, Inc.'s lists first. Ticked: 1, current: 1." Above it: Search lists, and "Show all lists (130 hidden: anonymous types and "(Claimed)" entries)".</div></li>
-<li><span class="num">4</span><div><b>The 2026 list.</b> "Amazon.com, Inc. (Amazon Facility List 2026)", 1732 sites: ticked under Company's list and under Current. The 2022, 2023 and 2024 lists are not ticked.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Check the ticks: Company's list marks the company's own lists; Current marks which of those count. Current can be ticked only on a ticked list.</p>
-    <p><span class="label">What happens next</span> Scroll down to the name and the load button (<a href="#fig-14c-upload-amazon-name">Figure 20</a>).</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 3</span> Check the name</h3>
-<figure class="shot" id="fig-14c-upload-amazon-name">
-  <div class="frame band-b"><div class="img" style="aspect-ratio:1416/888">
-    <img src="assets/14c-upload-amazon-name.webp" width="1416" height="888" alt="data/demo/amazon.csv chosen: the company name (not loaded)" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(91.441% - 3px);width:calc(14.054% + 6px);height:calc(4.347% + 6px)"></span><span class="mk pin" style="left:2.048%;top:95.788%;transform:translate(calc(-3px + 0px), calc(7px + 0px))"><b>1</b>Company name</span><span class="mk box" style="left:calc(17.232% - 3px);top:calc(91.464% - 3px);width:calc(11.949% + 6px);height:calc(4.313% + 6px)"></span><span class="mk pin" style="left:29.181%;top:93.620%;transform:translate(calc(9px + 0px), calc(-50% + 0px))"><b>2</b>Load this company</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 20</span> data/demo/amazon.csv chosen: the company name (not loaded) <a class="full" href="assets/14c-upload-amazon-name.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The bottom of the same page.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Company name.</b> Filled in: "Amazon.com, Inc." It can be changed.</div></li>
-<li><span class="num">2</span><div><b>Load this company.</b> Loads the company (not clicked for this guide). It works only with a name and at least one ticked list marked Current.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click Load this company.</p>
-    <p><span class="label">What happens next</span> See the notes below: this step was not run.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> The app loads the sites on the current lists that are not closed, replacing only this company's data. The upload page reports "Loaded <i>name</i>: N sites on current lists (as of …).", and the app then opens Risk map with the company chosen. <span class="src">Upload.tsx, App.tsx, main.py</span></p>
-<p class="code"><span class="tag">Code only</span> For a company other than adidas and Nike, a GLEIF candidate search then starts in the background (the chip in the top bar, and <a href="#fig-15d-network-samsung">Figure 25</a>). <span class="src">main.py, gleif_api.py</span></p>
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 4</span> A file with several companies</h3>
-<figure class="shot" id="fig-14d-upload-facilities">
-  <div class="frame"><div class="img" style="aspect-ratio:1416/783">
-    <img src="assets/14d-upload-facilities.webp" width="1416" height="783" alt="data/demo/facilities.csv chosen: suggestions (not loaded)" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(27.880% - 3px);width:calc(95.904% + 6px);height:calc(2.733% + 6px)"></span><span class="mk pin" style="left:97.952%;top:27.880%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>1</b>Rows and lists</span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(32.146% - 3px);width:calc(95.904% + 6px);height:calc(13.052% + 6px)"></span><span class="mk pin" style="left:97.952%;top:32.146%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>2</b>Suggestions</span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(47.241% - 3px);width:calc(95.904% + 6px);height:calc(5.032% + 6px)"></span><span class="mk pin" style="left:97.952%;top:47.241%;transform:translate(calc(calc(-100% - 4px) + 0px), calc(4px + 0px))"><b>3</b>Search, Show all</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 21</span> data/demo/facilities.csv chosen: suggestions (not loaded) <a class="full" href="assets/14d-upload-facilities.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> <code>facilities.csv</code> chosen, not loaded. No company is on every row, so none is filled in.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Rows and lists.</b> "1536 rows in the file, naming 881 lists."</div></li>
-<li><span class="num">2</span><div><b>Suggestions.</b> "No company is on every row of the file. Which company is it for? The companies on the most rows:" Nike 56.5%, Wikirate International e.V. 51.8%, adidas 49.9%, Social & Labor Convergence Program (SLCP) 45.0%, Partnership for Sustainable Textiles (PST) 41.9%.</div></li>
-<li><span class="num">3</span><div><b>Search, Show all.</b> Search lists, and "Show all lists (118 hidden: anonymous types and "(Claimed)" entries)". Below: "Showing 763 of 881 lists. Ticked: 0, current: 0."</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click the company the file is for.</p>
-    <p><span class="label">What happens next</span> Its lists with the latest year in their name are ticked and marked current, its lists move to the top, and its name is filled in. You can change all three before loading.</p>
-  </div>
-  
-</div>
-</div>
-
-</section>
-<section id="review-match">
-<h2><span class="secno">7</span>Workflow: Review a company match</h2>
-<p>The Company network page shows how Open Supply Hub sites and owner names are matched to GLEIF companies, for the company chosen in the top bar. "A match is only a candidate until a person confirms it here; a confirmed match shows its GLEIF parent companies, here and in the map's site panel. Verdicts are saved and kept after a restart." No verdict was given for this guide.</p>
-<div class="block">
-<h3><span class="step">Step 1</span> Look at the candidates</h3>
-<figure class="shot" id="fig-15a-network-adidas">
-  <div class="frame"><div class="img" style="aspect-ratio:1416/783">
-    <img src="assets/15a-network-adidas.webp" width="1416" height="783" alt="Company network: adidas, a candidate not decided" loading="lazy">
-    <span class="mk box" style="left:calc(0.847% - 3px);top:calc(15.083% - 3px);width:calc(60.784% + 6px);height:calc(2.733% + 6px)"></span><span class="mk pin" style="left:61.631%;top:15.083%;transform:translate(calc(calc(-100% + 3px) + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Counts</span><span class="mk box" style="left:calc(2.048% - 3px);top:calc(22.733% - 3px);width:calc(10.593% + 6px);height:calc(4.930% + 6px)"></span><span class="mk pin" style="left:2.048%;top:22.733%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Review level</span><span class="mk box" style="left:calc(13.489% - 3px);top:calc(22.733% - 3px);width:calc(37.062% + 6px);height:calc(4.930% + 6px)"></span><span class="mk pin" style="left:13.489%;top:22.733%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>3</b>Search</span><span class="mk box" style="left:calc(0.918% - 3px);top:calc(32.567% - 3px);width:calc(50.763% + 6px);height:calc(13.155% + 6px)"></span><span class="mk pin" style="left:24.777%;top:32.567%;transform:translate(calc(0px + 0px), calc(4px + 0px))"><b>4</b>A candidate</span><span class="mk box" style="left:calc(35.960% - 3px);top:calc(38.927% - 3px);width:calc(14.873% + 6px);height:calc(4.138% + 6px)"></span><span class="mk pin" style="left:35.960%;top:43.065%;transform:translate(calc(-3px + 0px), calc(7px + 0px))"><b>5</b>Verdict buttons</span><span class="mk box" style="left:calc(90.855% - 3px);top:calc(52.695% - 3px);width:calc(0.847% + 6px);height:calc(7.011% + 6px)"></span><span class="mk pin" style="left:90.855%;top:56.201%;transform:translate(calc(calc(-100% - 9px) + -36px), calc(-50% + 0px))"><b>6</b>Dashed line</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 22</span> Company network: adidas, a candidate not decided <a class="full" href="assets/15a-network-adidas.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> Company network for adidas: the candidates on the left, 20 per page ("Showing 1–20 of 221 candidates."), and the selected candidate's graph on the right.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Counts.</b> "221 candidates for adidas from the GLEIF file: 25 likely, 101 possible, 95 unlikely. Confirmed 4, rejected 0, not decided 217." Next to it, Download verdicts (CSV) downloads this company's verdicts.</div></li>
-<li><span class="num">2</span><div><b>Review level.</b> Shows all levels, or only 1 likely, 2 possible or 3 unlikely (each with its count).</div></li>
-<li><span class="num">3</span><div><b>Search.</b> Filters by your names, the GLEIF names or the LEI.</div></li>
-<li><span class="num">4</span><div><b>A candidate.</b> MOCHIKO SHOES · owner · 3 sites · India ↔ MOCHIKO SHOES (India). Below: its LEI, how the name matched ("exact, on the GLEIF legal name"), its level ("2 possible (file: 1 likely)") and GLEIF's status ("not active; registration retired"). Its chip: Not decided.</div></li>
-<li><span class="num">5</span><div><b>Verdict buttons.</b> Confirm: the same company. Reject: not the same company. Undo: takes back a verdict given on this page. None was clicked.</div></li>
-<li><span class="num">6</span><div><b>Dashed line.</b> Between the Open Supply Hub owner and the GLEIF company: a candidate, not confirmed.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click a candidate to see its graph; filter or search to find one.</p>
-    <p><span class="label">What happens next</span> The graph shows your company, its Open Supply Hub sites, the owner, and the GLEIF company. The text under it explains the lines.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> Confirm is greyed out once a candidate is confirmed, Reject once it is rejected, and Undo unless the verdict was given on this page. <span class="src">Network.tsx</span></p>
-<p class="code"><span class="tag">Code only</span> A site with yes and no from two candidates is marked "conflicting verdicts – needs review", is not confirmed and shows no parent; the row names the other candidate. <span class="src">Network.tsx</span></p>
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 2</span> A confirmed match, with its parent (Nike)</h3>
-<figure class="shot" id="fig-15b-network-paxar">
-  <div class="frame"><div class="img" style="aspect-ratio:1416/783">
-    <img src="assets/15b-network-paxar.webp" width="1416" height="783" alt="Company network: PT. Paxar Indonesia (Nike), confirmed" loading="lazy">
-    <span class="mk box" style="left:calc(91.773% - 3px);top:calc(22.733% - 3px);width:calc(6.179% + 6px);height:calc(3.065% + 6px)"></span><span class="mk pin" style="left:97.952%;top:22.733%;transform:translate(calc(calc(-100% + 3px) + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Confirmed</span><span class="mk box" style="left:calc(78.058% - 3px);top:calc(48.863% - 3px);width:calc(8.157% + 6px);height:calc(2.184% + 6px)"></span><span class="mk pin" style="left:86.215%;top:51.047%;transform:translate(calc(calc(-100% + 3px) + 0px), calc(7px + 0px))"><b>2</b>Solid line</span><span class="mk box" style="left:calc(86.243% - 3px);top:calc(59.668% - 3px);width:calc(10.071% + 6px);height:calc(9.106% + 6px)"></span><span class="mk pin" style="left:86.243%;top:64.221%;transform:translate(calc(calc(-100% - 9px) + 0px), calc(-50% + 0px))"><b>3</b>Parent</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 23</span> Company network: PT. Paxar Indonesia (Nike), confirmed <a class="full" href="assets/15b-network-paxar.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> Nike's candidates, searched for "Paxar": 2 candidates. PT. Paxar Indonesia is selected.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Confirmed.</b> This candidate's verdict.</div></li>
-<li><span class="num">2</span><div><b>Solid line.</b> From the site PT. Paxar Indonesia to the GLEIF company PT PAXAR INDONESIA (LEI 549300YDGYNJ5OSNWF92): confirmed.</div></li>
-<li><span class="num">3</span><div><b>Parent.</b> "GLEIF · direct and top parent": AVERY DENNISON CORPORATION (LEI 549300PW7VPFCYKLIV37). The same parent shows in the map's site panel (<a href="#fig-08-site-panel">Figure 13</a>).</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Nothing more is needed for a confirmed match.</p>
-    <p><span class="label">What happens next</span> Undo is greyed out: this verdict comes from the saved verdict files, not from this page. Reject would remove the line and the parent.</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 3</span> One verdict for every list (Apple)</h3>
-<figure class="shot" id="fig-15c-network-henkel">
-  <div class="frame"><div class="img" style="aspect-ratio:1416/783">
-    <img src="assets/15c-network-henkel.webp" width="1416" height="783" alt="Company network: HENKEL AG AND KGAA (Apple), a shared verdict" loading="lazy">
-    <span class="mk box" style="left:calc(2.048% - 3px);top:calc(48.582% - 3px);width:calc(31.886% + 6px);height:calc(4.802% + 6px)"></span><span class="mk pin" style="left:2.048%;top:53.384%;transform:translate(calc(-3px + 0px), calc(7px + 0px))"><b>1</b>Shared verdict</span><span class="mk box" style="left:calc(55.706% - 3px);top:calc(57.752% - 3px);width:calc(10.071% + 6px);height:calc(4.470% + 6px)"></span><span class="mk pin" style="left:55.706%;top:57.752%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Your company</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 24</span> Company network: HENKEL AG AND KGAA (Apple), a shared verdict <a class="full" href="assets/15c-network-henkel.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> Apple's candidates, searched for "HENKEL". The counts read "203 candidates for Apple from GLEIF's API: 2 likely, 47 possible, 154 unlikely. Confirmed 2, rejected 0, not decided 201." Under them: "Candidates found by a GLEIF API search of 41 owner names (37 requests sent; the rest from the cache)."</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Shared verdict.</b> "One verdict for this GLEIF company; it also applies to other lists with the same owner name." A verdict here also counts for another company whose list has the same owner name matched to the same LEI.</div></li>
-<li><span class="num">2</span><div><b>Your company.</b> The graph shows only Apple and Apple's 4 HENKEL sites. Other companies with the same owner are not named.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Give a verdict knowing it is shared.</p>
-    <p><span class="label">What happens next</span> The verdict applies on every company's page where the same owner name and LEI appear.</p>
-  </div>
-  
-</div>
-</div>
-<div class="block">
-<h3><span class="step">Step 4</span> No candidates yet (Samsung)</h3>
-<figure class="shot" id="fig-15d-network-samsung">
-  <div class="frame"><div class="img" style="aspect-ratio:1416/204">
-    <img src="assets/15d-network-samsung.webp" width="1416" height="204" alt="Company network: Samsung, no candidates yet" loading="lazy">
-    <span class="mk box" style="left:calc(0.847% - 3px);top:calc(59.118% - 3px);width:calc(98.305% + 6px);height:calc(34.755% + 6px)"></span><span class="mk pin" style="left:59.831%;top:59.118%;transform:translate(calc(0px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>No candidates yet</span><span class="mk box" style="left:calc(78.460% - 3px);top:calc(64.020% - 3px);width:calc(20.127% + 6px);height:calc(15.882% + 6px)"></span><span class="mk pin" style="left:98.588%;top:64.020%;transform:translate(calc(calc(-100% + 3px) + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Find GLEIF candidates</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 25</span> Company network: Samsung, no candidates yet <a class="full" href="assets/15d-network-samsung.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> Company network for Samsung, before any GLEIF search.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>No candidates yet.</b> "No GLEIF candidates for this company yet. The search asks GLEIF's API about each of its 102 owner names, at most one request a second. Every candidate then waits for a person's verdict."</div></li>
-<li><span class="num">2</span><div><b>Find GLEIF candidates.</b> "Find GLEIF candidates, about 2 minutes": starts the search. Not clicked for this guide.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click Find GLEIF candidates.</p>
-    <p><span class="label">What happens next</span> See the notes below: this step was not run.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> While the search runs: "Finding GLEIF candidates in the background: N of M owner names searched." with a progress bar and "You can keep using the app."; the list fills in as it goes. If it stops: "The GLEIF search stopped after …" with Try again. If GLEIF finds nothing: "GLEIF returned no candidates for this company's … owner names." <span class="src">Network.tsx</span></p>
-</div>
-</div>
-
-</section>
-<section id="map-styles">
-<h2><span class="secno">8</span>Map styles</h2>
-<p>Plain (<a href="#fig-03-map">Figure 4</a>) is the default: the app's own map, which needs no outside service. Map and Satellite add a base map from a free outside service under the same sites, shading and disaster areas. Both screenshots show adidas's Vietnam panel.</p>
-<div class="block">
-
-<figure class="shot" id="fig-05-style-map">
-  <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/05-style-map.webp" width="1415" height="584" alt="Map style &quot;Map&quot;: place names" loading="lazy">
-    <span class="mk box" style="left:calc(32.686% - 3px);top:calc(5.342% - 3px);width:calc(3.216% + 6px);height:calc(5.205% + 6px)"></span><span class="mk pin" style="left:32.686%;top:5.342%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Map</span><span class="mk box" style="left:calc(31.230% - 3px);top:calc(94.384% - 3px);width:calc(34.678% + 6px);height:calc(3.425% + 6px)"></span><span class="mk pin" style="left:31.230%;top:94.384%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Credits</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 26</span> Map style &quot;Map&quot;: place names <a class="full" href="assets/05-style-map.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The Map style, zoomed to Vietnam: borders, seas and place names (here in English and in local scripts).</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Map.</b> Selected.</div></li>
-<li><span class="num">2</span><div><b>Credits.</b> "Natural Earth | MapLibre | OpenFreeMap © OpenMapTiles © OpenStreetMap contributors", always shown in full.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Switch styles at any time.</p>
-    <p><span class="label">What happens next</span> Only the base map changes; the selection and the panel stay.</p>
-  </div>
-  <p class="code"><span class="tag">Code only</span> On Map and Satellite only the High and Watch countries are filled, and on Map the base map's own borders replace the app's white ones. <span class="src">basemap.ts, MapView.tsx</span></p>
-</div>
-</div>
-<div class="block">
-
-<figure class="shot" id="fig-06-style-satellite">
-  <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/06-style-satellite.webp" width="1415" height="584" alt="Map style &quot;Satellite&quot;" loading="lazy">
-    <span class="mk box" style="left:calc(35.837% - 3px);top:calc(5.342% - 3px);width:calc(4.947% + 6px);height:calc(5.205% + 6px)"></span><span class="mk pin" style="left:35.837%;top:5.342%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>1</b>Satellite</span><span class="mk box" style="left:calc(16.396% - 3px);top:calc(90.959% - 3px);width:calc(49.519% + 6px);height:calc(6.849% + 6px)"></span><span class="mk pin" style="left:16.396%;top:90.959%;transform:translate(calc(-3px + 0px), calc(calc(-100% - 7px) + 0px))"><b>2</b>Credits</span>
-  </div></div>
-  <figcaption><span class="fig">Figure 27</span> Map style &quot;Satellite&quot; <a class="full" href="assets/06-style-satellite.webp">Full size</a></figcaption>
-</figure>
-<div class="notes">
-  <p class="shown"><span class="label">Shown</span> The Satellite style, with its tiles loaded.</p>
-  <ol class="marks"><li><span class="num">1</span><div><b>Satellite.</b> Selected.</div></li>
-<li><span class="num">2</span><div><b>Credits.</b> "EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017) CC BY 4.0", always shown in full.</div></li></ol>
-  <div class="flow">
-    <p><span class="label">What you do</span> Click Plain to go back to the app's own map.</p>
-    <p><span class="label">What happens next</span> The base map is removed.</p>
-  </div>
-  
-</div>
-</div>
-<div class="code"><span class="tag">Code only</span> No screenshot. <span class="src">MapView.tsx, basemap.ts</span>
-      <ul>
-        <li>A switch replaces only the base map below the app's layers: sites, shading and disaster areas stay on the map while the new tiles fill in.</li>
-        <li>The first switch to Map fetches its style from OpenFreeMap; "Loading map style…" shows over the map meanwhile. Later switches use the copy already fetched.</li>
-        <li>If the service does not respond, the map goes back to Plain and a line under the map says so: "Map: OpenFreeMap did not respond, so the plain map is shown." or "Satellite: EOX did not respond, so the plain map is shown."</li>
-      </ul></div>
+<p>The Satellite style shows EOX's 2016 imagery under the same shading, sites and panel; Plain and Map are the other styles. <span class="code">Code only</span> If EOX does not respond, the map goes back to Plain with a one-line notice.</p>
 </section>
 
-<section id="good-to-know">
-<h2><span class="secno">9</span>Good to know</h2>
-<p>Limits that the app itself shows on screen.</p>
-<ul class="know">
-<li><b>Disaster alerts are automatic.</b>"GDACS alerts are automatic, not reviewed by people. Confirm before acting." <a href="#fig-09a-disaster-panel">Figure 14</a>; Source and limits of the data says the same (<a href="#fig-12b-source">Figure 8</a>).</li>
-<li><b>Disaster data is live.</b>The top bar says when it was last read (<a href="#fig-01-header">Figure 1</a>). This guide's screenshots show the disasters current at 3 Oct 2026, 13:07 UTC.</li>
-<li><b>Some sites inside an area are not counted.</b>A site inside an area whose country GDACS does not list as affected is listed, but not counted: "Inside the area, but GDACS does not list United Kingdom as affected (47)". <a href="#fig-09c-disaster-unlisted">Figure 16</a></li>
-<li><b>Every number shows its base.</b>For example "Owner known for 551 of 766 sites" and "workers known for 149 of 157". <a href="#fig-02-summary">Figure 3</a>, <a href="#fig-10a-country-panel">Figure 10</a>, <a href="#fig-12a-how">Figure 7</a></li>
-<li><b>Shares use workers only when they are known for at least 90% of sites.</b><a href="#fig-12a-how">Figure 7</a></li>
-<li><b>A site with 2 or more owners counts in full under each owner.</b><a href="#fig-11b-owners-table">Figure 11</a>, <a href="#fig-12a-how">Figure 7</a></li>
-<li><b>Lists are dated.</b>"Each name carries the list's date", for example Jan 2026 and Apr 2026 for adidas, and February 2024 for Nike's PT. Paxar Indonesia. <a href="#fig-12b-source">Figure 8</a>, <a href="#fig-08-site-panel">Figure 13</a></li>
-<li><b>Only sites on a current list that are not closed are counted and loaded.</b><a href="#fig-12a-how">Figure 7</a>, <a href="#fig-14a-upload-empty">Figure 18</a></li>
-<li><b>Some lists in an upload are hidden by default.</b>"Show all lists (130 hidden: anonymous types and "(Claimed)" entries)". <a href="#fig-14b-upload-amazon">Figure 19</a></li>
-<li><b>A GLEIF match is only a candidate until a person confirms it.</b>A parent company shows only after that. <a href="#fig-15a-network-adidas">Figure 22</a>, <a href="#fig-08-site-panel">Figure 13</a></li>
-<li><b>The GLEIF search takes minutes.</b>"At most one request a second": about 2 minutes for Samsung's 102 owner names. <a href="#fig-15d-network-samsung">Figure 25</a></li>
-<li><b>Satellite imagery is not current.</b>Its credit names "Copernicus Sentinel data 2016 & 2017". <a href="#fig-06-style-satellite">Figure 27</a></li>
+<section class="know">
+<h2>Good to know</h2>
+<ul>
+<li>Disaster alerts come from GDACS and are automatic (figure 1).</li>
+<li>A site inside a disaster area is not counted when GDACS does not list its country as affected (figure 5).</li>
+<li>Every number shows its base, for example &quot;Owner known for 551 of 766 sites&quot; (figures 1 and 6).</li>
+<li>A GLEIF match is a candidate until a person confirms it; parent companies show only after that (figures 3 and 8).</li>
+<li>Lists are dated: the site in figure 3 is on Nike's February 2024 list, and Amazon's own lists in figure 7 are dated 2022, 2023, 2024 and 2026.</li>
 </ul>
 </section>
 
-<footer>Screenshots captured 3 Oct 2026, 13:07 UTC from commit 25de639. Built from <code>docs/walkthrough/assets/manifest.json</code> by <code>docs/walkthrough/capture/build.mjs</code>; screenshots by <code>capture.mjs</code>.</footer>
+<footer>Captured in headless Chrome 154 at 1440 × 900, 2×, from app commit b2a0e04. Callout boxes were measured on the page at capture time (<code>assets/manifest.json</code>); <code>capture/</code> holds the tool that captures and builds this page.</footer>
 </main>
 </body>
 </html>

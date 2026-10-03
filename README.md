@@ -10,6 +10,7 @@ A map of where a company's supplier sites are concentrated, which owner companie
 - **Concentration:** each country's and owner's share of estimated workers (or sites), marked High (10%) or Watch (5%), with a one-sentence summary. Owner dependency stands in for single-source dependency: the data has no materials.
 - **Disasters:** live GDACS areas on the map; disaster → sites → owners → those owners' other sites.
 - **Parent companies** from GLEIF, shown once a person confirms the match.
+- Product guide with screenshots: [docs/walkthrough/index.html](docs/walkthrough/index.html).
 
 ## Demo data
 
