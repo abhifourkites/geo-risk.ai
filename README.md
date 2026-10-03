@@ -79,4 +79,6 @@ docker compose up
 
 ## Hours spent
 
-`[author to fill]`
+About 2.5 days, which is well over the five hours the brief suggests.
+
+The core (supplier map, country and owner shares, the GDACS disaster overlay) was done first. Most of the extra time went into checking the data, where several things turned out to be wrong (see AI_LOG.md), and into the GLEIF review page and the GLEIF API search. The map styles came last. "What we cut" above lists what I left out on purpose.
