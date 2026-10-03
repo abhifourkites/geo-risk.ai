@@ -1,4 +1,4 @@
-"""ARCHITECTURE.md section 8, from the committed demo data. The live hazard row (5 / 3 / 0 / 0, 30 Sep 2026)
+"""README.md "Demo data" table, from the committed demo data. The live hazard row (5 / 3 / 0 / 0, 30 Sep 2026)
 and certificate warning counts (they depend on the run date) are deliberately not tested here."""
 import json
 
@@ -63,7 +63,7 @@ def test_no_stored_table_has_a_claim_column(conn):
 
 
 def test_adidas_list_counts(conn):
-    """DECISIONS.md #8: counted once per site, by its first list: 438 / 194 / 134. Per list: 438 / 195 / 136,
+    """ASSUMPTIONS.md #4: counted once per site, by its first list: 438 / 194 / 134. Per list: 438 / 195 / 136,
     because 3 sites are on two lists."""
     lists = {c["customer_id"]: c for c in json.loads((loader.DEMO_DIR / "demo_companies.json").read_text())}["adidas"]["current_lists"]
     kinds = ("Primary", "Licensee", "Wet Process Suppliers")

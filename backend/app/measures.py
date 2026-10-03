@@ -114,8 +114,8 @@ def _companies(n: int) -> str:
 
 
 def sentence(cov: dict, countries: list[dict], owners: list[dict], hz_state: str, hz_sites: list[dict]) -> str:
-    """The one-sentence summary for the CPO, in the screen's plain words. Its numbers follow the example in
-    ARCHITECTURE_detailed.md, Appendix C.3."""
+    """The one-sentence summary for the CPO, in the screen's plain words. Its numbers follow the design's example
+    (Appendix C.3 of the design document, now in git history); backend/tests/test_demo_numbers.py checks Samsung's."""
     high = [country_name(x["country_code"]) for x in countries if x["level"] == "High"]
     n_watch = sum(1 for x in countries if x["level"] == "Watch")
     parts = []

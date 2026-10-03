@@ -797,7 +797,7 @@ if "--geo-schema" in sys.argv and sys.argv.index("--geo-schema") + 1 < len(sys.a
           f"mentions postgis: {any('postgis' in l.lower() for l in lines)}")
 
 # ---------------------------------------------------------------------------------------------
-section("19. MVP demo table (docs/architecture/ARCHITECTURE.md, section 8)")
+section("19. MVP demo table (README.md, Demo data)")
 CUSTS = ["adidas", "Nike", "Apple", "Samsung"]
 row = lambda f: " | ".join(f(c) for c in CUSTS)
 check("Open sites", "766 | 625 | 749 | 187", row(lambda c: str(len(OPEN[c]))))
@@ -819,15 +819,15 @@ def dis(c):
     return f"{len(hit)} ({'/'.join(sorted(set(hit)))})" if hit else "0"
 check("Sites inside a current disaster area (GDACS fixture, 2026-09-30)", "5 (Green) | 3 (Green) | 0 | 0", row(dis))
 out("INFO", "Apple and Samsung 0: the fixture holds adidas and Nike sites only; the one-time check against 246 current events "
-            "(ARCHITECTURE_detailed.md, Appendix B) also found 0")
+            "also found 0")
 check("GLEIF likely matches / with a parent", "30 / 3",
       f"{sum(1 for r in rows_of['gleif_slice'] if r['review_level'].startswith('1'))} / {sum(1 for r in rows_of['gleif_par'] if r['direct_parent_lei'])}")
 check("owner known for Apple (the rule example in section 5)", "66 of 749",
       f"{sum(1 for r in OPEN['Apple'] if OWN['apple'][r['os_id']])} of {len(OPEN['Apple'])}")
-check("50x open site rows (section 6)", "2,327 -> 116,350", f"{sum(len(OPEN[c]) for c in CUSTS):,} -> {50 * sum(len(OPEN[c]) for c in CUSTS):,}")
-check("GLEIF review rows at 50x (section 6)", "440 -> 22,000", f"{len(rows_of['gleif_slice'])} -> {50 * len(rows_of['gleif_slice']):,}")
+check("50x open site rows (ARCHITECTURE.md, section 7)", "2,327 -> 116,350", f"{sum(len(OPEN[c]) for c in CUSTS):,} -> {50 * sum(len(OPEN[c]) for c in CUSTS):,}")
+check("GLEIF review rows at 50x (ARCHITECTURE.md, section 7)", "440 -> 22,000", f"{len(rows_of['gleif_slice'])} -> {50 * len(rows_of['gleif_slice']):,}")
 
-section("20. Numbers cited in DECISIONS.md that other sections do not print")
+section("20. Numbers that other sections do not print (adidas list counts: ASSUMPTIONS.md #4)")
 lt = Counter(ad_type(r) for r in OPEN["adidas"])
 check("adidas list names: Primary / Licensee / Wet Process Suppliers (open sites)", "438 / 194 / 134",
       f"{lt['primary']} / {lt['licensee']} / {lt['wet process']}")
@@ -837,7 +837,7 @@ check("adidas open sites without a worker estimate", 47, sum(1 for r in OPEN["ad
 section("SUMMARY")
 print(f"  {len(DIFFS)} unexpected differences")
 for name, items in (("unexpected differences", DIFFS),
-                    ("expected differences from the old reference file (explained in docs/architecture/archive/ARCHITECTURE_detailed.md, Appendix B)", EXPECTED),
+                    ("expected differences from the old reference file", EXPECTED),
                     ("numbers changed by the written owner rule", CHANGED), ("open items raised", OPENS)):
     print(f"  {name}: {len(items)}")
     for x in items: print(f"    - {x}")

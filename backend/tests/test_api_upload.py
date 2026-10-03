@@ -35,7 +35,7 @@ def upload(raw: bytes, name="file.csv"):
 def test_upload_lists_strings_with_site_counts():
     body = upload((loader.DEMO_DIR / "samsung.csv").read_bytes(), "samsung.csv")
     assert body["rows"] == 187
-    assert len(body["lists"]) == 13                        # Appendix A, R1: 13 list strings in the Samsung file
+    assert len(body["lists"]) == 13                        # R1: 13 list strings in the Samsung file
     assert {"list": SAMSUNG_LIST, "sites": 187} in body["lists"]
 
 

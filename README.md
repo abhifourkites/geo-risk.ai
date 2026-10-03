@@ -37,7 +37,7 @@ A map of where a company's supplier sites are concentrated, which owner companie
 
 ## What we cut, and why
 
-- **Alternative suppliers and product measures:** the data does not say what each site makes, and product words merge every contributor's words: 80 of adidas's 766 open sites have "NIKE" among theirs. Sites with product words: adidas 32.9%, Nike 78.4%, Apple 9.7%, Samsung 4.3%, Amazon 73.4%. "Home Goods" appears on 58.7% of Amazon's sites that have product words.
+- **Alternative suppliers and product measures:** the data does not say what each site makes, and product words merge every contributor's words: 80 of adidas's 766 open sites have "NIKE" among theirs. Sites with product words: adidas 32.9%, Nike 78.4%, Apple 9.7%, Samsung 4.3%, Amazon 73.4%. "Home Goods" is among the product words of 747 of the 1,272 Amazon sites that have any (58.7%; product words split on "|", exact match ignoring case). Mapping product words to HS codes was tested; a person would still need to check every code.
 - **Region level:** Natural Earth's 1:50m states file covers 9 countries, not Vietnam; the 1:10m file is 40.7 MB as GeoJSON.
 - **Site addresses in the panel:** no reverse geocoding. 147 of Amazon's 1,732 sites carry the "same coordinates" warning, and Nominatim's policy does not encourage bulk geocoding (at most 1 request a second).
 - **Complete wildfire coverage:** NASA FIRMS needs a key; NASA EONET gives points only (all 200 open wildfire events, 3 Oct 2026).
