@@ -9,7 +9,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
-import { setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type StyleSpecification } from "maplibre-gl";
+import { setWorkerUrl, type ExpressionSpecification, type GeoJSONSource } from "maplibre-gl";
 // MapLibre's documented setup for Vite (https://maplibre.org/maplibre-gl-js/docs/, Installation): "?worker&url"
 // bundles the worker with its sibling maplibre-gl-shared.mjs into one chunk, in development and in production builds.
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
@@ -17,7 +17,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { SxProps, Theme } from "@mui/material/styles";
 import Map, { Layer, NavigationControl, Source, type ErrorEvent, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre";
 import type { View } from "./api";
-import { BASEMAPS, isServiceError, landOpacity, loadBasemap, PLAIN_STYLE, SERVICE, type Basemap } from "./basemap";
+import { BASEMAPS, checkService, isServiceError, landOpacity, loadBase, PLAIN_BASE, PLAIN_STYLE, SATELLITE_BASE, SERVICE, swapBase,
+  type Base, type Basemap } from "./basemap";
 import { countryName, shortEventName, threshold } from "./format";
 import { boundsOf, coordsOf, sphericalMean, WORLD, type Focus } from "./geo";
 import { RISK } from "./theme";
@@ -71,30 +72,51 @@ export default function MapView(props: {
   const [loaded, setLoaded] = useState(false);   // the map's style is loaded: the site layers can be added
   const [ready, setReady] = useState(false);     // outlines and sites are drawn: the loading message goes
   const hovered = useRef<number | string | null>(null);
-  // The map style (basemap.ts): the one asked for, and the one on show (Plain until its tile service has answered).
-  // A service that does not answer, or fails later, gives Plain again with a one-line notice.
+  // The map style (basemap.ts): the one asked for, and the one on the map. The map keeps Plain's style; the base of
+  // Map or Satellite is swapped in below the app's layers, which never leave the map, so they show at once after every
+  // switch while the new base's tiles fill in. A service that does not answer, or fails later, gives Plain again with
+  // a one-line notice.
   const [basemap, setBasemap] = useState<Basemap>("plain");
-  const [shown, setShown] = useState<{ mode: Basemap; style: StyleSpecification }>({ mode: "plain", style: PLAIN_STYLE });
+  const [shownMode, setShownMode] = useState<Basemap>("plain");
+  const [styleLoading, setStyleLoading] = useState(false);   // Map's style document is being fetched
   const [notice, setNotice] = useState<string | null>(null);
   const asked = useRef<Basemap>("plain");
-  const shownMode = useRef<Basemap>("plain");
-  shownMode.current = shown.mode;
+  const applied = useRef<Base>(PLAIN_BASE);                   // the base on the map
+  const mapBase = useRef<Base | null>(null);                  // Map's base, kept once fetched
+  const show = useCallback((base: Base) => {
+    const m = map.current?.getMap();
+    if (!m) return;
+    swapBase(m, applied.current, base, "land");               // "land": the lowest of the app's layers
+    applied.current = base;
+    setShownMode(base.mode);
+  }, []);
   const fallBack = useCallback((mode: Basemap) => {
     if (mode === "plain") return;
     asked.current = "plain";
     setBasemap("plain");
-    setShown({ mode: "plain", style: PLAIN_STYLE });
+    setStyleLoading(false);
+    show(PLAIN_BASE);
     setNotice(`${BASEMAPS.find((b) => b.value === mode)?.label}: ${SERVICE[mode].name} did not respond, so the plain map is shown.`);
-  }, []);
+  }, [show]);
   const chooseBasemap = (mode: Basemap) => {
     asked.current = mode;
     setBasemap(mode);
     setNotice(null);
-    loadBasemap(mode).then((style) => { if (asked.current === mode) setShown({ mode, style }); })
-      .catch(() => { if (asked.current === mode) fallBack(mode); });
+    const ready = mode === "plain" ? PLAIN_BASE : mode === "satellite" ? SATELLITE_BASE : mapBase.current;
+    if (ready) {                                              // Plain, Satellite, or Map fetched before: at once
+      setStyleLoading(false);
+      show(ready);
+    } else {
+      setStyleLoading(true);
+      loadBase("map").then((base) => {
+        mapBase.current = base;
+        if (asked.current === "map") { setStyleLoading(false); show(base); }
+      }).catch(() => { if (asked.current === "map") fallBack("map"); });
+    }
+    if (mode === "satellite") checkService("satellite").catch(() => { if (asked.current === "satellite") fallBack("satellite"); });
   };
   const onError = (e: ErrorEvent) => {
-    if (isServiceError(e, shownMode.current)) fallBack(shownMode.current);
+    if (isServiceError(e, applied.current.mode)) fallBack(applied.current.mode);
     else console.error(e.error);           // as react-map-gl does without onError
   };
 
@@ -238,23 +260,23 @@ export default function MapView(props: {
       <Box ref={box} sx={{ position: "relative", height: { xs: 380, md: 560 }, borderRadius: 2.5, overflow: "hidden", border: 1, borderColor: "divider", bgcolor: "#EEF1F2",
                            "& .maplibregl-ctrl-bottom-right": { maxWidth: { sm: "calc(100% - 220px)" } },
                            "& .maplibregl-ctrl-attrib": { bgcolor: "rgba(255, 255, 255, 0.85)" } }}>
-        <Map ref={map} mapStyle={shown.style} styleDiffing={false} initialViewState={{ bounds: WORLD, fitBoundsOptions: { padding: 10 } }}
+        <Map ref={map} mapStyle={PLAIN_STYLE} initialViewState={{ bounds: WORLD, fitBoundsOptions: { padding: 10 } }}
              projection={projection} renderWorldCopies={false} maxPitch={60}
              interactiveLayerIds={INTERACTIVE} cursor={tip ? "pointer" : "grab"}
              onMouseMove={onMove} onMouseLeave={() => { setHover(null); setTip(null); }} onClick={onClick}
              onLoad={onLoad} onIdle={onIdle} onError={onError}
              style={{ width: "100%", height: "100%" }} attributionControl={ATTRIBUTION}>
           {/* Mounted from the start (empty until the file arrives), so the land layers are always added first,
-              under the sites; mounted later, they were added on top and hid some clusters. After a change of map
-              style, react-map-gl adds these sources and layers again, in this order, on top of the new style. */}
+              under the sites; mounted later, they were added on top and hid some clusters. The map style never
+              changes: a base map is added below "land" (swapBase), so these layers stay as they are. */}
           {(
             <Source id="countries" type="geojson" data={world ?? EMPTY} attribution="Natural Earth">
               <Layer id="land" type="fill" paint={{
                 "fill-color": ["case", inList(high), RISK.high, inList(watch), RISK.watchFill, RISK.land],
-                "fill-opacity": landOpacity(shown.mode, inList([...high, ...watch])),
+                "fill-opacity": landOpacity(shownMode, inList([...high, ...watch])),
               }} />
               {/* the Map style draws its own borders */}
-              <Layer id="borders" type="line" layout={{ visibility: shown.mode === "map" ? "none" : "visible" }}
+              <Layer id="borders" type="line" layout={{ visibility: shownMode === "map" ? "none" : "visible" }}
                      paint={{ "line-color": "#FFFFFF", "line-width": 0.8 }} />
               <Layer id="country-picked" type="line" filter={inList([...highlightCountries])}
                      paint={{ "line-color": RISK.selected, "line-width": 1.6 }} />
@@ -312,6 +334,13 @@ export default function MapView(props: {
             <CircularProgress size={20} aria-hidden="true" />
             <Typography variant="body2">Loading map…</Typography>
           </Box>
+        )}
+
+        {styleLoading && (
+          <Paper data-testid="style-loading" role="status" elevation={2} sx={{ position: "absolute", top: 64, left: "50%", transform: "translateX(-50%)", px: 1.5, py: 0.5, display: "flex", alignItems: "center", gap: 1, zIndex: 2, pointerEvents: "none" }}>
+            <CircularProgress size={14} aria-hidden="true" />
+            <Typography variant="caption">Loading map style…</Typography>
+          </Paper>
         )}
 
         <Paper variant="outlined" sx={{ position: "absolute", top: 8, left: 8, p: 1, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, maxWidth: "calc(100% - 70px)" }}>
