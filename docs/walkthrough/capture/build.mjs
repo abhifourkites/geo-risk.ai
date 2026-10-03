@@ -64,13 +64,15 @@ const FIGURES = [
     text: `Opened by clicking POU CHEN in the Owner companies table below the map. It shows what share of adidas's suppliers' workers the owner holds, and where its sites are.`,
   },
   {
-    shot: "09c-disaster-unlisted", title: "The disaster panel: the drought", company: "Amazon.com, Inc.",
+    shot: "09d-disaster-other-sites", title: "A disaster: who is affected, and what else depends on them (Apple)", company: "",
     callouts: [
-      [1, "Inside the area, but not counted", [1176, -24]],
-      [2, "UK: not on GDACS's affected list", [216, 105]],
-      [3, "The drought's affected area", [720, 150]],
+      [1, "Your sites inside this disaster", [775, 128]],
+      [2, "Who owns those sites", [840, 216]],
+      [3, "That owner's other sites elsewhere", [775, 485]],
+      [4, "The disaster area on the map", [300, 130]],
     ],
-    text: `Opened from the Disasters now card, then scrolled down. These 47 sites in the United Kingdom are inside the drought's area but not counted: GDACS lists 29 countries as affected, and the United Kingdom is not one of them.`,
+    text: `Clicking a disaster shows three things: which of the company's sites are inside it, who owns those sites, and which other sites those same owners have elsewhere. Here the European drought covers a site owned by HENKEL AG AND KGAA, and the panel shows its 3 other Apple supplier sites, in China and the United States, so you can see what else depends on the same owner.`,
+    how: "Apple → the Disasters now card → the drought → scroll down in the panel.",
   },
   {
     shot: "12a-how", title: "How these numbers are worked out", company: "adidas",
@@ -113,7 +115,6 @@ const FIGURES = [
 
 const GOOD_TO_KNOW = [
   `Disaster alerts come from GDACS and are automatic (figure 1).`,
-  `A site inside a disaster area is not counted when GDACS does not list its country as affected (figure 5).`,
   `Every number shows its base, for example "Owner known for 551 of 766 sites" (figures 1 and 6).`,
   `A GLEIF match is a candidate until a person confirms it; parent companies show only after that (figures 3 and 8).`,
   `Lists are dated: the site in figure 3 is on Nike's February 2024 list, and Amazon's own lists in figure 7 are dated 2022, 2023, 2024 and 2026.`,
@@ -163,7 +164,8 @@ function figure(f, i) {
     ${pills.join("")}
   </div></div>
 </figure>
-<p>${f.text}</p>
+<p>${f.text}</p>${f.how ? `
+<p class="how">How to get here: ${esc(f.how)}</p>` : ""}
 </section>`;
 }
 
@@ -186,6 +188,7 @@ h2 { font-size: 22px; line-height: 1.25; margin: 0 0 14px; display: flex; align-
 h2 .no { font-size: 14px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 7px; padding: 1px 8px; }
 h2 .co { font-size: 15px; font-weight: 500; color: var(--muted); }
 section.fig > p { max-width: 82ch; margin: 14px 4px 0; color: var(--ink); }
+section.fig > p.how { margin-top: 6px; font-size: 15px; color: var(--muted); }
 code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #EDF0F1; padding: 1px 5px; border-radius: 4px; }
 .code { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--code); background: #F1EDFC; border-radius: 4px; padding: 2px 6px; margin-right: 2px; }
 figure.shot { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(31,42,46,0.06); }

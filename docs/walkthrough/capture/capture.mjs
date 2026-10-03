@@ -79,8 +79,9 @@ async function chooseCompany(name, { waitMap = true } = {}) {
 }
 async function tab(label) { await click('[role="tab"]', label); await sleep(800); }
 
-// A marker: { label, sel, text?, closest?, nth?, withLabel? } for a DOM element (withLabel: the box also takes in the
-// element's <label>, which MUI draws on the field's border), or { label, map: "cluster" | "country:XX" | "event:ID" |
+// A marker: { label, sel, text?, closest?, nth?, withLabel?, clip? } for a DOM element (withLabel: the box also takes in
+// the element's <label>, which MUI draws on the field's border; clip: a selector whose box cuts it, for an element
+// partly scrolled out of view), or { label, map: "cluster" | "country:XX" | "event:ID" |
 // "site:OSID" | "clear:XX,YY" } for a map feature. "clear:…" is a spot inside one of those countries (here the High
 // ones) with nothing else drawn on it: no site, group or disaster area, and no toolbar or legend over the map.
 async function boxes(markers) {
@@ -100,6 +101,11 @@ async function boxes(markers) {
           const x1 = Math.min(...rs.map((b) => b.left)), y1 = Math.min(...rs.map((b) => b.top));
           const x2 = Math.max(...rs.map((b) => b.right)), y2 = Math.max(...rs.map((b) => b.bottom));
           r = { x: x1, y: y1, w: x2 - x1, h: y2 - y1, source: "dom" };
+          const k = mk.clip && document.querySelector(mk.clip)?.getBoundingClientRect();
+          if (k) {
+            const cx1 = Math.max(x1, k.left), cy1 = Math.max(y1, k.top), cx2 = Math.min(x2, k.right), cy2 = Math.min(y2, k.bottom);
+            r = { x: cx1, y: cy1, w: Math.max(0, cx2 - cx1), h: Math.max(0, cy2 - cy1), source: "dom" };
+          }
         }
       } else if (mk.map && map) {
         const c = map.getCanvas().getBoundingClientRect();
@@ -261,19 +267,26 @@ await shot("08-site-panel", "Site panel: PT. Paxar Indonesia (Nike)", [
   { label: "Parent company", sel: `${PANEL} h3`, text: "Parent company", closest: "section" },
   { label: "The site on the map", map: "site:ID2021182JC36SX" },
 ], MAPAREA);
-// 5. disaster panel: Amazon's drought, scrolled to the sites that are inside the area but not counted
+// 5. disaster panel: Apple's drought, scrolled so that the last two of "Your sites inside", "Their owners" and the
+// first owner's other sites show together (or, if they do not fit, so that the first owner's list ends at the bottom)
 await toTop();
-await chooseCompany("Amazon.com, Inc.");
+await chooseCompany("Apple");
 await page.click('[data-card="disasters"] button'); await sleep(800);
 await click(`${PANEL} .MuiListItemText-primary`, "Drought in", { starts: true }); await mapIdle(2000);
 await waitText(`${PANEL} h2`, "Drought");
 await scrollTo(".maplibregl-map", 120);
-await page.evaluate((t) => { const c = document.querySelector('aside[aria-label="Details"] .MuiCardContent-root');
-  const h = [...c.querySelectorAll("h3")].find((x) => x.textContent.startsWith(t)); c.scrollTop += h.getBoundingClientRect().top - c.getBoundingClientRect().top - 12; },
-  "Inside the area, but GDACS does not list"); await sleep(500);
-await shot("09c-disaster-unlisted", "Disaster panel: drought DR1018332, not counted (Amazon)", [
-  { label: "Inside the area, not counted", sel: `${PANEL} h3`, text: "Inside the area, but GDACS does not list", closest: "section" },
-  { label: "United Kingdom", map: "country:GB" },
+const PANEL_BODY = `${PANEL} .MuiCardContent-root`;
+await page.evaluate((sel) => { const c = document.querySelector(sel);
+  const inside = [...c.querySelectorAll("section")].find((x) => x.querySelector("h3")?.textContent.startsWith("Your sites inside"));
+  const items = inside.querySelectorAll("li");
+  c.scrollTop += items[Math.max(0, items.length - 2)].getBoundingClientRect().top - c.getBoundingClientRect().top - 8;
+  const first = [...c.querySelectorAll("section > div")].find((g) => g.textContent.includes("other site"));
+  const over = first.getBoundingClientRect().bottom - c.getBoundingClientRect().bottom + 12;
+  if (over > 0) c.scrollTop += over; }, PANEL_BODY); await sleep(500);
+await shot("09d-disaster-other-sites", "Disaster panel: drought DR1018332, owners' other sites (Apple)", [
+  { label: "Your sites inside", sel: `${PANEL} h3`, text: "Your sites inside", closest: "section", clip: PANEL_BODY },
+  { label: "Their owners", sel: `${PANEL} h3`, text: "Their owners", closest: "section", clip: PANEL_BODY },
+  { label: "First owner's other sites", sel: `${PANEL} section > div`, text: "other site", clip: PANEL_BODY },
   { label: "The drought's area", map: "event:DR1018332" },
 ], MAPAREA);
 // 7. upload: data/demo/amazon.csv chosen, not loaded
@@ -304,7 +317,7 @@ await shot("15b-network-paxar", "Company network: PT. Paxar Indonesia, confirmed
 ], [{ sel: "main" }]);
 
 // the guide's order
-const ORDER = ["01-overview", "03-map", "08-site-panel", "10b-owner-panel", "09c-disaster-unlisted", "12a-how", "14b-upload-amazon", "15b-network-paxar", "06-style-satellite"];
+const ORDER = ["01-overview", "03-map", "08-site-panel", "10b-owner-panel", "09d-disaster-other-sites", "12a-how", "14b-upload-amazon", "15b-network-paxar", "06-style-satellite"];
 manifest.shots.sort((a, b) => ORDER.indexOf(a.name) - ORDER.indexOf(b.name));
 manifest.blocked_requests = blocked;
 manifest.console_errors = consoleErrors;

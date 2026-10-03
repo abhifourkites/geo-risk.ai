@@ -17,6 +17,7 @@ h2 { font-size: 22px; line-height: 1.25; margin: 0 0 14px; display: flex; align-
 h2 .no { font-size: 14px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 7px; padding: 1px 8px; }
 h2 .co { font-size: 15px; font-weight: 500; color: var(--muted); }
 section.fig > p { max-width: 82ch; margin: 14px 4px 0; color: var(--ink); }
+section.fig > p.how { margin-top: 6px; font-size: 15px; color: var(--muted); }
 code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #EDF0F1; padding: 1px 5px; border-radius: 4px; }
 .code { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--code); background: #F1EDFC; border-radius: 4px; padding: 2px 6px; margin-right: 2px; }
 figure.shot { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(31,42,46,0.06); }
@@ -49,7 +50,7 @@ footer { margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--line);
 <h1>Supplier risk map</h1>
 <p class="intro">The Supplier risk map shows where a company's supplier sites are concentrated, which owners hold many, and which are in a current disaster area.<br>
 It is for the company's procurement and risk team; the examples use the public supplier lists of adidas, Nike and Amazon.<br>
-Captured 3 Oct 2026, 13:47 UTC, with disaster data from 12:38 UTC. <span class="live">Disaster data is live, so areas and counts will differ on another day.</span></p>
+Captured 3 Oct 2026, 14:48 UTC, with disaster data from 12:38 UTC. <span class="live">Disaster data is live, so areas and counts will differ on another day.</span></p>
 
 <section class="fig" id="fig-1">
 <h2><span class="no">1</span>Overview <span class="co">adidas</span></h2>
@@ -104,16 +105,17 @@ Captured 3 Oct 2026, 13:47 UTC, with disaster data from 12:38 UTC. <span class="
 </section>
 
 <section class="fig" id="fig-5">
-<h2><span class="no">5</span>The disaster panel: the drought <span class="co">Amazon.com, Inc.</span></h2>
+<h2><span class="no">5</span>A disaster: who is affected, and what else depends on them (Apple)</h2>
 <figure class="shot">
-  <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
-    <img src="assets/09c-disaster-unlisted.webp" width="1415" height="584" alt="Disaster panel: drought DR1018332, not counted (Amazon)">
-    <span class="mk box" style="left:68.106%;top:3.836%;width:30.057%;height:96.678%"></span><span class="mk box" style="left:14.261%;top:12.894%;width:9.859%;height:45.394%"></span><span class="mk box" style="left:12.042%;top:12.106%;width:42.841%;height:76.027%"></span>
-    <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="1176" y1="22.4" x2="1176" y2="-24"/><line x1="1176" y1="22.4" x2="1176" y2="-24"/></svg>
-    <span class="mk pill" style="left:83.110%;top:-4.110%"><b>1</b>Inside the area, but not counted</span><span class="mk pill" style="left:15.265%;top:17.979%"><b>2</b>UK: not on GDACS's affected list</span><span class="mk pill" style="left:50.883%;top:25.685%"><b>3</b>The drought's affected area</span>
+  <div class="frame"><div class="img" style="aspect-ratio:1415/584">
+    <img src="assets/09d-disaster-other-sites.webp" width="1415" height="584" alt="Disaster panel: drought DR1018332, owners' other sites (Apple)">
+    <span class="mk box" style="left:68.106%;top:1.747%;width:30.057%;height:22.534%"></span><span class="mk box" style="left:68.106%;top:26.010%;width:30.057%;height:21.969%"></span><span class="mk box" style="left:68.106%;top:54.812%;width:30.057%;height:35.205%"></span><span class="mk box" style="left:12.042%;top:12.021%;width:42.841%;height:76.027%"></span>
+    <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="963.7" y1="128" x2="775" y2="128"/><line class="halo" x1="963.7" y1="216" x2="840" y2="216"/><line class="halo" x1="963.7" y1="485" x2="775" y2="485"/><line x1="963.7" y1="128" x2="775" y2="128"/><line x1="963.7" y1="216" x2="840" y2="216"/><line x1="963.7" y1="485" x2="775" y2="485"/></svg>
+    <span class="mk pill" style="left:54.770%;top:21.918%"><b>1</b>Your sites inside this disaster</span><span class="mk pill" style="left:59.364%;top:36.986%"><b>2</b>Who owns those sites</span><span class="mk pill" style="left:54.770%;top:83.048%"><b>3</b>That owner's other sites elsewhere</span><span class="mk pill" style="left:21.201%;top:22.260%"><b>4</b>The disaster area on the map</span>
   </div></div>
 </figure>
-<p>Opened from the Disasters now card, then scrolled down. These 47 sites in the United Kingdom are inside the drought's area but not counted: GDACS lists 29 countries as affected, and the United Kingdom is not one of them.</p>
+<p>Clicking a disaster shows three things: which of the company's sites are inside it, who owns those sites, and which other sites those same owners have elsewhere. Here the European drought covers a site owned by HENKEL AG AND KGAA, and the panel shows its 3 other Apple supplier sites, in China and the United States, so you can see what else depends on the same owner.</p>
+<p class="how">How to get here: Apple → the Disasters now card → the drought → scroll down in the panel.</p>
 </section>
 
 <section class="fig" id="fig-6">
@@ -172,14 +174,13 @@ Captured 3 Oct 2026, 13:47 UTC, with disaster data from 12:38 UTC. <span class="
 <h2>Good to know</h2>
 <ul>
 <li>Disaster alerts come from GDACS and are automatic (figure 1).</li>
-<li>A site inside a disaster area is not counted when GDACS does not list its country as affected (figure 5).</li>
 <li>Every number shows its base, for example &quot;Owner known for 551 of 766 sites&quot; (figures 1 and 6).</li>
 <li>A GLEIF match is a candidate until a person confirms it; parent companies show only after that (figures 3 and 8).</li>
 <li>Lists are dated: the site in figure 3 is on Nike's February 2024 list, and Amazon's own lists in figure 7 are dated 2022, 2023, 2024 and 2026.</li>
 </ul>
 </section>
 
-<footer>Captured in headless Chrome 154 at 1440 × 900, 2×, from app commit b2a0e04. Callout boxes were measured on the page at capture time (<code>assets/manifest.json</code>); <code>capture/</code> holds the tool that captures and builds this page.</footer>
+<footer>Captured in headless Chrome 154 at 1440 × 900, 2×, from app commit 4241049. Callout boxes were measured on the page at capture time (<code>assets/manifest.json</code>); <code>capture/</code> holds the tool that captures and builds this page.</footer>
 </main>
 </body>
 </html>

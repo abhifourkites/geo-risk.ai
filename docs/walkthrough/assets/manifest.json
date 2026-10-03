@@ -202,42 +202,51 @@
    ]
   },
   {
-   "name": "09c-disaster-unlisted",
-   "file": "09c-disaster-unlisted.webp",
-   "title": "Disaster panel: drought DR1018332, not counted (Amazon)",
+   "name": "09d-disaster-other-sites",
+   "file": "09d-disaster-other-sites.webp",
+   "title": "Disaster panel: drought DR1018332, owners' other sites (Apple)",
    "width": 1415,
    "height": 584,
    "scale": 2,
    "viewport_crop": {
     "x": 13,
-    "y": 106,
+    "y": 107,
     "w": 1415,
     "h": 584
    },
    "markers": [
     {
      "n": 1,
-     "label": "Inside the area, not counted",
+     "label": "Your sites inside",
      "x": 966.7,
-     "y": 25.4,
+     "y": 13.2,
      "w": 419.3,
-     "h": 558.6,
+     "h": 125.6,
      "source": "dom"
     },
     {
      "n": 2,
-     "label": "United Kingdom",
-     "x": 204.8,
-     "y": 78.3,
-     "w": 133.5,
-     "h": 259.1,
-     "source": "map"
+     "label": "Their owners",
+     "x": 966.7,
+     "y": 154.9,
+     "w": 419.3,
+     "h": 122.3,
+     "source": "dom"
     },
     {
      "n": 3,
+     "label": "First owner's other sites",
+     "x": 966.7,
+     "y": 323.1,
+     "w": 419.3,
+     "h": 199.6,
+     "source": "dom"
+    },
+    {
+     "n": 4,
      "label": "The drought's area",
      "x": 173.4,
-     "y": 73.7,
+     "y": 73.2,
      "w": 600.2,
      "h": 438,
      "source": "map"
@@ -427,13 +436,13 @@
   }
  ],
  "captured": {
-  "at_utc": "2026-10-03T13:47:48.333Z",
-  "at_local": "Sat Oct 03 2026 19:17:48 GMT+0530 (India Standard Time)",
+  "at_utc": "2026-10-03T14:48:27.920Z",
+  "at_local": "Sat Oct 03 2026 20:18:27 GMT+0530 (India Standard Time)",
   "base": "http://localhost:5173",
   "viewport": "1440x900",
   "scale": 2,
   "disaster_data_chip": "Disaster data: 3 Oct 2026, 12:38 UTC",
-  "app_commit": "b2a0e04",
+  "app_commit": "4241049",
   "chrome": "Chrome/154.0.8037.58"
  },
  "blocked_requests": [],
