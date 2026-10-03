@@ -150,7 +150,7 @@ for cust, d in DEMO.items():
         out("MATCH" if s in c else "DIFF", f"{cust}: list {'CURRENT' if s in d['current'] else 'older  '} {s!r} "
             f"in {d['file']}: {s in c}; year written in the string: {years or 'none'}")
 nike_ihm = [s for k in RAW for s in {p for r in rows_of[k] for p in split_pipe(r['contributor (list)'])} if "IHM" in s.upper()]
-out("INFO", f"strings mentioning 'IHM' (README: Nike's own US sites are not included): {nike_ihm or 'none'}")
+out("INFO", f"strings mentioning 'IHM': {nike_ihm or 'none'}")
 
 def open_sites(cust):
     d = DEMO[cust]; cur = set(d["current"])
@@ -393,7 +393,7 @@ for cust, e10, e5 in (("adidas", 1, 4), ("Nike", 2, 5)):
     check(f"{cust} regions at >= 10% / >= 5% of workers", f"{e10} / {e5}",
           f"{sum(1 for v in REG[cust].values() if v >= .10)} / {sum(1 for v in REG[cust].values() if v >= .05)}")
 for cust in ("adidas", "Nike"):
-    print(f"  {cust} regions at >= 3% of workers (ASSUMPTIONS #4 says 'up to 9 regions'): "
+    print(f"  {cust} regions at >= 3% of workers: "
           f"{sum(1 for v in REG[cust].values() if v >= .03)}")
 
 # ---------------------------------------------------------------------------------------------
@@ -536,7 +536,7 @@ for cust in DEMO:
     print(f"  {cust}: same coordinates as another site {sp} of {n}; owner conflict {cf}; certificate dates filled "
           f"WRAP/BSCI/SLCP {COV[cust]['cert']} -> certificate warnings shown for {shown or 'none'}; current list years {yrs}")
 op = [r for r in fac if r["os_id"] in ids["adidas"] | ids["Nike"]]
-check("README: open adidas/Nike sites sharing a point with another site in the download (all / adidas / Nike)",
+check("open adidas/Nike sites sharing a point with another site in the download (all / adidas / Nike)",
       "114 / 66 / 58", f"{sum(1 for r in op if r['os_id'] in SHARED['facilities'])} / "
       f"{sum(1 for r in OPEN['adidas'] if r['os_id'] in SHARED['facilities'])} / "
       f"{sum(1 for r in OPEN['Nike'] if r['os_id'] in SHARED['facilities'])}")
@@ -549,7 +549,7 @@ fpa_only = sum(1 for r in op_ft if set(split_pipe(r["facility_type"])) == {"Fina
 check("open adidas/Nike sites with a facility type: 'Final Product Assembly' among its types", "747 of 850",
       f"{fpa_any} of {len(op_ft)}")
 out("INFO", f"of those, 'Final Product Assembly' is the ONLY type for {fpa_only} of {len(op_ft)}")
-check("adidas open sites with any product words (README: 252)", 252, sum(1 for r in OPEN["adidas"] if r["product_type"].strip()))
+check("adidas open sites with any product words (README, What we cut: 32.9% of 766)", 252, sum(1 for r in OPEN["adidas"] if r["product_type"].strip()))
 out("INFO", "not re-checkable here (the word list, the HS test and GLEIF's relationship listing are not in the repo): "
             "262 of 1,303 (20.1%); 70 of 90; 20; 149 of 255; 489,389; Nike's 3 'NIKE IHM' sites")
 sl_names = {basic(n) for r in rows_of["gleif_slice"] if r["kind"] == "owner" for n in r["our_names"].split(" | ")}
@@ -557,7 +557,7 @@ hwa = sorted({o for c in ("adidas", "Nike") for o in OSITES[c] if "HWA" in o and
 print(f"  owner names containing HWA + SEUNG: {[(o, [len(OSITES[c].get(o, ())) for c in ('adidas', 'Nike')], o in sl_names) for o in hwa]}")
 for o in ["FENG TAY", "YKK", "HWASEUNG", "SHOETOWN", "RAMATEX", "INTERLOOP"]:
     in_c = [c for c in ("adidas", "Nike") if o in OSITES[c]]
-    print(f"  DECISIONS #6 '{o}': owner of open sites for {in_c or 'neither (exact name not found)'}; "
+    print(f"  owner '{o}': owner of open sites for {in_c or 'neither (exact name not found)'}; "
           f"sites {[len(OSITES[c][o]) for c in in_c]}; in the GLEIF slice as an owner name: {o in sl_names}")
 
 # ---------------------------------------------------------------------------------------------

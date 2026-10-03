@@ -48,7 +48,7 @@ def test_thresholds_are_request_parameters(conn):
     assert sum(c["level"] == "Watch" for c in measures.view(conn, "samsung", high=14, watch=5)["countries"]) == 4
 
 
-def test_samsung_sentence_follows_appendix_c3(conn, hazard_status):
+def test_samsung_summary_sentence(conn, hazard_status):
     hazard_status.update(state="ok")
     assert measures.view(conn, "samsung")["sentence"] == (
         "4 countries at High (South Korea, United States, Vietnam, China) and 2 at Watch, by share of sites "
