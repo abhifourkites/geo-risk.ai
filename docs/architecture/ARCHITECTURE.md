@@ -144,7 +144,7 @@ sequenceDiagram
   U->>UI: clicks an owner, e.g. POU CHEN
   UI->>API: GET /api/customers/adidas/owners/POU CHEN
   API->>DB: company -> its sites -> owner -> that owner's other sites
-  DB-->>API: sites, countries, disaster status
+  DB-->>API: its sites and countries, and whether they are all in one country
   API-->>UI: owner panel + sites highlighted on the map
 ```
 
