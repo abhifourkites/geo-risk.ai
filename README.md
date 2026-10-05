@@ -76,7 +76,7 @@ docker compose up
 
 ## Data
 
-- Open Supply Hub downloads in `data/demo`: `facilities.csv` 1,536 rows (adidas and Nike), `apple-osh.csv` 749, `samsung.csv` 187, `amazon.csv` 3,798: 6,270 rows (6,173 distinct sites), while the brief says a free account allows 5,000 locations a year. The four files were downloaded from opensupplyhub.org (Download → CSV) with more than one account, because together they are 6,270 rows, more than one free account's 5,000 rows a year.
+- Open Supply Hub downloads in `data/demo`: `facilities.csv` 1,536 rows (adidas and Nike), `apple-osh.csv` 749, `samsung.csv` 187, `amazon.csv` 3,798: 6,270 rows (6,173 distinct sites), while the brief says a free account allows 5,000 locations a year. The four files were downloaded from opensupplyhub.org (Download → CSV) with more than one account, because together they are 6,270 locations, more than one free account's 5,000 locations a year.
 - Licence: per Open Supply Hub's FAQ, "Creative Commons Sharealike 4.0"; the files are shared under it, with the personal `claim_*` columns removed (`data/demo/SOURCE.md`).
 - GLEIF: a slice of the 29 Sep 2026 files, in `data/reference`. GDACS: live.
 
