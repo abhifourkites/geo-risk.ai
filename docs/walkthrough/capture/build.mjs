@@ -87,7 +87,7 @@ const FIGURES = [
   {
     shot: "14b-upload-amazon", title: "Adding a supplier list (Amazon)",
     callouts: [
-      [1, "File read: 3,798 rows, 980 lists", [1180, 229]],
+      [1, "File read: 3798 rows, 980 lists", [1180, 229]],
       [2, "Amazon found and filled in", [1180, 276]],
       [3, "Its 2026 list is ticked", [900, 579]],
     ],
@@ -101,7 +101,7 @@ const FIGURES = [
       [3, "Solid line: a confirmed match", [1000, 440]],
       [4, "Parent company: AVERY DENNISON CORPORATION", [972, 505]],
     ],
-    text: `The app suggests matches between supplier owners and companies in GLEIF. A suggestion stays a dashed line until a person confirms it. Once confirmed, the line turns solid and the parent company appears: here, AVERY DENNISON CORPORATION. It then also shows in the site panel (figure 3).`,
+    text: `The app suggests matches between supplier sites or owners and companies in GLEIF. A suggestion stays a dashed line until a person confirms it. Once confirmed, the line turns solid and the parent company appears: here, AVERY DENNISON CORPORATION. It then also shows in the site panel (figure 3).`,
   },
   {
     shot: "06-style-satellite", title: "Map styles (adidas)",
