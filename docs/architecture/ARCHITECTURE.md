@@ -24,6 +24,9 @@ flowchart LR
   review["GLEIF review queue,<br/>biggest share first<br/>(not built)"]:::nb
   db -.-> review
   review -.-> api
+  precalc["Pre-calculated<br/>company results<br/>(not built)"]:::nb
+  db -.-> precalc
+  precalc -.-> api
   api --> ui["React screen:<br/>map, summary sentence,<br/>panels, Company network"]
   clusters["Server-side clustering<br/>or vector tiles<br/>(not built)"]:::nb
   api -.-> clusters
@@ -126,13 +129,17 @@ sequenceDiagram
 | "What about this site?" | site → owners, warnings, disaster status, and its parent company if a person has confirmed the GLEIF match |
 | "Which sites does this disaster hit?" | event → its sites → their owners → those owners' other sites |
 
-## 5. At 50× the size: what breaks at scale?
+## 5. At 50× the size: what breaks first, and how we would know
 
-Open Supply Hub's free download cap is 5,000 locations a year. At 50× today's 2,327 seeded site rows (116,350), that is about 23 years of downloads. The dashed boxes in section 2:
+At FourKites, customers would upload their own supplier data, so this is about the system, not about where the demo data came from. At 50× (116,350 site rows instead of 2,327), in the order things break (the dashed boxes in section 2):
 
-- **Job queue for uploads and hazard refresh (not built):** today an upload is loaded, and a requested GDACS check is run, inside the request that asks for it; the GDACS check at each start and the GLEIF API search run as background tasks in the API process.
-- **Server-side clustering or vector tiles (not built):** clustering exists today, in the browser: the API sends all of a company's sites and MapLibre groups them on the map. What is not built is clustering on the server, or vector tiles, so that the API sends fewer points.
-- **GLEIF review queue (not built):** GLEIF review grows from 440 file candidates to about 22,000; a queue would show the candidates behind the biggest share of supply first.
+1. **Work done on every page load.** Today each company view recalculates every measure and sends every site and current disaster area. Fix: calculate once when the data changes, store the results (*pre-calculated company results*), and send the map as *server-side clusters or vector tiles*; clustering is browser-only today.
+2. **Work done inside a request.** An upload, and a refresh someone asks for, run while the user waits. Fix: a *job queue* with progress, as the GLEIF API search already runs in the background.
+3. **Outside services.** GLEIF, GDACS and the map tiles have limits and outages, and become the bottleneck as calls grow. Fix: bulk files instead of many small calls (GLEIF publishes its full data as files, already used for adidas and Nike), caching, retries and background fetching.
+4. **Work that needs a person.** Confirming matches grows with the data: GLEIF review from 440 file candidates to about 22,000. Fix: a *review queue* ordered by share of supply.
+5. **The database.** Indexes, and partitioning per customer; measure first.
+
+**How we would know before a customer does:** a load test with 50× synthetic data before release (time and size per endpoint); monitoring of response time, response size, job-queue length and age, error rates and outside-service failures, with alerts; and data-quality checks, as each GDACS refresh already records its state, error type and repeated rows.
 
 ## 6. How this maps to the substrate: which entities did you build?
 
