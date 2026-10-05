@@ -824,8 +824,8 @@ check("GLEIF likely matches / with a parent", "30 / 3",
       f"{sum(1 for r in rows_of['gleif_slice'] if r['review_level'].startswith('1'))} / {sum(1 for r in rows_of['gleif_par'] if r['direct_parent_lei'])}")
 check("owner known for Apple (the rule example in section 5)", "66 of 749",
       f"{sum(1 for r in OPEN['Apple'] if OWN['apple'][r['os_id']])} of {len(OPEN['Apple'])}")
-check("50x open site rows (ARCHITECTURE.md, section 7)", "2,327 -> 116,350", f"{sum(len(OPEN[c]) for c in CUSTS):,} -> {50 * sum(len(OPEN[c]) for c in CUSTS):,}")
-check("GLEIF review rows at 50x (ARCHITECTURE.md, section 7)", "440 -> 22,000", f"{len(rows_of['gleif_slice'])} -> {50 * len(rows_of['gleif_slice']):,}")
+check("50x open site rows (ARCHITECTURE.md, section 5)", "2,327 -> 116,350", f"{sum(len(OPEN[c]) for c in CUSTS):,} -> {50 * sum(len(OPEN[c]) for c in CUSTS):,}")
+check("GLEIF review rows at 50x (ARCHITECTURE.md, section 5)", "440 -> 22,000", f"{len(rows_of['gleif_slice'])} -> {50 * len(rows_of['gleif_slice']):,}")
 
 section("20. Numbers that other sections do not print (adidas list counts: ASSUMPTIONS.md #4)")
 lt = Counter(ad_type(r) for r in OPEN["adidas"])

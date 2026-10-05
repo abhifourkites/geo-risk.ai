@@ -1,6 +1,6 @@
 # Decision log
 
-Each entry: what we chose, what we chose against and why not, what it cost, and what would change our mind. How each decision is implemented is in `docs/architecture/ARCHITECTURE.md` ("Key rules").
+Each entry: what we chose, what we chose against and why not, what it cost, and what would change our mind. How each decision is implemented is in [`docs/RULES.md`](docs/RULES.md).
 
 ## 1. Outcome: Geographic Supplier Risk Intelligence
 

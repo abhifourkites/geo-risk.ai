@@ -1,76 +1,74 @@
 # Architecture: Geographic Supplier Risk Intelligence (MVP)
 
-## 1. What it does
+## 1. Overview: what is it?
 
-A company uploads its Open Supply Hub supplier list and sees, on a map, where its suppliers are concentrated, which owner companies hold many of its sites, and which sites sit inside a current disaster area. The users are the company's own procurement and risk team, and the CPO. The demo uses the public lists of adidas, Nike, Apple, Samsung and Amazon.
+A company uploads its Open Supply Hub supplier list and sees, on a map, where its suppliers are concentrated, which owner companies hold many of its sites, and which sites sit inside a current disaster area. It is for the company's own procurement and risk team and the CPO; what it does is in the [README](../../README.md) and the [product guide](../walkthrough/index.html), and how each decision is implemented is in [docs/RULES.md](../RULES.md).
 
-## 2. How data flows
+## 2. Data flow: where does data come from and go?
+
+Dashed boxes are components that would exist at 50× the size but are not built (section 5).
 
 ```mermaid
 flowchart LR
-  osh[("Supplier list<br/>(Open Supply Hub file,<br/>uploaded)")] e1@--> load["Load and clean<br/>(Python)"]
-  gleif[("Company register<br/>(GLEIF files, offline;<br/>GLEIF API, live)")] e2@--> match["Match names and<br/>find parent companies"]
-  gdacs[["Disaster alerts<br/>(GDACS, live)"]] e3@--> refresh["Hazard refresh<br/>(Python)"]
-  load e4@--> db[("PostgreSQL + PostGIS")]
-  match e5@--> db
-  refresh e6@--> db
-  db e7@--> api["FastAPI"]
-  api e8@--> ui["React screen:<br/>map, summary sentence,<br/>panels, Company network"]
+  gleif[("GLEIF<br/>(files offline, API live)")] --> match["Match names and<br/>find parent companies<br/>(Python)"]
+  osh[("Open Supply Hub file<br/>(uploaded)")] --> load["Load and clean<br/>(Python)"]
+  gdacs[["GDACS<br/>(live)"]] --> refresh["Hazard refresh<br/>(Python)"]
+  match --> db[("PostgreSQL + PostGIS")]
+  load --> db
+  refresh --> db
+  queue["Job queue for uploads<br/>and hazard refresh<br/>(not built)"]:::nb
+  load -.-> queue
+  refresh -.-> queue
+  queue -.-> db
+  db --> api["FastAPI"]
+  review["GLEIF review queue,<br/>biggest share first<br/>(not built)"]:::nb
+  db -.-> review
+  review -.-> api
+  api --> ui["React screen:<br/>map, summary sentence,<br/>panels, Company network"]
+  clusters["Server-side clustering<br/>or vector tiles<br/>(not built)"]:::nb
+  api -.-> clusters
+  clusters -.-> ui
   tiles[["Map tiles (OpenFreeMap, EOX),<br/>Map and Satellite styles only"]] -.-> ui
-  e1@{ animate: true }
-  e2@{ animate: true }
-  e3@{ animate: true }
-  e4@{ animate: true }
-  e5@{ animate: true }
-  e6@{ animate: true }
-  e7@{ animate: true }
-  e8@{ animate: true }
+  classDef nb stroke-dasharray: 6 4
 ```
 
 - **Load and clean** keeps the needed columns, drops the personal `claim_*` columns, cleans owner names without merging spellings, and works out estimated workers and warnings. One upload changes one company only.
 - **Match names:** owner and site names are matched to GLEIF (the GLEIF file for adidas and Nike, GLEIF's API for every other company). A match is used only after a person confirms it on the Company network page; parents come from GLEIF's relationship records.
 - **Hazard refresh** reads GDACS's current events once per event type, on every start and on request, and keeps only each event's *affected* areas.
 
-## 3. Storage model
+## 3. Storage model: how is the graph modelled?
 
-14 tables: 8 for the graph, `hazard_area_part` for speed, and 5 for the GLEIF API search.
+The 8 graph tables, with their keys and main fields:
 
 ```mermaid
 erDiagram
   customer ||--o{ site : "has"
   site ||--o{ site_owner : "owned by"
   site ||--o{ gleif_match : "matched to"
-  gleif_match }o--o{ gleif_parent : "parent of the matched company"
   gleif_verdict }o--o{ gleif_match : "applied when candidates are linked"
+  gleif_match }o--o{ gleif_parent : "parent of the matched company"
   hazard_event ||--o{ hazard_area : "has"
-  hazard_area ||--o{ hazard_area_part : "cut into pieces"
-  customer ||--o| gleif_api_job : "search"
-  customer ||--o{ gleif_api_name : "owner names searched"
-  gleif_api_name ||--o{ gleif_api_candidate : "results"
-  gleif_api_candidate }o--o{ gleif_match : "linked to sites"
+  site }o--o{ hazard_area : "inside (worked out when asked)"
 
   customer {
     text customer_id PK
     text name
   }
   site {
-    text customer_id PK
+    text customer_id PK, FK
     text os_id PK "Open Supply Hub ID"
-    text name
     text country_code
     geometry location
     numeric workers_est
-    text list_names
-    text_array warnings
   }
   site_owner {
-    text customer_id PK
-    text os_id PK
+    text customer_id PK, FK
+    text os_id PK, FK
     text owner_name PK
   }
   gleif_match {
-    text customer_id PK
-    text os_id PK
+    text customer_id PK, FK
+    text os_id PK, FK
     text lei PK "GLEIF company ID"
     text review_level "likely, possible, unlikely"
     text person_verdict "yes, no, conflict or empty"
@@ -94,47 +92,20 @@ erDiagram
     text_array affected_countries "ISO2, from GDACS"
   }
   hazard_area {
+    bigint id
     text event_id FK
     geometry area "affected area only"
   }
-  hazard_area_part {
-    bigint area_id FK
-    geometry piece "at most 255 points"
-  }
-  gleif_api_cache {
-    text url PK
-    jsonb body
-  }
-  gleif_api_job {
-    text customer_id PK
-    text state "queued, running, done, failed"
-  }
-  gleif_api_name {
-    text customer_id PK
-    text owner_name PK
-    text core_name "what is searched"
-  }
-  gleif_api_candidate {
-    text customer_id PK
-    text owner_name PK
-    text lei PK
-    text review_level
-  }
-  gleif_api_parent {
-    text lei PK
-    text type PK "direct or top"
-    text parent_name
-  }
 ```
 
-- Whether a site is inside a disaster (§5) is worked out when asked, not stored, using `hazard_area_part`: on 2 Oct 2026 Amazon's view went from 6.2 s to 0.3 s with the pieces.
-- Each company's rows are keyed by `customer_id`, so a site on two companies' lists is stored twice.
-- `gleif_verdict` holds the verdicts given on the page; `gleif_match` is rebuilt on every start and after each verdict, and stores a conflict as `conflict`.
+Also: hazard_area_part (speed), and gleif_api_cache, gleif_api_job, gleif_api_name, gleif_api_candidate, gleif_api_parent (the GLEIF API search) – 14 tables in all.
+
+- A hop is a join, and each company's rows are keyed by `customer_id`, so a site on two companies' lists is stored twice.
 - Every table is created only if it is missing, so a start never resets data.
 
-## 4. What happens when a user asks a question
+## 4. Query path: a multi-hop question
 
-Example: *"I clicked an owner. Where are its other sites?"*, a multi-hop question.
+Example: *"I clicked an owner. Where are its other sites?"*
 
 ```mermaid
 sequenceDiagram
@@ -155,51 +126,22 @@ sequenceDiagram
 | "What about this site?" | site → owners, warnings, disaster status, and its parent company if a person has confirmed the GLEIF match |
 | "Which sites does this disaster hit?" | event → its sites → their owners → those owners' other sites |
 
-## 5. Key rules
+## 5. At 50× the size: what breaks at scale?
 
-How the decisions in DECISIONS.md are implemented, one rule per line.
+Open Supply Hub's free download cap is 5,000 locations a year. At 50× today's 2,327 seeded site rows (116,350), that is about 23 years of downloads. The dashed boxes in section 2:
 
-- **Open site:** on the company's current list, and not closed.
-- **Share basis:** estimated workers when known for at least 90% of the company's sites; otherwise site counts.
-- **High:** 10% or more in one country or under one owner, or a site inside a current Orange or Red disaster area. **Watch:** 5% or more, or a site inside a current Green area.
-- **Every number shows its base**, for example "owner known for 66 of 749 sites".
-- **Owner names (R4):** upper case, `&` → AND, punctuation and legal-form words such as LTD removed; letters of every script kept (dropping them would lose owners written only in Chinese); different spellings never merged; "NULL", N/A and NO GROUP are placeholders, not owners.
-- **Self-named owner:** kept when it is the site's only owner, so a company can count as its own owner; always dropping it cut Apple's owner known to 21 of 749 sites, deleting groups such as INTEL.
-- **Rating** (`backend/app/rating.py`): one written rule set for every company, likely / possible / unlikely; a sole proprietor, fund or lapsed registration is at most possible; the GLEIF file's own level is kept for reference only (two rule sets for one question, and the file's were not written down).
-- **Per company:** each company sees only its own sites of a candidate, rated with its own site countries, and is not told which other companies share an owner.
-- **One verdict per name and LEI:** a verdict on (kind, our names, LEI) applies to every company with that name and LEI; a verdict given on the page is used over a saved one, and Undo goes back to it.
-- **Conflicts:** on one site link, yes from one candidate and nothing from another confirms, no and nothing rejects, and yes and no is a conflict: not confirmed, no parent shown, marked "conflicting verdicts – needs review".
-- **GLEIF parents:** company links only (direct, ultimate, international branch); for API candidates, fetched only after a confirm; every GLEIF API answer is cached.
-- **GDACS read:** the event list is read once per event type (TC, FL, EQ, VO, DR, WF), each paged until a page has fewer than 100 events.
-- **GDACS refetch:** an event's areas are fetched again only when its `episodeid` or `datemodified` changes (event records have no `datetime` field).
-- **Disasters:** only GDACS's *affected* areas count. Forecast areas, uncertainty cones, distance circles and the flood "Global area" do not.
-- **Earthquakes:** every intensity area counts, including "Intensity 0" (no cut-off).
-- **Inside a disaster:** the site's point is in a current affected area and its country is in the event's `affectedcountries` list (an empty list: the area alone); a site left out is still listed in the panels.
-- **Disaster level:** from the event's alert level for every event type, not a cyclone's wind band (only cyclones have bands), so a site in the outer band of an Orange cyclone is High.
-- **Map style switch:** only the base below the app's layers changes (replacing the whole style left them missing 0.5–1.3 s per switch, 3 Oct 2026); a service that does not respond gives Plain with a one-line notice; on Map, the High and Watch fills dim the place names.
-- **Map credits:** always shown in full (EOX: "clearly visible"). Satellite uses EOX's layer without a year (2016, CC BY 4.0); the 2017 layer is CC BY 4.0 in EOX's WMTS capabilities but not on its licence page, so it is not used.
+- **Job queue for uploads and hazard refresh (not built):** today an upload is loaded, and a requested GDACS check is run, inside the request that asks for it; the GDACS check at each start and the GLEIF API search run as background tasks in the API process.
+- **Server-side clustering or vector tiles (not built):** clustering exists today, in the browser: the API sends all of a company's sites and MapLibre groups them on the map. What is not built is clustering on the server, or vector tiles, so that the API sends fewer points.
+- **GLEIF review queue (not built):** GLEIF review grows from 440 file candidates to about 22,000; a queue would show the candidates behind the biggest share of supply first.
 
-## 6. How this maps to the substrate
+## 6. How this maps to the substrate: which entities did you build?
 
 Brief, Section 5: "A live, queryable entity relationship graph across Product, Supplier, Customer, Location and Contact, so teams can answer which suppliers provide which products to which customers at which locations."
 
 | Entity | In the MVP | Evidence |
 |---|---|---|
 | Supplier | Built | Sites and their owner companies (Open Supply Hub), with GLEIF parents once confirmed |
-| Customer | Partly | The company whose list is loaded (`customer`); not which supplier serves which of its own customers |
-| Location | Built, country only | Natural Earth's 1:50m states file covers 9 countries, not Vietnam; the 1:10m file is 40.7 MB as GeoJSON |
-| Product | Not used | Product words merge every contributor's words (80 of adidas's 766 open sites have "NIKE"); sites with product words range from 4.3% (Samsung) to 78.4% (Nike) |
-| Contact | Not built | Personal data, and rare: 3 of Amazon's 1,732 open sites have a point of contact; the `claim_*` columns are dropped on load |
-
-## 7. At 50× the size: drawn, not built
-
-```mermaid
-flowchart LR
-  a["Job queue for uploads<br/>and hazard refresh"]:::nb
-  b["Map point clustering"]:::nb
-  c["GLEIF review queue,<br/>biggest share first"]:::nb
-  classDef nb stroke-dasharray: 6 4
-```
-
-- **Open Supply Hub's free download cap is 5,000 locations a year.** At 50× today's 2,327 seeded site rows (116,350), that is about 23 years of downloads.
-- **GLEIF review grows** from 440 file candidates to about 22,000.
+| Customer | Partly | The company whose list is loaded (`customer`), not which supplier serves which of its own customers |
+| Location | Built, country only | Natural Earth's 1:50m states file covers 9 countries, not Vietnam |
+| Product | Not used | Product words merge every contributor's words: 80 of adidas's 766 open sites have "NIKE" |
+| Contact | Not built | Personal data, and rare: 3 of Amazon's 1,732 open sites have a point of contact; `claim_*` columns are dropped on load |

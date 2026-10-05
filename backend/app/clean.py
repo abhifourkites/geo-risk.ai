@@ -1,5 +1,5 @@
 """Cleaning rules R2, R3 and R4, each stated in the docstring of the function that applies it (owner names, R4,
-are also summarised in docs/architecture/ARCHITECTURE.md, "Key rules").
+are also summarised in docs/RULES.md).
 
 The same rules are checked against the reference file by scripts/verify_inputs.py.
 """
