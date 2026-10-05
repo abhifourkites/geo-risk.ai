@@ -108,6 +108,31 @@ Also: hazard_area_part (speed), and gleif_api_cache, gleif_api_job, gleif_api_na
 
 ## 4. Query path: a multi-hop question
 
+Example: *"Where is my supply concentrated?"* (the main question)
+
+```mermaid
+sequenceDiagram
+  actor U as Analyst
+  participant UI as React
+  participant API as FastAPI (Python)
+  participant DB as PostgreSQL + PostGIS
+  U->>UI: picks a company, e.g. adidas
+  UI->>API: GET /api/customers/adidas/view?high=10&watch=5
+  API->>DB: SQL: count open sites, workers known, owner known
+  DB->>API: counts
+  Note over API: Python: share basis = workers if known for ≥ 90% of open sites, else sites
+  API->>DB: SQL: sites and worker totals per country and per owner
+  DB->>API: totals
+  Note over API: Python: share per country and per owner, High at 10%, Watch at 5%
+  API->>DB: PostGIS: which sites are inside a current disaster area
+  DB->>API: sites inside, with alert levels
+  API->>DB: SQL: every site with its location and owners
+  DB->>API: sites
+  Note over API: Python: the one-sentence summary
+  API->>UI: sentence, coverage, countries, owners, disasters, sites
+  UI->>U: the sentence, the cards and the map shading
+```
+
 Example: *"I clicked an owner. Where are its other sites?"*
 
 ```mermaid
