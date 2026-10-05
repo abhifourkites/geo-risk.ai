@@ -58,7 +58,7 @@ A map of where a company's supplier sites are concentrated, which owner companie
 
 ## How to run
 
-Needs Docker with Compose.
+Needs Docker with Compose, and ports 8000 and 5173 free.
 
 ```sh
 git clone https://github.com/abhifourkites/geo-risk.ai.git
@@ -66,11 +66,13 @@ cd geo-risk.ai
 docker compose up
 ```
 
-- Open http://localhost:5173. The first start can take 1–2 minutes, plus the first image build (the 4 companies load, then the first GDACS refresh).
+- Clone into a folder of its own: Docker names the project after the folder, so two copies in folders with the same name share one database.
+- `docker compose up` stays in the foreground: run the tests in a second terminal, or start with `docker compose up -d`.
+- Open http://localhost:5173. The first build downloads images and can take several minutes; after that, the app answers in about 1–2 minutes (the 4 companies load), and the first disaster data follows shortly after.
 - To try the upload, use `data/demo/amazon.csv`.
 - Data is kept in the named volume `pgdata`: `docker compose down` keeps it, `down -v` erases it.
 - The internet is needed for GDACS, GLEIF API searches, and the Map and Satellite styles.
-- Tests: `docker compose run --rm backend pytest`; `docker compose run --rm --no-deps frontend npm test`. After a code change: `docker compose up --build`.
+- Tests: `docker compose run --rm backend pytest` (about 3 minutes); `docker compose run --rm --no-deps frontend npm test`. After a code change: `docker compose up --build`.
 
 ## Data
 
