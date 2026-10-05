@@ -15,7 +15,10 @@ h1 { font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 14p
 section.fig { margin-top: 56px; }
 h2 { font-size: 22px; line-height: 1.25; margin: 0 0 14px; display: flex; align-items: baseline; gap: 10px; }
 h2 .no { font-size: 14px; font-weight: 700; color: #fff; background: var(--navy); border-radius: 7px; padding: 1px 8px; }
-h2 .co { font-size: 15px; font-weight: 500; color: var(--muted); }
+.words { margin-top: 18px; max-width: 82ch; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px 18px; font-size: 15px; }
+.words h3 { margin: 0 0 6px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.words ul { margin: 0; padding-left: 20px; }
+.words li { margin-bottom: 2px; }
 section.fig > p { max-width: 82ch; margin: 14px 4px 0; color: var(--ink); }
 section.fig > p.how { margin-top: 6px; font-size: 15px; color: var(--muted); }
 code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #EDF0F1; padding: 1px 5px; border-radius: 4px; }
@@ -48,60 +51,71 @@ footer { margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--line);
 <label for="hide-marks" class="toggle" title="Show or hide the callouts on the screenshots"></label>
 <main>
 <h1>Supplier risk map</h1>
-<p class="intro">The Supplier risk map shows where a company's supplier sites are concentrated, which owners hold many, and which are in a current disaster area.<br>
-It is for the company's procurement and risk team; the examples use the public supplier lists of adidas, Nike and Amazon.<br>
-Captured 3 Oct 2026, 14:48 UTC, with disaster data from 12:38 UTC. <span class="live">Disaster data is live, so areas and counts will differ on another day.</span></p>
+<p class="intro"><b>What it is:</b> a map that shows where a company's supplier sites are, which owner groups hold many of them, and which sites are inside a current natural disaster.<br>
+<b>Who it's for:</b> a company's procurement and supply-chain risk team.<br>
+The examples use public supplier lists from adidas, Nike, Apple and Amazon. Screenshots taken on 3 Oct 2026 (UTC). <span class="live">Disaster data is live, so on another day the disasters and counts will differ.</span></p>
+<aside class="words" aria-label="Words used">
+<h3>Words used</h3>
+<ul>
+<li><b>Open Supply Hub:</b> a public database of the supplier factories that brands publish.</li>
+<li><b>GDACS:</b> a public service that sends automatic alerts about natural disasters.</li>
+<li><b>GLEIF:</b> the global register of company identities, which also records parent companies.</li>
+<li><span class="code">Code only</span> the sentence comes from the app's code, not from a screenshot.</li>
+</ul>
+</aside>
 
 <section class="fig" id="fig-1">
-<h2><span class="no">1</span>Overview <span class="co">adidas</span></h2>
+<h2><span class="no">1</span>Overview (adidas)</h2>
 <figure class="shot">
   <div class="frame band"><div class="img" style="aspect-ratio:1440/535">
     <img src="assets/01-overview.webp" width="1440" height="535" alt="Overview (adidas)">
     <span class="mk box" style="left:26.472%;top:2.430%;width:19.333%;height:7.103%"></span><span class="mk box" style="left:1.458%;top:27.589%;width:77.375%;height:19.290%"></span><span class="mk box" style="left:1.458%;top:50.243%;width:97.083%;height:47.944%"></span>
     <svg class="mk lines" viewBox="0 0 1440 535" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="290" y1="9.7" x2="290" y2="-24"/><line class="halo" x1="659.5999999999999" y1="32" x2="852" y2="32"/><line class="halo" x1="1135.2" y1="200" x2="1284" y2="200"/><line x1="290" y1="9.7" x2="290" y2="-24"/><line x1="659.5999999999999" y1="32" x2="852" y2="32"/><line x1="1135.2" y1="200" x2="1284" y2="200"/></svg>
-    <span class="mk pill" style="left:20.139%;top:-4.486%"><b>1</b>Pick a company: every number updates</span><span class="mk pill" style="left:59.167%;top:5.981%"><b>2</b>When disaster data was last read</span><span class="mk pill" style="left:89.167%;top:37.383%"><b>3</b>The answer in one sentence</span><span class="mk pill" style="left:49.167%;top:84.112%"><b>4</b>Click a card to highlight its sites</span>
+    <span class="mk pill" style="left:20.139%;top:-4.486%"><b>1</b>Pick a company: every number updates</span><span class="mk pill" style="left:59.167%;top:5.981%"><b>2</b>Time of the last disaster check</span><span class="mk pill" style="left:89.167%;top:37.383%"><b>3</b>The answer in one sentence</span><span class="mk pill" style="left:49.167%;top:84.112%"><b>4</b>Click a card to see its sites</span>
   </div></div>
 </figure>
-<p>The top bar holds the company, the time of the last disaster check, Check for new disasters (not clicked here) and three pages: Risk map, Upload a supplier list and Company network. Below it, the summary sentence and three cards answer where adidas is exposed.</p>
+<p>This is the first screen. At the top you choose a company and see when disaster data was last checked; &quot;Check for new disasters&quot; checks again (not clicked here). One sentence gives the main answer, and three cards break it down: countries, owner companies and current disasters. The tabs switch between the risk map, uploading a supplier list, and reviewing company matches.</p>
 </section>
 
 <section class="fig" id="fig-2">
-<h2><span class="no">2</span>The map <span class="co">adidas</span></h2>
+<h2><span class="no">2</span>The map (adidas)</h2>
 <figure class="shot">
   <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
     <img src="assets/03-map.webp" width="1415" height="584" alt="The map: Plain style, flat (adidas)">
     <span class="mk box" style="left:1.201%;top:3.116%;width:47.562%;height:9.658%"></span><span class="mk box" style="left:56.007%;top:36.353%;width:3.816%;height:9.247%"></span><span class="mk box" style="left:51.237%;top:31.199%;width:2.968%;height:7.192%"></span><span class="mk box" style="left:28.219%;top:13.750%;width:10.643%;height:19.110%"></span>
     <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="228" y1="18.2" x2="228" y2="-24"/><line class="halo" x1="846.5" y1="239" x2="1140" y2="239"/><line class="halo" x1="767" y1="182.2" x2="1122" y2="150"/><line class="halo" x1="399.3" y1="120" x2="232" y2="120"/><line x1="228" y1="18.2" x2="228" y2="-24"/><line x1="846.5" y1="239" x2="1140" y2="239"/><line x1="767" y1="182.2" x2="1122" y2="150"/><line x1="399.3" y1="120" x2="232" y2="120"/></svg>
-    <span class="mk pill" style="left:16.113%;top:-4.110%"><b>1</b>Show all disasters, globe, style, reset</span><span class="mk pill" style="left:80.565%;top:40.925%"><b>2</b>226 sites here: click to zoom in</span><span class="mk pill" style="left:79.293%;top:25.685%"><b>3</b>High: 10% or more of workers</span><span class="mk pill" style="left:16.396%;top:20.548%"><b>4</b>Drought area: 17 of your sites</span>
+    <span class="mk pill" style="left:16.113%;top:-4.110%"><b>1</b>Map controls: disasters, globe, style, reset</span><span class="mk pill" style="left:80.565%;top:40.925%"><b>2</b>226 sites here: click to zoom in</span><span class="mk pill" style="left:79.293%;top:25.685%"><b>3</b>Red = High: 10%+ of workers</span><span class="mk pill" style="left:16.396%;top:20.548%"><b>4</b>Purple = drought: 17 of your sites</span>
   </div></div>
 </figure>
-<p>Countries at High are red and at Watch amber, nearby sites are grouped with their count, and disaster areas are outlined in purple. The legend at the bottom left explains each colour and symbol. Clicking a site, a country or a disaster area opens its details in the panel on the right.</p>
+<p>Each dot is a supplier site, and a numbered circle is a group of nearby sites. Countries are coloured by their share of the company's suppliers' workers: red for High, amber for Watch. Purple outlines are current disaster areas. Click a site, a country or a disaster to see its details on the right.</p>
 </section>
 
 <section class="fig" id="fig-3">
-<h2><span class="no">3</span>The site panel: PT. Paxar Indonesia <span class="co">Nike</span></h2>
+<h2><span class="no">3</span>A site (PT. Paxar Indonesia, Nike)</h2>
 <figure class="shot">
   <div class="frame"><div class="img" style="aspect-ratio:1415/584">
     <img src="assets/08-site-panel.webp" width="1415" height="584" alt="Site panel: PT. Paxar Indonesia (Nike)">
     <span class="mk box" style="left:68.106%;top:20.428%;width:30.057%;height:10.514%"></span><span class="mk box" style="left:68.106%;top:42.825%;width:30.057%;height:8.459%"></span><span class="mk box" style="left:68.106%;top:68.887%;width:30.057%;height:16.233%"></span><span class="mk box" style="left:32.191%;top:47.192%;width:2.403%;height:5.822%"></span>
     <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="963.7" y1="120" x2="720" y2="120"/><line class="halo" x1="963.7" y1="250.1" x2="720" y2="190"/><line class="halo" x1="963.7" y1="445" x2="752" y2="445"/><line class="halo" x1="470" y1="275.6" x2="470" y2="230"/><line x1="963.7" y1="120" x2="720" y2="120"/><line x1="963.7" y1="250.1" x2="720" y2="190"/><line x1="963.7" y1="445" x2="752" y2="445"/><line x1="470" y1="275.6" x2="470" y2="230"/></svg>
-    <span class="mk pill" style="left:50.883%;top:20.548%"><b>1</b>Owner company, from Open Supply Hub</span><span class="mk pill" style="left:50.883%;top:32.534%"><b>2</b>Not inside a current disaster area</span><span class="mk pill" style="left:53.145%;top:76.199%"><b>3</b>GLEIF parent, once a person confirms</span><span class="mk pill" style="left:33.216%;top:39.384%"><b>4</b>The selected site on the map</span>
+    <span class="mk pill" style="left:50.883%;top:20.548%"><b>1</b>Who owns this site</span><span class="mk pill" style="left:50.883%;top:32.534%"><b>2</b>Not in a current disaster area</span><span class="mk pill" style="left:53.145%;top:76.199%"><b>3</b>Parent company, confirmed by a person</span><span class="mk pill" style="left:33.216%;top:39.384%"><b>4</b>The selected site on the map</span>
   </div></div>
 </figure>
-<p>A site's panel lists its owner, warnings, disaster status, the lists it is on and its parent company. It was opened from Nike's Countries table: Indonesia, then this site. It is on Nike's February 2024 list and has about 334 workers.</p>
+<p>Clicking a site shows who owns it, any warnings, whether it is in a disaster area, which supplier list it comes from, and its parent company. The parent, AVERY DENNISON CORPORATION, comes from GLEIF and shows only because a person confirmed the match.</p>
+<p class="how">How to get here: Nike → Countries table → Indonesia → PT. Paxar Indonesia.</p>
 </section>
 
 <section class="fig" id="fig-4">
-<h2><span class="no">4</span>The owner panel: POU CHEN <span class="co">adidas</span></h2>
+<h2><span class="no">4</span>An owner company (POU CHEN, adidas)</h2>
 <figure class="shot">
   <div class="frame"><div class="img" style="aspect-ratio:1415/584">
     <img src="assets/10b-owner-panel.webp" width="1415" height="584" alt="Owner panel: POU CHEN (adidas)">
     <span class="mk box" style="left:68.106%;top:4.486%;width:30.057%;height:14.247%"></span><span class="mk box" style="left:68.106%;top:19.760%;width:30.057%;height:8.373%"></span><span class="mk box" style="left:68.106%;top:33.716%;width:30.057%;height:66.798%"></span>
     <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="963.7" y1="140" x2="800" y2="140"/><line x1="963.7" y1="140" x2="800" y2="140"/></svg>
-    <span class="mk pill" style="left:87.633%;top:9.589%"><b>1</b>7.4% of workers: Watch level</span><span class="mk pill" style="left:56.537%;top:23.973%"><b>2</b>9 sites in 4 countries</span><span class="mk pill" style="left:86.360%;top:36.301%"><b>3</b>Its sites, highlighted on the map</span>
+    <span class="mk pill" style="left:87.633%;top:9.589%"><b>1</b>Holds 7.4% of workers: Watch</span><span class="mk pill" style="left:56.537%;top:23.973%"><b>2</b>9 sites in 4 countries</span><span class="mk pill" style="left:86.360%;top:36.301%"><b>3</b>Its sites, highlighted on the map</span>
   </div></div>
 </figure>
-<p>Opened by clicking POU CHEN in the Owner companies table below the map. It shows what share of adidas's suppliers' workers the owner holds, and where its sites are.</p>
+<p>Clicking an owner company shows how much of the company's supply it holds, and where its sites are. POU CHEN owns 9 of adidas's supplier sites in 4 countries, with 7.4% of the workers: enough for Watch. One owner behind many sites is a hidden dependency.</p>
+<p class="how">How to get here: the Owner companies table below the map → POU CHEN.</p>
 </section>
 
 <section class="fig" id="fig-5">
@@ -119,68 +133,70 @@ Captured 3 Oct 2026, 14:48 UTC, with disaster data from 12:38 UTC. <span class="
 </section>
 
 <section class="fig" id="fig-6">
-<h2><span class="no">6</span>How these numbers are worked out <span class="co">adidas</span></h2>
+<h2><span class="no">6</span>How the numbers are worked out (adidas)</h2>
 <figure class="shot">
   <div class="frame"><div class="img" style="aspect-ratio:1416/395">
     <img src="assets/12a-how.webp" width="1416" height="395" alt="How these numbers are worked out (adidas)">
     <span class="mk box" style="left:1.836%;top:65.241%;width:10.311%;height:13.570%"></span><span class="mk box" style="left:12.853%;top:65.241%;width:10.311%;height:13.570%"></span><span class="mk box" style="left:1.836%;top:39.443%;width:53.884%;height:7.241%"></span>
     <svg class="mk lines" viewBox="0 0 1416 395" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="172" y1="257.7" x2="1000" y2="236"/><line class="halo" x1="328" y1="272" x2="1000" y2="272"/><line class="halo" x1="789" y1="170" x2="952" y2="170"/><line x1="172" y1="257.7" x2="1000" y2="236"/><line x1="328" y1="272" x2="1000" y2="272"/><line x1="789" y1="170" x2="952" y2="170"/></svg>
-    <span class="mk pill" style="left:70.621%;top:59.747%"><b>1</b>Change the High threshold</span><span class="mk pill" style="left:70.621%;top:68.861%"><b>2</b>Change the Watch threshold</span><span class="mk pill" style="left:67.232%;top:43.038%"><b>3</b>Each number shows its base</span>
+    <span class="mk pill" style="left:70.621%;top:59.747%"><b>1</b>Set the High level (%)</span><span class="mk pill" style="left:70.621%;top:68.861%"><b>2</b>Set the Watch level (%)</span><span class="mk pill" style="left:67.232%;top:43.038%"><b>3</b>Every number says 'X of Y'</span>
   </div></div>
 </figure>
-<p>Shares use suppliers' workers because workers are known for at least 90% of sites (719 of 766 here). <span class="code">Code only</span> Changing a threshold recalculates the country and owner levels; it is not saved.</p>
+<p>This section explains every number. A country or owner is High at 10% or more, and Watch at 5% or more; you can change both levels here. Shares use the number of workers at each site, because it is known for most sites (719 of 766).</p>
+<p><span class="code">Code only</span> a changed level updates the country and owner levels, and is not saved; it goes back to 10% and 5% when the page is reopened.</p>
 </section>
 
 <section class="fig" id="fig-7">
-<h2><span class="no">7</span>Upload: Amazon's file, pre-filled</h2>
+<h2><span class="no">7</span>Adding a supplier list (Amazon)</h2>
 <figure class="shot">
   <div class="frame"><div class="img" style="aspect-ratio:1416/783">
     <img src="assets/14b-upload-amazon.webp" width="1416" height="783" alt="Upload: data/demo/amazon.csv chosen (not loaded)">
     <span class="mk box" style="left:1.836%;top:27.497%;width:96.328%;height:3.499%"></span><span class="mk box" style="left:1.836%;top:31.762%;width:96.328%;height:7.075%"></span><span class="mk box" style="left:1.907%;top:71.430%;width:96.186%;height:5.160%"></span>
     <svg class="mk lines" viewBox="0 0 1416 783" preserveAspectRatio="none" aria-hidden="true"></svg>
-    <span class="mk pill" style="left:83.333%;top:29.246%"><b>1</b>3798 rows naming 980 lists</span><span class="mk pill" style="left:83.333%;top:35.249%"><b>2</b>Company found on every row</span><span class="mk pill" style="left:63.559%;top:73.946%"><b>3</b>Latest list ticked and marked current</span>
+    <span class="mk pill" style="left:83.333%;top:29.246%"><b>1</b>File read: 3,798 rows, 980 lists</span><span class="mk pill" style="left:83.333%;top:35.249%"><b>2</b>Amazon found and filled in</span><span class="mk pill" style="left:63.559%;top:73.946%"><b>3</b>Its 2026 list is ticked</span>
   </div></div>
 </figure>
-<p>Choosing an Open Supply Hub file (here <code>data/demo/amazon.csv</code>) fills in the company and ticks its newest list; personal contact columns (claim_*) are dropped. Nothing is loaded until the lists and the name are checked and loaded, which was not done here.</p>
+<p>To add a company, choose its supplier list downloaded from Open Supply Hub. The app reads the file, finds the company (here Amazon, on every row), and ticks its newest list. Personal contact details in the file are dropped. Nothing is added until you check the name and click &quot;Load this company&quot; (not clicked here).</p>
 </section>
 
 <section class="fig" id="fig-8">
-<h2><span class="no">8</span>Company network: PT. Paxar Indonesia confirmed <span class="co">Nike</span></h2>
+<h2><span class="no">8</span>Confirming a company match (PT. Paxar Indonesia, Nike)</h2>
 <figure class="shot">
   <div class="frame"><div class="img" style="aspect-ratio:1416/783">
     <img src="assets/15b-network-paxar.webp" width="1416" height="783" alt="Company network: PT. Paxar Indonesia, confirmed (Nike)">
     <span class="mk box" style="left:35.749%;top:37.165%;width:15.297%;height:4.904%"></span><span class="mk box" style="left:91.561%;top:22.350%;width:6.603%;height:3.831%"></span><span class="mk box" style="left:77.846%;top:48.480%;width:8.581%;height:2.950%"></span><span class="mk box" style="left:86.031%;top:59.285%;width:10.494%;height:9.872%"></span>
-    <svg class="mk lines" viewBox="0 0 1416 783" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="722.8" y1="300" x2="900" y2="300"/><line class="halo" x1="1296.5" y1="175" x2="1240" y2="140"/><line class="halo" x1="1102.3" y1="402.70000000000005" x2="1000" y2="440"/><line class="halo" x1="1218.2" y1="505" x2="1000" y2="505"/><line x1="722.8" y1="300" x2="900" y2="300"/><line x1="1296.5" y1="175" x2="1240" y2="140"/><line x1="1102.3" y1="402.70000000000005" x2="1000" y2="440"/><line x1="1218.2" y1="505" x2="1000" y2="505"/></svg>
-    <span class="mk pill" style="left:63.559%;top:38.314%"><b>1</b>Confirm or reject each candidate</span><span class="mk pill" style="left:87.571%;top:17.880%"><b>2</b>Confirmed by a person</span><span class="mk pill" style="left:70.621%;top:56.194%"><b>3</b>Solid line: a confirmed match</span><span class="mk pill" style="left:70.621%;top:64.496%"><b>4</b>GLEIF parent: AVERY DENNISON CORPORATION</span>
+    <svg class="mk lines" viewBox="0 0 1416 783" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="722.8" y1="300" x2="900" y2="300"/><line class="halo" x1="1296.5" y1="175" x2="1240" y2="140"/><line class="halo" x1="1102.3" y1="402.70000000000005" x2="1000" y2="440"/><line class="halo" x1="1218.2" y1="505" x2="972" y2="505"/><line x1="722.8" y1="300" x2="900" y2="300"/><line x1="1296.5" y1="175" x2="1240" y2="140"/><line x1="1102.3" y1="402.70000000000005" x2="1000" y2="440"/><line x1="1218.2" y1="505" x2="972" y2="505"/></svg>
+    <span class="mk pill" style="left:63.559%;top:38.314%"><b>1</b>Confirm or reject a match</span><span class="mk pill" style="left:87.571%;top:17.880%"><b>2</b>Confirmed by a person</span><span class="mk pill" style="left:70.621%;top:56.194%"><b>3</b>Solid line: a confirmed match</span><span class="mk pill" style="left:68.644%;top:64.496%"><b>4</b>Parent company: AVERY DENNISON CORPORATION</span>
   </div></div>
 </figure>
-<p>A match between an Open Supply Hub name and a GLEIF company stays a candidate (dashed line) until a person confirms it. Only then does its parent company show, here and in the site panel (figure 3).</p>
+<p>The app suggests matches between supplier owners and companies in GLEIF. A suggestion stays a dashed line until a person confirms it. Once confirmed, the line turns solid and the parent company appears: here, AVERY DENNISON CORPORATION. It then also shows in the site panel (figure 3).</p>
 </section>
 
 <section class="fig" id="fig-9">
-<h2><span class="no">9</span>The Satellite style <span class="co">adidas</span></h2>
+<h2><span class="no">9</span>Map styles (adidas)</h2>
 <figure class="shot">
   <div class="frame band"><div class="img" style="aspect-ratio:1415/584">
     <img src="assets/06-style-satellite.webp" width="1415" height="584" alt="Map style &quot;Satellite&quot; (adidas, Vietnam)">
     <span class="mk box" style="left:35.625%;top:4.829%;width:5.371%;height:6.233%"></span><span class="mk box" style="left:16.184%;top:90.445%;width:49.943%;height:7.877%"></span>
     <svg class="mk lines" viewBox="0 0 1415 584" preserveAspectRatio="none" aria-hidden="true"><line class="halo" x1="544" y1="28.2" x2="544" y2="-24"/><line class="halo" x1="760" y1="528.2" x2="760" y2="505"/><line class="halo" x1="562.9000000000001" y1="355" x2="752" y2="355"/><line x1="544" y1="28.2" x2="544" y2="-24"/><line x1="760" y1="528.2" x2="760" y2="505"/><line x1="562.9000000000001" y1="355" x2="752" y2="355"/></svg>
-    <span class="mk pill" style="left:38.445%;top:-4.110%"><b>1</b>Satellite: EOX's 2016 imagery</span><span class="mk pill" style="left:53.710%;top:86.473%"><b>2</b>Credits always shown in full</span><span class="mk pill" style="left:53.145%;top:60.788%"><b>3</b>Shading and sites stay on top</span>
+    <span class="mk pill" style="left:38.445%;top:-4.110%"><b>1</b>Satellite view: 2016 images</span><span class="mk pill" style="left:53.710%;top:86.473%"><b>2</b>Image credits, always shown</span><span class="mk pill" style="left:53.145%;top:60.788%"><b>3</b>Shading and sites stay on top</span>
   </div></div>
 </figure>
-<p>The Satellite style shows EOX's 2016 imagery under the same shading, sites and panel; Plain and Map are the other styles. <span class="code">Code only</span> If EOX does not respond, the map goes back to Plain with a one-line notice.</p>
+<p>There are three map styles: Plain (the default), Map (with place names) and Satellite. Satellite shows satellite images from 2016; the coloured countries, sites and panel stay the same.</p>
+<p><span class="code">Code only</span> if the satellite service does not respond, the map goes back to Plain and shows a short notice.</p>
 </section>
 
 <section class="know">
 <h2>Good to know</h2>
 <ul>
-<li>Disaster alerts come from GDACS and are automatic (figure 1).</li>
-<li>Every number shows its base, for example &quot;Owner known for 551 of 766 sites&quot; (figures 1 and 6).</li>
-<li>A GLEIF match is a candidate until a person confirms it; parent companies show only after that (figures 3 and 8).</li>
-<li>Lists are dated: the site in figure 3 is on Nike's February 2024 list, and Amazon's own lists in figure 7 are dated 2022, 2023, 2024 and 2026.</li>
+<li>Disaster alerts are automatic and not checked by people. Confirm before acting.</li>
+<li>Every number shows what it is out of, for example &quot;Owner known for 551 of 766 sites&quot;.</li>
+<li>A company match is only a suggestion until a person confirms it (figures 3 and 8).</li>
+<li>Supplier lists have dates: Nike's is from February 2024; Amazon's newest is from 2026.</li>
 </ul>
 </section>
 
-<footer>Captured in headless Chrome 154 at 1440 × 900, 2×, from app commit 4241049. Callout boxes were measured on the page at capture time (<code>assets/manifest.json</code>); <code>capture/</code> holds the tool that captures and builds this page.</footer>
+<footer>Screenshots taken in Chrome at 1440 × 900 on 3 Oct 2026. The tool that made them is in docs/walkthrough/capture/.</footer>
 </main>
 </body>
 </html>
